@@ -24,8 +24,8 @@ RUN apt-get update && apt-get install -y \
     libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
-# 🎞️ IMAGEMAGICK SECURITY PATCH (Allow MoviePy text operations)
-RUN sed -i 's/policy domain="path" rights="none" pattern="@\*"/policy domain="path" rights="read|write" pattern="@\*"/g' /etc/ImageMagick-6/policy.xml
+# 🎞️ IMAGEMAGICK SECURITY PATCH (Allow# 🔮 MOVIEYP PERMISSIONS FIX (Dynamic Version)
+RUN find /etc/ImageMagick* -name policy.xml -exec sed -i 's/policy domain="path" rights="none" pattern="@\*"/policy domain="path" rights="read|write" pattern="@\*"/g' {} +
 
 WORKDIR /app
 
