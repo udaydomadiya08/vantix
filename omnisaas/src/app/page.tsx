@@ -170,6 +170,8 @@ export default function HomePage() {
         </div>
 
         <div className="flex items-center gap-6">
+          <Link href="/settings/defaults" className="p-4 rounded-3xl glass-card text-slate-400 hover:text-white hover:border-emerald-500/50 transition-all group">
+            <Settings size={28} className="group-hover:rotate-90 transition-transform" />
           </Link>
           
           <div 
