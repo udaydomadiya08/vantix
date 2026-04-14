@@ -50,7 +50,7 @@ export default function RootLayout({
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { logout, user } = useAuth();
+  const { logout, user, isAuthenticated } = useAuth();
   const isAuthPage = pathname.startsWith('/auth');
   const [balance, setBalance] = useState<number | null>(null);
 
