@@ -1,4 +1,4 @@
-# VANTIX Master Production Manifest (Omni-Merge)
+# VANTIX Master Production Manifest (Modernized v1.1)
 # --- CORE API ---
 fastapi==0.115.0
 uvicorn==0.32.0
@@ -20,20 +20,20 @@ groq==0.11.0
 faster-whisper==1.0.3
 pydub==0.25.1
 pillow==11.0.0
-opencv-python-headless==4.10.0.84
+opencv-python-headless
 ffmpeg-python==0.2.0
 imageio-ffmpeg==0.5.1
 proglog==0.1.10
 rembg==2.0.60
-torch
-torchaudio
-torchvision
+torch --index-url https://download.pytorch.org/whl/cpu
+torchaudio --index-url https://download.pytorch.org/whl/cpu
+torchvision --index-url https://download.pytorch.org/whl/cpu
 
-# --- WAV2LIP SUBMODULE SPECIALISTS ---
-librosa==0.7.0
-numba==0.48
+# --- WAV2LIP SUBMODULE (Modernized for Py3.11) ---
+librosa>=0.10.0
+numba>=0.57.0
 mediapipe
-opencv-contrib-python
+opencv-contrib-python-headless
 scipy
 tqdm
 
