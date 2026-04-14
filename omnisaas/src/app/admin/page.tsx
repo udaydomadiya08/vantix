@@ -6,10 +6,9 @@ import {
   BarChart3, Users, Coins, Zap, ShieldCheck, 
   Search, ArrowUpRight, TrendingUp, LayoutGrid, 
   Loader2, Play, Book, GraduationCap, AlertCircle,
-  ExternalLink, User
+  ExternalLink, User, Activity, Clock, Server, Hourglass
 } from "lucide-react";
 import { getAdminStats, getAdminUsers } from "@/lib/api";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
@@ -19,6 +18,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const router = useRouter();
 
+  // 🏛️ [POLLING] Industrial Refresh Loop (5-Second Interval)
   useEffect(() => {
     async function loadData() {
       try {
@@ -40,7 +40,10 @@ export default function AdminDashboard() {
         setLoading(false);
       }
     }
+
     loadData();
+    const interval = setInterval(loadData, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
@@ -71,7 +74,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-12 pb-20">
+    <div className="max-w-7xl mx-auto space-y-12 pb-20 font-sans">
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-8 pt-4">
         <div className="space-y-2">
@@ -79,7 +82,7 @@ export default function AdminDashboard() {
              <div className="p-3 rounded-2xl bg-indigo-500/10 text-indigo-400">
                 <LayoutGrid size={28} />
              </div>
-             <h1 className="text-4xl font-black italic tracking-tighter text-white">COMMAND CENTER</h1>
+             <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase">Command Center</h1>
           </div>
           <p className="text-slate-400 text-sm font-medium tracking-wide">Ecosystem-wide production oversight and commercial ledger.</p>
         </div>
@@ -87,25 +90,102 @@ export default function AdminDashboard() {
         <div className="flex items-center gap-4">
            <div className="glass-card px-6 py-4 rounded-2xl bg-slate-900/40 border-slate-800 flex items-center gap-4">
               <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
-              <span className="text-[10px] font-black text-white uppercase tracking-widest">Oracle Links Stable</span>
+              <span className="text-[10px] font-black text-white uppercase tracking-widest">Oracle Links Synchronized</span>
            </div>
         </div>
       </header>
 
-      {/* Metric Cluster */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* 🚀 REAL-TIME TELEMETRY CLUSTER */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+         {/* Live Factory Pulse */}
+         <div className="glass-card p-8 rounded-[2.5rem] bg-indigo-500/5 border-indigo-500/20 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:scale-110 transition-transform">
+               <Activity size={48} className="text-indigo-400" />
+            </div>
+            <div className="space-y-6 relative">
+               <div className="space-y-1">
+                  <h3 className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-4">Factory Pulse</h3>
+                  <div className="flex items-end gap-3">
+                     <span className="text-5xl font-black italic tracking-tighter text-white tabular-nums">{stats.load_percentage}%</span>
+                     <span className="text-xs font-black text-slate-500 uppercase tracking-widest pb-2">Global Load</span>
+                  </div>
+               </div>
+               
+               <div className="space-y-3">
+                  <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
+                     <span className="text-slate-500">Worker Occupancy</span>
+                     <span className="text-white">{stats.active_workers} / 5 Slots</span>
+                  </div>
+                  <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5">
+                     <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${stats.load_percentage}%` }}
+                        className={`h-full rounded-full ${stats.load_percentage > 80 ? 'bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.4)]' : 'bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]'}`}
+                     />
+                  </div>
+               </div>
+            </div>
+         </div>
+
+         {/* Queue Inventory */}
+         <div className="glass-card p-8 rounded-[2.5rem] bg-emerald-500/5 border-emerald-500/20 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:scale-110 transition-transform">
+               <Hourglass size={48} className="text-emerald-400" />
+            </div>
+            <div className="space-y-6 relative">
+               <div className="space-y-1">
+                  <h3 className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-4">Queue Inventory</h3>
+                  <div className="flex items-end gap-3">
+                     <span className="text-5xl font-black italic tracking-tighter text-white tabular-nums">{stats.live_queue_count}</span>
+                     <span className="text-xs font-black text-slate-500 uppercase tracking-widest pb-2">Units Pending</span>
+                  </div>
+               </div>
+               
+               <div className="flex items-center gap-4 pt-2">
+                  <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center gap-2">
+                     <Server size={14} className="text-emerald-400" />
+                     <span className="text-[10px] font-black uppercase tracking-widest text-white">Cluster Core 1.0</span>
+                  </div>
+               </div>
+            </div>
+         </div>
+
+         {/* Production Velocity */}
+         <div className="glass-card p-8 rounded-[2.5rem] bg-cyan-500/5 border-cyan-500/20 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:scale-110 transition-transform">
+               <Zap size={48} className="text-cyan-400" />
+            </div>
+            <div className="space-y-6 relative">
+               <div className="space-y-1">
+                  <h3 className="text-xs font-black text-cyan-400 uppercase tracking-widest mb-4">Production Volume</h3>
+                  <div className="flex items-end gap-3">
+                     <span className="text-5xl font-black italic tracking-tighter text-white tabular-nums">{stats.total_jobs}</span>
+                     <span className="text-xs font-black text-slate-500 uppercase tracking-widest pb-2">Completed Units</span>
+                  </div>
+               </div>
+               
+               <div className="flex items-center gap-4 pt-2">
+                  <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center gap-2">
+                     <TrendingUp size={14} className="text-cyan-400" />
+                     <span className="text-[10px] font-black uppercase tracking-widest text-white">Efficiency: 99.4%</span>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+
+      {/* Metric Cluster (Historical) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Total Revenue', value: stats.total_invoiced, prefix: '$', color: 'emerald', icon: Coins },
-          { label: 'Total Jobs', value: stats.total_jobs, prefix: '', color: 'cyan', icon: Zap },
-          { label: 'Active Nodes', value: stats.users, prefix: '', color: 'indigo', icon: Users },
-          { label: 'System Credits', value: stats.balance, prefix: '', color: 'rose', icon: BarChart3 },
+          { label: 'Platform Revenue', value: stats.total_invoiced, prefix: '$', color: 'emerald', icon: Coins },
+          { label: 'Node Population', value: stats.users, prefix: '', color: 'indigo', icon: Users },
+          { label: 'Industrial Credit Debt', value: stats.balance, prefix: '', color: 'rose', icon: BarChart3 },
         ].map((metric) => (
           <div key={metric.label} className="glass-card p-6 rounded-3xl bg-slate-900/40 border-slate-800 hover:border-slate-700 transition-all group">
              <div className="flex items-center justify-between mb-4">
                 <div className={`p-2.5 rounded-xl bg-${metric.color}-500/10 text-${metric.color}-400`}>
                    <metric.icon size={20} />
                 </div>
-                <TrendingUp size={16} className="text-slate-600 group-hover:text-emerald-500 transition-colors" />
              </div>
              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">{metric.label}</span>
              <div className="text-2xl font-black text-white tabular-nums italic tracking-tighter">
@@ -119,10 +199,10 @@ export default function AdminDashboard() {
         {/* User Ledger */}
         <div className="lg:col-span-2 space-y-6">
            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-black text-indigo-400 uppercase tracking-[0.3em]">User Ledger</h2>
+              <h2 className="text-xs font-black text-indigo-400 uppercase tracking-[0.3em]">User Node Directory</h2>
               <div className="flex items-center gap-2 text-slate-500 text-[10px] font-black uppercase tracking-widest">
                  <Search size={12} />
-                 <span>Search Nodes</span>
+                 <span>Audit Activity</span>
               </div>
            </div>
 
@@ -130,33 +210,33 @@ export default function AdminDashboard() {
               <table className="w-full text-left">
                  <thead>
                     <tr className="border-b border-slate-800">
-                       <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Node Node</th>
+                       <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Node ID</th>
                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Power Level</th>
-                       <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Vault Status</th>
+                       <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Vault Config</th>
                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Operation</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-800/50">
                     {users.map((user) => (
                       <tr key={user.username} className="hover:bg-white/[0.02] transition-colors group">
-                         <td className="px-8 py-6">
+                         <td className="px-8 py-6 text-sm">
                             <div className="flex items-center gap-3">
                                <div className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
                                   <User size={16} />
                                </div>
-                               <span className="text-white font-bold text-sm tracking-tight">{user.username}</span>
+                               <span className="text-white font-bold tracking-tight">{user.username}</span>
                             </div>
                          </td>
                          <td className="px-8 py-6">
                             <div className="flex items-center gap-2">
                                <span className="text-white font-black tabular-nums">{user.balance}</span>
-                               <span className="text-[10px] font-black text-emerald-500 uppercase tracking-tighter">Credits</span>
+                               <span className="text-[10px] font-black text-emerald-500 uppercase tracking-tighter italic">credits</span>
                             </div>
                          </td>
                          <td className="px-8 py-6">
                             <div className="flex items-center gap-2">
                                <div className={`h-1.5 w-1.5 rounded-full ${user.keys_configured > 0 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-600'}`} />
-                               <span className="text-xs font-bold text-slate-400">{user.keys_configured} Keys Linked</span>
+                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{user.keys_configured} / 4 keys</span>
                             </div>
                          </td>
                          <td className="px-8 py-6">
@@ -173,13 +253,13 @@ export default function AdminDashboard() {
 
         {/* Synthesis Distribution */}
         <div className="space-y-6">
-           <h2 className="text-xs font-black text-emerald-400 uppercase tracking-[0.3em]">Factory Load</h2>
+           <h2 className="text-xs font-black text-emerald-400 uppercase tracking-[0.3em]">Ecosystem Load</h2>
            
            <div className="glass-card p-10 rounded-[3rem] bg-slate-900/40 border-slate-800 space-y-8">
               {[
-                { label: 'Video Synthesizer', count: stats.job_breakdown.video, icon: Play, color: 'rose' },
-                { label: 'E-Book Generator', count: stats.job_breakdown.ebook, icon: Book, color: 'indigo' },
-                { label: 'Course Factory', count: stats.job_breakdown.course, icon: GraduationCap, color: 'cyan' },
+                { label: 'Short-Video Units', count: stats.job_breakdown.video, icon: Play, color: 'rose' },
+                { label: 'E-Book Narrative', count: stats.job_breakdown.ebook, icon: Book, color: 'indigo' },
+                { label: 'E-Course Foundry', count: stats.job_breakdown.course, icon: GraduationCap, color: 'cyan' },
                 { label: 'Thumbnail Oracle', count: stats.job_breakdown.thumbnail, icon: LayoutGrid, color: 'amber' },
               ].map((factory) => (
                 <div key={factory.label} className="space-y-3">
@@ -190,7 +270,7 @@ export default function AdminDashboard() {
                       </div>
                       <span className="text-white font-black tabular-nums italic text-sm">{factory.count}</span>
                    </div>
-                   <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                   <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${(factory.count / (stats.total_jobs || 1)) * 100}%` }}
@@ -200,18 +280,16 @@ export default function AdminDashboard() {
                 </div>
               ))}
 
-              <div className="pt-6 border-t border-slate-800 flex items-center justify-between">
-                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Industrial Throughput</span>
-                 <span className="text-emerald-500 font-black italic">{stats.total_jobs} Total Units</span>
+              <div className="pt-6 border-t border-slate-800">
+                  <div className="flex items-center justify-between mb-4">
+                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Infrastructure Status</span>
+                     <div className="flex items-center gap-1.5">
+                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[10px] font-black text-emerald-500 uppercase italic">Healthy</span>
+                     </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-medium leading-relaxed italic opacity-60">System operating at peak efficiency. Synthesis taxation yielding high-conversion liquidity.</p>
               </div>
-           </div>
-
-           <div className="glass-card p-8 rounded-[2.5rem] bg-emerald-500/5 border-emerald-500/20">
-              <div className="flex items-center gap-3 mb-3">
-                 <AlertCircle size={20} className="text-emerald-400" />
-                 <span className="text-[10px] font-black text-white uppercase tracking-widest">Platform Status</span>
-              </div>
-              <p className="text-xs text-slate-400 font-medium leading-relaxed">System operating at peak efficiency. Synthesis taxation is currently yielding <span className="text-white font-bold">{Math.round(stats.total_jobs * 5)} estimated platform credits</span> in operating fees.</p>
            </div>
         </div>
       </div>

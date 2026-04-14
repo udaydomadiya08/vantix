@@ -193,6 +193,18 @@ class StreamQueueManager:
         except Exception:
             return 0, 0
 
+    def get_global_stats(self):
+        """🏛️ [ORACLE] Aggregate ecosystem-wide live metrics."""
+        total_queued = 0
+        for (user, s_type), queue in self.queues.items():
+            total_queued += queue.qsize()
+        
+        return {
+            "live_queue_count": total_queued,
+            "active_workers": len(self.active_workers),
+            "load_percentage": min(round((len(self.active_workers) / 5) * 100), 100)
+        }
+
 QUEUE_MANAGER = StreamQueueManager()
 
 async def vantix_reaper():
@@ -672,8 +684,12 @@ def verify_admin(username: str = Depends(get_current_user)):
 
 @app.get("/admin/stats")
 async def admin_stats(admin: str = Depends(verify_admin)):
-    """🏛️ [ORACLE] Aggregated ecosystem-wide metrics"""
-    return db_helper.get_admin_stats()
+    """🏛️ [ORACLE] Aggregated ecosystem-wide metrics (Live + Historical)"""
+    db_stats = db_helper.get_admin_stats()
+    live_stats = QUEUE_MANAGER.get_global_stats()
+    
+    # Merge Industrial Telemetry
+    return {**db_stats, **live_stats}
 
 @app.get("/admin/users")
 async def admin_users(admin: str = Depends(verify_admin)):
