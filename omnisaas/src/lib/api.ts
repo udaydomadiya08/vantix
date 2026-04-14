@@ -140,3 +140,18 @@ export async function getHistory() {
     });
     return response.json();
 }
+
+export async function getUserBalance() {
+    const response = await fetch(`${API_BASE}/user/balance`, {
+        headers: getHeaders(),
+    });
+    return response.json();
+}
+
+export async function reloadCredits(amount: number) {
+    const response = await fetch(`${API_BASE}/payments/reload?amount=${amount}`, {
+        method: "POST",
+        headers: getHeaders(),
+    });
+    return response.json();
+}

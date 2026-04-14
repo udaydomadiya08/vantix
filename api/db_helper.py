@@ -59,7 +59,8 @@ def create_user(username, password):
             "pexels": None,
             "pixabay": None
         },
-        "defaults": DEFAULT_STRUCTURE
+        "defaults": DEFAULT_STRUCTURE,
+        "balance": 50
     }
     
     with open(DB_PATH, "w") as f:
@@ -176,3 +177,39 @@ def get_user_history(username):
         reverse=True
     )
     return sorted_history
+
+def get_user_balance(username):
+    """💎 Retrieve current Vantix power level"""
+    user = get_user(username)
+    return user.get("balance", 0) if user else 0
+
+def deduct_credits(username, amount):
+    """⚖️ Process Synthesis Taxation"""
+    initialize_db()
+    with open(DB_PATH, "r") as f:
+        users = json.load(f)
+    
+    if username in users:
+        current = users[username].get("balance", 0)
+        if current < amount:
+            return False, current
+        
+        users[username]["balance"] = current - amount
+        with open(DB_PATH, "w") as f:
+            json.dump(users, f, indent=4)
+        return True, users[username]["balance"]
+    return False, 0
+
+def add_credits(username, amount):
+    """💳 Reload Production Node"""
+    initialize_db()
+    with open(DB_PATH, "r") as f:
+        users = json.load(f)
+    
+    if username in users:
+        current = users[username].get("balance", 0)
+        users[username]["balance"] = current + amount
+        with open(DB_PATH, "w") as f:
+            json.dump(users, f, indent=4)
+        return True, users[username]["balance"]
+    return False, 0

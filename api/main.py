@@ -285,6 +285,17 @@ def update_user_defaults(req: DefaultsRequest, username: str = Depends(get_curre
     db_helper.update_user_defaults(username, req.factory_type, req.settings)
     return {"message": f"Defaults for {req.factory_type} updated"}
 
+@app.get("/user/balance")
+def get_balance(username: str = Depends(get_current_user)):
+    return {"balance": db_helper.get_user_balance(username)}
+
+@app.post("/payments/reload")
+def reload_credits(amount: int, username: str = Depends(get_current_user)):
+    success, new_balance = db_helper.add_credits(username, amount)
+    if success:
+        return {"message": "Node Reloaded", "balance": new_balance}
+    raise HTTPException(status_code=400, detail="Recharge Failed")
+
 # --- Home ---
 @app.get("/")
 def read_root():
@@ -301,7 +312,11 @@ async def generate_video(
     x_pexels_key: str = Header(None),
     x_pixabay_key: str = Header(None)
 ):
-    """🎬 Industrial Video Production"""
+    # ⚖️ [TAXATION] Video Cost: 5 Credits
+    success, balance = db_helper.deduct_credits(username, 5)
+    if not success:
+        raise HTTPException(status_code=402, detail=f"Insufficient Vantix Power. Balance: {balance}")
+
     job_id = str(uuid.uuid4())
     db_keys = db_helper.get_user_keys(username)
     db_defaults = db_helper.get_user_defaults(username).get("video", {})
@@ -344,6 +359,11 @@ async def generate_video(
 @app.post("/generate-thumbnail")
 async def generate_thumbnail(request: ThumbnailRequest, username: str = Depends(get_current_user)):
     """🎨 Synthesize an Omnipotent High-CTR Thumbnail"""
+    # ⚖️ [TAXATION] Thumbnail Cost: 2 Credits
+    success, balance = db_helper.deduct_credits(username, 2)
+    if not success:
+        raise HTTPException(status_code=402, detail=f"Insufficient Vantix Power. Balance: {balance}")
+
     job_id = str(uuid.uuid4())
     user_keys = db_helper.get_user_keys(username)
     
@@ -392,6 +412,11 @@ async def generate_course(
     x_openrouter_key: str = Header(None)
 ):
     """🎓 Industrial E-course Production"""
+    # ⚖️ [TAXATION] E-Course Cost: 25 Credits
+    success, balance = db_helper.deduct_credits(username, 25)
+    if not success:
+        raise HTTPException(status_code=402, detail=f"Insufficient Vantix Power. Balance: {balance}")
+
     job_id = str(uuid.uuid4())
     db_keys = db_helper.get_user_keys(username)
     

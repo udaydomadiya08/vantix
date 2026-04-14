@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Book, GraduationCap, Zap, Activity, Clock, Server, CheckCircle2, AlertCircle, Loader2, Settings, ChevronRight, ArrowRight, ShieldCheck, X, ShieldAlert } from "lucide-react";
-import { generateVideo, generateEbook, generateCourse, checkStatus, getJobStatus, cancelJob } from "@/lib/api";
+import { Play, Book, GraduationCap, Zap, Activity, Clock, Server, CheckCircle2, AlertCircle, Loader2, Settings, ChevronRight, ArrowRight, ShieldCheck, X, ShieldAlert, CreditCard, Plus, Coins } from "lucide-react";
+import { generateVideo, generateEbook, generateCourse, checkStatus, getJobStatus, cancelJob, getUserBalance, reloadCredits } from "@/lib/api";
 import Link from "next/link";
 
 export default function HomePage() {
@@ -11,6 +11,9 @@ export default function HomePage() {
   const [queuedJobs, setQueuedJobs] = useState<any[]>([]); // {id, status, type, topic}
   const [serverStatus, setServerStatus] = useState<'online' | 'offline'>('offline');
   const [successMessage, setSuccessMessage] = useState("");
+  const [balance, setBalance] = useState<number | null>(null);
+  const [showRecharge, setShowRecharge] = useState(false);
+  const [isRecharging, setIsRecharging] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
   // 🏛️ [INDUSTRIAL SANITIZER] Normalize stale result_urls from localStorage
@@ -61,8 +64,17 @@ export default function HomePage() {
         .then(() => setServerStatus('online'))
         .catch(() => setServerStatus('offline'));
     };
+
+    const fetchBalance = () => {
+      getUserBalance().then(data => setBalance(data.balance)).catch(() => { });
+    };
+
     checkServer();
-    const interval = setInterval(checkServer, 10000);
+    fetchBalance();
+    const interval = setInterval(() => {
+        checkServer();
+        fetchBalance();
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -100,11 +112,32 @@ export default function HomePage() {
       if (res && res.job_id) {
         setQueuedJobs(prev => [{ id: res.job_id, status: 'queued', type, topic, timestamp: new Date() }, ...prev]);
         setSuccessMessage(`${type.toUpperCase()} stream synchronized.`);
+        // Refresh balance after deduction
+        getUserBalance().then(data => setBalance(data.balance));
         setTimeout(() => setSuccessMessage(""), 3000);
       }
-    } catch (error) {
-      console.error(error);
-      alert("Factory Interruption: Backend cluster unreachable.");
+    } catch (error: any) {
+      if (error?.message?.includes("402") || (error instanceof Response && error.status === 402)) {
+         setShowRecharge(true);
+      } else {
+         console.error(error);
+         alert("Factory Interruption: Check your Vantix Power / Backend status.");
+      }
+    }
+  };
+
+  const handleReload = async (amount: number) => {
+    setIsRecharging(true);
+    try {
+      const data = await reloadCredits(amount);
+      setBalance(data.balance);
+      setShowRecharge(false);
+      setSuccessMessage(`Added ${amount} credits to node.`);
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (e) {
+      alert("Recharge Failed: Commercial Link Interrupted.");
+    } finally {
+      setIsRecharging(false);
     }
   };
 
@@ -137,9 +170,24 @@ export default function HomePage() {
         </div>
 
         <div className="flex items-center gap-6">
-          <Link href="/settings/defaults" className="p-4 rounded-3xl glass-card text-slate-400 hover:text-white hover:border-emerald-500/50 transition-all group">
-            <Settings size={28} className="group-hover:rotate-90 transition-transform" />
           </Link>
+          
+          <div 
+            onClick={() => setShowRecharge(true)}
+            className="flex items-center gap-4 px-6 py-4 rounded-3xl glass-card border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 cursor-pointer transition-all animate-in fade-in slide-in-from-right-4"
+          >
+             <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+                <Coins size={20} className="animate-bounce" />
+             </div>
+             <div className="flex flex-col">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-left">Industrial Power</span>
+                <span className="text-xl font-bold text-white tabular-nums leading-none">
+                  {balance !== null ? balance : <Loader2 size={16} className="animate-spin inline" />}
+                </span>
+             </div>
+             <Plus size={16} className="text-emerald-500/50" />
+          </div>
+
           <div className={`flex flex-col items-center gap-1.5 px-8 py-4 rounded-3xl glass-card border-none ${serverStatus === 'online' ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
              <div className="flex items-center gap-3">
                 <Server size={18} className={serverStatus === 'online' ? 'text-emerald-400 accent-glow' : 'text-rose-400'} />
@@ -326,6 +374,86 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* 💳 RECHARGE MODAL */}
+      <AnimatePresence>
+        {showRecharge && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 sm:p-0">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isRecharging && setShowRecharge(false)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" 
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden"
+            >
+              <div className="p-8 space-y-8">
+                <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-400">
+                         <Zap size={24} />
+                      </div>
+                      <h2 className="text-xl font-black text-white italic tracking-tight underline decoration-emerald-500/30 decoration-4 underline-offset-4">RECHARGE NODE</h2>
+                   </div>
+                   <button 
+                     onClick={() => !isRecharging && setShowRecharge(false)}
+                     className="p-2 rounded-xl hover:bg-slate-800 text-slate-500 transition-all"
+                   >
+                     <X size={20} />
+                   </button>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-slate-400 text-sm font-medium">Inject industrial power to restore synthesis capabilities. Select a recharge vector:</p>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    {[
+                      { amount: 100, price: '10', label: 'Starter Cell', bonus: 'Basic Power' },
+                      { amount: 500, price: '45', label: 'Engine Core', bonus: '10% Extraction Bonus' },
+                      { amount: 2000, price: '150', label: 'Industrial Grid', bonus: '25% Optimization' }
+                    ].map((plan) => (
+                      <button
+                        key={plan.amount}
+                        disabled={isRecharging}
+                        onClick={() => handleReload(plan.amount)}
+                        className="p-6 rounded-3xl border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all text-left flex items-center justify-between group disabled:opacity-50"
+                      >
+                         <div className="space-y-1">
+                            <h4 className="text-white font-black text-xs uppercase tracking-widest">{plan.label}</h4>
+                            <p className="text-[10px] text-slate-500 font-bold">{plan.amount} Credits // {plan.bonus}</p>
+                         </div>
+                         <div className="text-right">
+                            <span className="text-xs font-black text-emerald-400 uppercase tracking-tighter italic">US ${plan.price}</span>
+                            <div className="flex items-center justify-end text-[8px] text-slate-600 font-bold uppercase mt-1 group-hover:text-white transition-colors">
+                               Init Transfer <ChevronRight size={10} />
+                            </div>
+                         </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-6 rounded-3xl bg-slate-950/50 border border-slate-800/50 flex items-center gap-4">
+                   <ShieldCheck size={20} className="text-slate-600" />
+                   <p className="text-[10px] text-slate-600 font-medium leading-relaxed uppercase tracking-widest">Transactions secured by Vantix Cryptographic Ledger. Local simulation active.</p>
+                </div>
+              </div>
+              
+              {isRecharging && (
+                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center space-y-4">
+                   <Loader2 className="animate-spin text-emerald-500" size={40} />
+                   <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] animate-pulse">Synchronizing Ledger...</span>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
