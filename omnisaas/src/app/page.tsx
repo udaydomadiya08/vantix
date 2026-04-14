@@ -86,14 +86,14 @@ export default function HomePage() {
         setTimeout(() => setSuccessMessage(""), 3000);
       } else if (res && res.detail && res.detail.error === "vault_locked") {
          alert(`VAULT LOCKED: ${res.detail.message} - Please configure your Groq/OpenRouter keys in the API Vault.`);
-         router.push("/settings/defaults"); // Redirect to settings
+         router.push("/settings/api"); // Redirect to API Vault
       }
     } catch (error: any) {
       if (error?.message?.includes("402") || (error instanceof Response && error.status === 402)) {
          alert("Insufficient Industrial Power. Please upgrade your node in the sidebar.");
       } else if (error?.message?.includes("428") || (error instanceof Response && error.status === 428)) {
          alert("VAULT LOCKED: Core AI keys missing. Please synchronize your API Vault.");
-         router.push("/settings/defaults");
+         router.push("/settings/api");
       } else {
          alert("Factory Interruption: Check your Vantix Power / Backend status.");
       }
