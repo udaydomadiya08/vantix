@@ -3,36 +3,52 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Coins, ChevronRight, ShieldCheck, Plus, ArrowRight, Loader2, Play, Book, GraduationCap, ArrowLeft } from "lucide-react";
-import { getUserBalance, reloadCredits } from "@/lib/api";
+import { getUserBalance, createCheckoutSession } from "@/lib/api";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 export default function RechargePage() {
   const [balance, setBalance] = useState<number | null>(null);
   const [isRecharging, setIsRecharging] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     getUserBalance().then(data => setBalance(data.balance)).catch(() => {});
-  }, []);
+    
+    // 💡 [SENTINEL] Detect Stripe Feedback
+    if (searchParams.get("success") === "true") {
+      setSuccessMessage("Industrial Power Infusion Successful. Credits have been minted to your node.");
+      setTimeout(() => setSuccessMessage(""), 10000);
+    }
+    if (searchParams.get("canceled") === "true") {
+      setErrorMessage("Commercial Link Aborted. Payment was not processed.");
+      setTimeout(() => setErrorMessage(""), 5000);
+    }
+  }, [searchParams]);
 
-  const handleReload = async (amount: number) => {
+  const handleCheckout = async (planId: string) => {
     setIsRecharging(true);
+    setErrorMessage("");
     try {
-      const data = await reloadCredits(amount);
-      setBalance(data.balance);
-      setSuccessMessage(`Successfully injected ${amount} Industrial Power Credits.`);
-      setTimeout(() => setSuccessMessage(""), 5000);
+      const data = await createCheckoutSession(planId);
+      if (data.url) {
+        window.location.href = data.url; // 🛰️ REDIRECT TO STRIPE
+      } else {
+        throw new Error("No URL returned");
+      }
     } catch (e) {
-      alert("Recharge Failed: Commercial Link Interrupted.");
+      setErrorMessage("Commercial Link Interrupted. Failed to initiate Stripe Session.");
     } finally {
       setIsRecharging(false);
     }
   };
 
   const plans = [
-    { amount: 100, price: '10', label: 'Starter Cell', bonus: 'Basic Power', icon: Zap, color: 'emerald' },
-    { amount: 500, price: '45', label: 'Engine Core', bonus: '10% Extraction Bonus', icon: Coins, color: 'cyan' },
-    { amount: 2000, price: '150', label: 'Industrial Grid', bonus: '25% Optimization', icon: ShieldCheck, color: 'indigo' }
+    { id: 'starter', amount: 100, price: '10', label: 'Starter Cell', bonus: 'Basic Power', icon: Zap, color: 'emerald' },
+    { id: 'core', amount: 500, price: '45', label: 'Engine Core', bonus: '10% Extraction Bonus', icon: Coins, color: 'cyan' },
+    { id: 'grid', amount: 2000, price: '150', label: 'Industrial Grid', bonus: '25% Optimization', icon: ShieldCheck, color: 'indigo' }
   ];
 
   return (
@@ -74,6 +90,16 @@ export default function RechargePage() {
             className="p-6 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-black uppercase tracking-widest text-center"
           >
              {successMessage}
+          </motion.div>
+        )}
+        {errorMessage && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="p-6 rounded-3xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-black uppercase tracking-widest text-center"
+          >
+             {errorMessage}
           </motion.div>
         )}
       </AnimatePresence>
@@ -118,7 +144,7 @@ export default function RechargePage() {
 
             <button
               disabled={isRecharging}
-              onClick={() => handleReload(plan.amount)}
+              onClick={() => handleCheckout(plan.id)}
               className={`w-full py-5 rounded-[1.5rem] bg-${plan.color}-500 text-white text-xs font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-xl`}
             >
                {isRecharging ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}

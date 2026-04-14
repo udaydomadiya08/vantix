@@ -13,6 +13,18 @@ from datetime import datetime, timedelta
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import functools
+import stripe
+
+# 💳 [FINANCIALS] Stripe Industrial Protocol
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+# 🏛️ [PRICING] Industrial Credit Tiers
+STRIPE_PLANS = {
+    "starter": {"amount": 1000, "credits": 100, "name": "Vantix Starter Cell"}, # $10.00
+    "core": {"amount": 4500, "credits": 500, "name": "Vantix Engine Core"},   # $45.00
+    "grid": {"amount": 15000, "credits": 2000, "name": "Vantix Industrial Grid"} # $150.00
+}
 
 # 🔗 Path Synchronization: Ensure root and local modules are visible to the API
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -236,6 +248,9 @@ class DefaultsRequest(BaseModel):
     factory_type: str
     settings: dict
 
+class CheckoutRequest(BaseModel):
+    plan_id: str # starter, core, grid
+
 # --- Auth Utilities ---
 def create_token(username: str):
     expire = datetime.utcnow() + timedelta(days=7)
@@ -288,6 +303,70 @@ def update_user_defaults(req: DefaultsRequest, username: str = Depends(get_curre
 @app.get("/user/balance")
 def get_balance(username: str = Depends(get_current_user)):
     return {"balance": db_helper.get_user_balance(username)}
+
+@app.post("/payments/create-checkout-session")
+async def create_checkout_session(req: CheckoutRequest, username: str = Depends(get_current_user)):
+    """💳 Initiate Industrial Credit Transfer via Stripe"""
+    if req.plan_id not in STRIPE_PLANS:
+        raise HTTPException(status_code=400, detail="Invalid Industrial Plan")
+    
+    plan = STRIPE_PLANS[req.plan_id]
+    frontend_url = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")[0].strip()
+    
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': plan["name"],
+                        'description': f"Injection of {plan['credits']} Industrial Credits into Node {username}",
+                    },
+                    'unit_amount': plan["amount"],
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=f"{frontend_url}/recharge?success=true",
+            cancel_url=f"{frontend_url}/recharge?canceled=true",
+            client_reference_id=username,
+            metadata={
+                "plan_id": req.plan_id,
+                "credits": plan["credits"]
+            }
+        )
+        return {"url": session.url}
+    except Exception as e:
+        print(f"❌ [STRIPE] Checkout Session Failed: {e}")
+        raise HTTPException(status_code=500, detail="Stripe Node failure")
+
+@app.post("/payments/webhook")
+async def stripe_webhook(request: Request):
+    """🏛️ Webhook Sentinel: Verify and Inject Credits"""
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+    
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
+    except Exception as e:
+        print(f"⚠️ [WEBHOOK] Signature failure: {e}")
+        raise HTTPException(status_code=400, detail="Invalid Signature")
+    
+    # 💎 [SUCCESS EVENT]
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        username = session.get('client_reference_id')
+        metadata = session.get('metadata', {})
+        credits_to_add = int(metadata.get('credits', 0))
+        
+        if username and credits_to_add > 0:
+            print(f"💎 [STRIPE SUCCESS] Injecting {credits_to_add} Credits for: {username}")
+            db_helper.add_credits(username, credits_to_add)
+            
+    return {"status": "success"}
 
 @app.post("/payments/reload")
 def reload_credits(amount: int, username: str = Depends(get_current_user)):

@@ -155,3 +155,12 @@ export async function reloadCredits(amount: number) {
     });
     return response.json();
 }
+
+export async function createCheckoutSession(planId: string) {
+    const response = await fetch(`${API_BASE}/payments/create-checkout-session`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ plan_id: planId }),
+    });
+    return response.json();
+}
