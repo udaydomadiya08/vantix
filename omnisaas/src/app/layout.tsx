@@ -7,7 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getUserBalance } from "@/lib/api";
 import "./globals.css";
-import { LayoutDashboard, Video, GraduationCap, BookOpen, Zap, LogOut, History, Coins, Plus, Loader2 } from "lucide-react";
+import { LayoutDashboard, Video, GraduationCap, BookOpen, Zap, LogOut, History, Coins, Plus, Loader2, ShieldCheck } from "lucide-react";
 
 const inter = Inter({ subsets: ["latin"] });
 

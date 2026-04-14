@@ -6,8 +6,9 @@ import { Zap, Coins, ChevronRight, ShieldCheck, Plus, ArrowRight, Loader2, Play,
 import { getUserBalance, createCheckoutSession } from "@/lib/api";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function RechargePage() {
+function RechargeContent() {
   const [balance, setBalance] = useState<number | null>(null);
   const [isRecharging, setIsRecharging] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -188,5 +189,18 @@ export default function RechargePage() {
          </div>
       </section>
     </div>
+  );
+}
+
+export default function RechargePage() {
+  return (
+    <Suspense fallback={
+       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+          <Loader2 size={32} className="text-emerald-500 animate-spin" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 text-center">Calibrating Commercial Link...</p>
+       </div>
+    }>
+       <RechargeContent />
+    </Suspense>
   );
 }
