@@ -55,9 +55,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isAuthPage) {
-      getUserBalance().then(data => setBalance(data.balance)).catch(() => {});
+      getUserBalance().then(data => setBalance(data.balance)).catch(() => { });
       const interval = setInterval(() => {
-        getUserBalance().then(data => setBalance(data.balance)).catch(() => {});
+        getUserBalance().then(data => setBalance(data.balance)).catch(() => { });
       }, 10000);
       return () => clearInterval(interval);
     }
@@ -126,15 +126,15 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   {balance !== null ? balance : <Loader2 size={10} className="animate-spin" />} C
                 </span>
               </div>
-              
+
               <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-1000" 
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-1000"
                   style={{ width: `${Math.min((balance || 0) / 2, 100)}%` }}
                 />
               </div>
 
-              <Link 
+              <Link
                 href="/recharge"
                 className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all flex items-center justify-center gap-2 group"
               >
