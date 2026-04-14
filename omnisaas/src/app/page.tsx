@@ -178,7 +178,7 @@ function LandingPage() {
                    <div className="space-y-4 font-mono text-[10px]">
                       <div className="text-emerald-500/60 leading-relaxed">[NODE_INFO] Initializing VANTIX Synthesis Engine...</div>
                       <div className="text-slate-400 leading-relaxed">[VAULT_AUTH] BYOK Handshake Successful: Groq v3-Llama-70b</div>
-                      <div className="text-slate-400 leading-relaxed">[QUEUE_MANAGER] Shorts Factory -> Received 1500 tokens</div>
+                      <div className="text-slate-400 leading-relaxed">[QUEUE_MANAGER] Shorts Factory {"->"} Received 1500 tokens</div>
                       <div className="text-cyan-400 leading-relaxed">[SYNTHESIS] Video rendering active: 45fps industrial speed</div>
                       <div className="text-slate-400/50 leading-relaxed">--------------------------------------------------</div>
                       <div className="text-white animate-pulse">_</div>
