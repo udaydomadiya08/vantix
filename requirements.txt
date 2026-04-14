@@ -25,3 +25,4 @@ imageio-ffmpeg==0.5.1
 python-dotenv==1.0.1
 pyjwt==2.9.0
 gTTS==2.5.3
+feedparser==6.0.11
