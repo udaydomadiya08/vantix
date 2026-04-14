@@ -8,6 +8,8 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-dotenv==1.0.1
 pyjwt==2.9.0
+flask-cors
+pyyaml
 
 # --- MEDIA & AI ENGINES ---
 moviepy==1.0.3
@@ -19,6 +21,7 @@ faster-whisper==1.0.3
 pydub==0.25.1
 pillow==11.0.0
 opencv-python-headless==4.10.0.84
+ffmpeg-python==0.2.0
 imageio-ffmpeg==0.5.1
 proglog==0.1.10
 rembg==2.0.60
