@@ -123,7 +123,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
             <div className="rounded-2xl bg-emerald-500/5 p-5 border border-emerald-500/20 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="text-slate-400 leading-relaxed">[QUEUE_MANAGER] Shorts Factory {"->"} Received 1500 tokens</div>
                 <div className="flex items-center gap-2 text-emerald-400">
                   <Coins size={14} className="animate-pulse" />
                   <span className="text-[10px] font-black uppercase tracking-[0.2em]">Industrial Power</span>
