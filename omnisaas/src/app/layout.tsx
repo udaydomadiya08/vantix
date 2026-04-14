@@ -75,6 +75,11 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     { name: 'Buy Credits', icon: Coins, path: '/recharge' },
   ];
 
+  // 👑 [ADMIN] Direct Oracle Link
+  if (user === "udaydomadiya") {
+    navItems.push({ name: 'Command Center', icon: ShieldCheck, path: '/admin' });
+  }
+
   return (
     <div className="relative flex min-h-screen">
       {/* Dashboard Sidebar */}
