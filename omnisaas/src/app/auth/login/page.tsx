@@ -88,7 +88,7 @@ export default function LoginPage() {
                 </form>
 
                 <div className="text-center">
-                    <span className="text-sm text-slate-500">Don't have an account? </span>
+                    <span className="text-sm text-slate-500">Don&apos;t have an account? </span>
                     <Link href="/auth/signup" className="text-sm text-emerald-400 font-bold hover:underline">Sign Up</Link>
                 </div>
             </motion.div>
