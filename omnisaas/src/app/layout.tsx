@@ -1,6 +1,13 @@
-import { LayoutDashboard, Video, GraduationCap, BookOpen, Settings, Zap, User, LogOut, History, Coins, Plus, Loader2, X, ChevronRight, ShieldCheck } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { getUserBalance, reloadCredits } from "@/lib/api";
+'use client';
+
+import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { Inter } from "next/font/google";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getUserBalance } from "@/lib/api";
+import "./globals.css";
+import { LayoutDashboard, Video, GraduationCap, BookOpen, Zap, LogOut, History, Coins, Plus, Loader2 } from "lucide-react";
 
 const inter = Inter({ subsets: ["latin"] });
 
