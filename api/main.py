@@ -196,11 +196,24 @@ class StreamQueueManager:
     def get_global_stats(self):
         """🏛️ [ORACLE] Aggregate ecosystem-wide live metrics."""
         total_queued = 0
+        live_jobs = []
         for (user, s_type), queue in self.queues.items():
             total_queued += queue.qsize()
+            # 📸 Snapshot of this specific user-stream queue
+            q_list = list(queue._queue)
+            for jid, _, _ in q_list:
+                status = JOB_STATUS.get(jid, {})
+                live_jobs.append({
+                    "id": jid,
+                    "user": user,
+                    "type": s_type,
+                    "topic": status.get("topic", "Unknown"),
+                    "submitted": status.get("submitted")
+                })
         
         return {
             "live_queue_count": total_queued,
+            "live_jobs": sorted(live_jobs, key=lambda x: x.get("submitted", ""), reverse=True),
             "active_workers": len(self.active_workers),
             "load_percentage": min(round((len(self.active_workers) / 5) * 100), 100)
         }
@@ -319,15 +332,17 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 # --- Auth Endpoints ---
 @app.post("/auth/signup")
 def signup(user: UserAuth):
-    if db_helper.create_user(user.username, user.password):
-        return {"message": "User created successfully", "token": create_token(user.username)}
+    username = user.username.lower().strip()
+    if db_helper.create_user(username, user.password):
+        return {"message": "User created successfully", "token": create_token(username)}
     raise HTTPException(status_code=400, detail="User already exists")
 
 @app.post("/auth/login")
 def login(user: UserAuth):
-    existing = db_helper.get_user(user.username)
+    username = user.username.lower().strip()
+    existing = db_helper.get_user(username)
     if existing and existing["password"] == db_helper.hash_password(user.password):
-        return {"token": create_token(user.username), "username": user.username}
+        return {"token": create_token(username), "username": username}
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
 @app.get("/user/keys")

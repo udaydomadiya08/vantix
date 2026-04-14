@@ -213,7 +213,7 @@ export default function AdminDashboard() {
                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Node ID</th>
                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Power Level</th>
                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Vault Config</th>
-                       <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Operation</th>
+                       <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Audit Tracking</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-800/50">
@@ -240,9 +240,9 @@ export default function AdminDashboard() {
                             </div>
                          </td>
                          <td className="px-8 py-6">
-                            <button className="p-2 rounded-xl bg-slate-800/50 text-slate-500 hover:text-white hover:bg-slate-700 transition-all opacity-0 group-hover:opacity-100">
-                               <ExternalLink size={16} />
-                            </button>
+                            <div className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">
+                               TRACED_BY_UDAY
+                            </div>
                          </td>
                       </tr>
                     ))}
@@ -292,6 +292,72 @@ export default function AdminDashboard() {
               </div>
            </div>
         </div>
+      </div>
+
+      {/* 🔮 LIVE GLOBAL PRODUCTION STREAM */}
+      <div className="space-y-6">
+         <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+               <Activity size={20} className="text-emerald-500 accent-glow" />
+               <h2 className="text-xs font-black text-white uppercase tracking-[0.3em]">Live Global Production Stream</h2>
+            </div>
+            {stats.live_jobs?.length > 0 && (
+              <span className="text-[10px] font-black text-emerald-500 uppercase italic animate-pulse">
+                 Factory Capacity: {stats.active_workers} / 5 Running
+              </span>
+            )}
+         </div>
+
+         <div className="glass-card rounded-[2.5rem] bg-slate-900/40 border-slate-800 overflow-hidden min-h-[200px]">
+            {stats.live_jobs?.length === 0 ? (
+               <div className="h-[200px] flex flex-col items-center justify-center text-center space-y-4">
+                  <Cpu size={32} className="text-slate-800" />
+                  <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Global Queue Idle (No Active Production)</p>
+               </div>
+            ) : (
+               <table className="w-full text-left">
+                  <thead>
+                     <tr className="border-b border-slate-800">
+                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Unit ID</th>
+                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Node Node</th>
+                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Synthesis Topic</th>
+                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Factory Type</th>
+                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Wait Time</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/50">
+                     {stats.live_jobs.map((job: any, index: number) => (
+                        <tr key={job.id} className="hover:bg-white/[0.02] transition-colors relative">
+                           {index === 0 && (
+                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+                           )}
+                           <td className="px-8 py-6 font-mono text-[10px] text-slate-500">
+                              {job.id.substring(0, 8)}...
+                           </td>
+                           <td className="px-8 py-6">
+                              <span className="text-white font-black uppercase text-[10px] tracking-widest underline decoration-emerald-500/20 underline-offset-4">{job.user}</span>
+                           </td>
+                           <td className="px-8 py-6">
+                              <span className="text-white font-bold text-sm tracking-tight italic">"{job.topic}"</span>
+                           </td>
+                           <td className="px-8 py-6">
+                              <div className="flex items-center gap-2">
+                                 {job.type === 'video' ? <Play size={12} className="text-rose-400" /> : job.type === 'ebook' ? <Book size={12} className="text-indigo-400" /> : <GraduationCap size={12} className="text-cyan-400" />}
+                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{job.type} factory</span>
+                              </div>
+                           </td>
+                           <td className="px-8 py-6">
+                              <div className="flex items-center gap-2">
+                                 <Clock size={12} className="text-emerald-500" />
+                                 <span className="text-[10px] font-black text-white tabular-nums tracking-widest">PRIORITY_QUEUE</span>
+                              </div>
+                           </td>
+                        </tr>
+                     ))}
+                  </tbody>
+               </table>
+            )}
+         </div>
       </div>
     </div>
   );
