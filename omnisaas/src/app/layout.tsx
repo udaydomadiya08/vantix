@@ -151,6 +151,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </aside>
+    )}
 
       {/* Main Content */}
       <main className={`${showSidebar ? 'ml-64' : ''} flex-1 p-8`}>
