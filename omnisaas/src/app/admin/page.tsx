@@ -6,7 +6,7 @@ import {
   BarChart3, Users, Coins, Zap, ShieldCheck, 
   Search, ArrowUpRight, TrendingUp, LayoutGrid, 
   Loader2, Play, Book, GraduationCap, AlertCircle,
-  ExternalLink, User, Activity, Clock, Server, Hourglass
+  ExternalLink, User, Activity, Clock, Server, Hourglass, Cpu
 } from "lucide-react";
 import { getAdminStats, getAdminUsers } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -27,15 +27,16 @@ export default function AdminDashboard() {
           getAdminUsers()
         ]);
         
-        if (statsData.detail || usersData.detail) {
+        if (statsData?.detail || usersData?.detail) {
           setError("Sovereign Access Denied. Master Node Identity Required.");
           return;
         }
 
-        setStats(statsData);
-        setUsers(usersData);
+        if (statsData) setStats(statsData);
+        if (usersData) setUsers(usersData);
       } catch (err) {
-        setError("Commercial Link Failure. Admin Node Unreachable.");
+        // We only show the full error page if the initial load fails
+        if (loading) setError("Commercial Link Failure. Admin Node Unreachable.");
       } finally {
         setLoading(false);
       }
@@ -44,7 +45,7 @@ export default function AdminDashboard() {
     loadData();
     const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loading]);
 
   if (loading) {
     return (
@@ -61,11 +62,11 @@ export default function AdminDashboard() {
         <div className="p-6 rounded-full bg-red-500/10 text-red-500 mb-2">
            <ShieldCheck size={48} />
         </div>
-        <h1 className="text-2xl font-black text-white italic underline decoration-red-500 decoration-4 underline-offset-8">SECURITY PROTOCOL ACTIVE</h1>
+        <h1 className="text-2xl font-black text-white italic underline decoration-red-500 decoration-4 underline-offset-8 uppercase">Security Protocol Active</h1>
         <p className="text-slate-400 max-w-md font-medium">{error}</p>
         <button 
           onClick={() => router.push("/")}
-          className="px-8 py-3 rounded-2xl bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 transition-all"
+          className="px-8 py-3 rounded-2xl bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 transition-all font-sans"
         >
           Return to Dashboard
         </button>
@@ -76,15 +77,15 @@ export default function AdminDashboard() {
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-20 font-sans">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-8 pt-4">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-8 pt-4 uppercase">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
              <div className="p-3 rounded-2xl bg-indigo-500/10 text-indigo-400">
                 <LayoutGrid size={28} />
              </div>
-             <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase">Command Center</h1>
+             <h1 className="text-4xl font-black italic tracking-tighter text-white">Command Center</h1>
           </div>
-          <p className="text-slate-400 text-sm font-medium tracking-wide">Ecosystem-wide production oversight and commercial ledger.</p>
+          <p className="text-slate-400 text-sm font-medium tracking-wide normal-case font-sans">Ecosystem-wide production oversight and commercial ledger.</p>
         </div>
 
         <div className="flex items-center gap-4">
@@ -106,7 +107,7 @@ export default function AdminDashboard() {
                <div className="space-y-1">
                   <h3 className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-4">Factory Pulse</h3>
                   <div className="flex items-end gap-3">
-                     <span className="text-5xl font-black italic tracking-tighter text-white tabular-nums">{stats.load_percentage}%</span>
+                     <span className="text-5xl font-black italic tracking-tighter text-white tabular-nums">{stats?.load_percentage || 0}%</span>
                      <span className="text-xs font-black text-slate-500 uppercase tracking-widest pb-2">Global Load</span>
                   </div>
                </div>
@@ -114,13 +115,13 @@ export default function AdminDashboard() {
                <div className="space-y-3">
                   <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
                      <span className="text-slate-500">Worker Occupancy</span>
-                     <span className="text-white">{stats.active_workers} / 5 Slots</span>
+                     <span className="text-white">{stats?.active_workers || 0} / 5 Slots</span>
                   </div>
                   <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5">
                      <motion.div 
                         initial={{ width: 0 }}
-                        animate={{ width: `${stats.load_percentage}%` }}
-                        className={`h-full rounded-full ${stats.load_percentage > 80 ? 'bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.4)]' : 'bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]'}`}
+                        animate={{ width: `${stats?.load_percentage || 0}%` }}
+                        className={`h-full rounded-full ${(stats?.load_percentage || 0) > 80 ? 'bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.4)]' : 'bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]'}`}
                      />
                   </div>
                </div>
@@ -136,7 +137,7 @@ export default function AdminDashboard() {
                <div className="space-y-1">
                   <h3 className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-4">Queue Inventory</h3>
                   <div className="flex items-end gap-3">
-                     <span className="text-5xl font-black italic tracking-tighter text-white tabular-nums">{stats.live_queue_count}</span>
+                     <span className="text-5xl font-black italic tracking-tighter text-white tabular-nums">{stats?.live_queue_count || 0}</span>
                      <span className="text-xs font-black text-slate-500 uppercase tracking-widest pb-2">Units Pending</span>
                   </div>
                </div>
@@ -150,7 +151,7 @@ export default function AdminDashboard() {
             </div>
          </div>
 
-         {/* Production Velocity */}
+         {/* Production Volume */}
          <div className="glass-card p-8 rounded-[2.5rem] bg-cyan-500/5 border-cyan-500/20 relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:scale-110 transition-transform">
                <Zap size={48} className="text-cyan-400" />
@@ -159,7 +160,7 @@ export default function AdminDashboard() {
                <div className="space-y-1">
                   <h3 className="text-xs font-black text-cyan-400 uppercase tracking-widest mb-4">Production Volume</h3>
                   <div className="flex items-end gap-3">
-                     <span className="text-5xl font-black italic tracking-tighter text-white tabular-nums">{stats.total_jobs}</span>
+                     <span className="text-5xl font-black italic tracking-tighter text-white tabular-nums">{stats?.total_jobs || 0}</span>
                      <span className="text-xs font-black text-slate-500 uppercase tracking-widest pb-2">Completed Units</span>
                   </div>
                </div>
@@ -177,9 +178,9 @@ export default function AdminDashboard() {
       {/* Metric Cluster (Historical) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Platform Revenue', value: stats.total_invoiced, prefix: '$', color: 'emerald', icon: Coins },
-          { label: 'Node Population', value: stats.users, prefix: '', color: 'indigo', icon: Users },
-          { label: 'Industrial Credit Debt', value: stats.balance, prefix: '', color: 'rose', icon: BarChart3 },
+          { label: 'Platform Revenue', value: stats?.total_invoiced || 0, prefix: '$', color: 'emerald', icon: Coins },
+          { label: 'Node Population', value: stats?.users || 0, prefix: '', color: 'indigo', icon: Users },
+          { label: 'Industrial Credit Debt', value: stats?.balance || 0, prefix: '', color: 'rose', icon: BarChart3 },
         ].map((metric) => (
           <div key={metric.label} className="glass-card p-6 rounded-3xl bg-slate-900/40 border-slate-800 hover:border-slate-700 transition-all group">
              <div className="flex items-center justify-between mb-4">
@@ -189,7 +190,7 @@ export default function AdminDashboard() {
              </div>
              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">{metric.label}</span>
              <div className="text-2xl font-black text-white tabular-nums italic tracking-tighter">
-                {metric.prefix}{metric.value.toLocaleString()}
+                {metric.prefix}{metric.value?.toLocaleString() || 0}
              </div>
           </div>
         ))}
@@ -213,12 +214,12 @@ export default function AdminDashboard() {
                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Node ID</th>
                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Power Level</th>
                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Vault Config</th>
-                       <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Audit Tracking</th>
+                       <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Audit Tracking</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-800/50">
-                    {users.map((user) => (
-                      <tr key={user.username} className="hover:bg-white/[0.02] transition-colors group">
+                    {(users || []).map((user) => (
+                      <tr key={user.username} className="hover:bg-white/[0.02] transition-colors group lowercase">
                          <td className="px-8 py-6 text-sm">
                             <div className="flex items-center gap-3">
                                <div className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
@@ -235,12 +236,12 @@ export default function AdminDashboard() {
                          </td>
                          <td className="px-8 py-6">
                             <div className="flex items-center gap-2">
-                               <div className={`h-1.5 w-1.5 rounded-full ${user.keys_configured > 0 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-600'}`} />
-                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{user.keys_configured} / 4 keys</span>
+                               <div className={`h-1.5 w-1.5 rounded-full ${(user.keys_configured || 0) > 0 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-600'}`} />
+                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest overflow-hidden whitespace-nowrap">{user.keys_configured || 0} / 4 keys</span>
                             </div>
                          </td>
                          <td className="px-8 py-6">
-                            <div className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">
+                            <div className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic font-sans normal-case">
                                TRACED_BY_UDAY
                             </div>
                          </td>
@@ -257,10 +258,10 @@ export default function AdminDashboard() {
            
            <div className="glass-card p-10 rounded-[3rem] bg-slate-900/40 border-slate-800 space-y-8">
               {[
-                { label: 'Short-Video Units', count: stats.job_breakdown.video, icon: Play, color: 'rose' },
-                { label: 'E-Book Narrative', count: stats.job_breakdown.ebook, icon: Book, color: 'indigo' },
-                { label: 'E-Course Foundry', count: stats.job_breakdown.course, icon: GraduationCap, color: 'cyan' },
-                { label: 'Thumbnail Oracle', count: stats.job_breakdown.thumbnail, icon: LayoutGrid, color: 'amber' },
+                { label: 'Short-Video Units', count: stats?.job_breakdown?.video, icon: Play, color: 'rose' },
+                { label: 'E-Book Narrative', count: stats?.job_breakdown?.ebook, icon: Book, color: 'indigo' },
+                { label: 'E-Course Foundry', count: stats?.job_breakdown?.course, icon: GraduationCap, color: 'cyan' },
+                { label: 'Thumbnail Oracle', count: stats?.job_breakdown?.thumbnail, icon: LayoutGrid, color: 'amber' },
               ].map((factory) => (
                 <div key={factory.label} className="space-y-3">
                    <div className="flex items-center justify-between">
@@ -268,12 +269,12 @@ export default function AdminDashboard() {
                          <factory.icon size={16} className={`text-${factory.color}-400`} />
                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{factory.label}</span>
                       </div>
-                      <span className="text-white font-black tabular-nums italic text-sm">{factory.count}</span>
+                      <span className="text-white font-black tabular-nums italic text-sm">{factory.count || 0}</span>
                    </div>
                    <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
                       <motion.div 
                         initial={{ width: 0 }}
-                        animate={{ width: `${(factory.count / (stats.total_jobs || 1)) * 100}%` }}
+                        animate={{ width: `${((factory.count || 0) / (stats?.total_jobs || 1)) * 100}%` }}
                         className={`h-full bg-${factory.color}-500 shadow-[0_0_15px_rgba(59,130,246,0.3)]`}
                       />
                    </div>
@@ -299,17 +300,17 @@ export default function AdminDashboard() {
          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
                <Activity size={20} className="text-emerald-500 accent-glow" />
-               <h2 className="text-xs font-black text-white uppercase tracking-[0.3em]">Live Global Production Stream</h2>
+               <h2 className="text-xs font-black text-white uppercase tracking-[0.3em] italic">Live Global Production Stream</h2>
             </div>
-            {stats.live_jobs?.length > 0 && (
+            {(stats?.live_jobs?.length || 0) > 0 && (
               <span className="text-[10px] font-black text-emerald-500 uppercase italic animate-pulse">
-                 Factory Capacity: {stats.active_workers} / 5 Running
+                 Factory Capacity: {stats?.active_workers || 0} / 5 Running
               </span>
             )}
          </div>
 
          <div className="glass-card rounded-[2.5rem] bg-slate-900/40 border-slate-800 overflow-hidden min-h-[200px]">
-            {stats.live_jobs?.length === 0 ? (
+            {(stats?.live_jobs?.length || 0) === 0 ? (
                <div className="h-[200px] flex flex-col items-center justify-center text-center space-y-4">
                   <Cpu size={32} className="text-slate-800" />
                   <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Global Queue Idle (No Active Production)</p>
@@ -319,20 +320,20 @@ export default function AdminDashboard() {
                   <thead>
                      <tr className="border-b border-slate-800">
                         <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Unit ID</th>
-                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Node Node</th>
+                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Node ID</th>
                         <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Synthesis Topic</th>
                         <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Factory Type</th>
-                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Wait Time</th>
+                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Wait Time</th>
                      </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/50">
-                     {stats.live_jobs.map((job: any, index: number) => (
+                  <tbody className="divide-y divide-slate-800/50 cursor-default">
+                     {(stats?.live_jobs || []).map((job: any, index: number) => (
                         <tr key={job.id} className="hover:bg-white/[0.02] transition-colors relative">
                            {index === 0 && (
                               <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
                            )}
                            <td className="px-8 py-6 font-mono text-[10px] text-slate-500">
-                              {job.id.substring(0, 8)}...
+                              {job.id?.substring(0, 8)}...
                            </td>
                            <td className="px-8 py-6">
                               <span className="text-white font-black uppercase text-[10px] tracking-widest underline decoration-emerald-500/20 underline-offset-4">{job.user}</span>
@@ -343,7 +344,7 @@ export default function AdminDashboard() {
                            <td className="px-8 py-6">
                               <div className="flex items-center gap-2">
                                  {job.type === 'video' ? <Play size={12} className="text-rose-400" /> : job.type === 'ebook' ? <Book size={12} className="text-indigo-400" /> : <GraduationCap size={12} className="text-cyan-400" />}
-                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{job.type} factory</span>
+                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-sans">{job.type} factory</span>
                               </div>
                            </td>
                            <td className="px-8 py-6">
