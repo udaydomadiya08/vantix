@@ -2,7 +2,6 @@ name: Sync to Hugging Face hub
 on:
   push:
     branches: [main]
-  # to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
@@ -14,6 +13,9 @@ jobs:
           fetch-depth: 0
           lfs: true
       - name: Push to hub
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: git push --force https://eb:$HF_TOKEN@huggingface.co/spaces/UDAYDOMADIYA/vantix-core main
+        uses: huggingface/hub-sync@v1.0
+        with:
+          github_repo_id: udaydomadiya08/vantix
+          huggingface_repo_id: UDAYDOMADIYA/vantix-core
+          hf_token: ${{ secrets.HF_TOKEN }}
+          repo_type: space
