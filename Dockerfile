@@ -40,15 +40,9 @@ RUN python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perc
 # 📂 FULL REPOSITORY CLONE (Excluding ignored via .dockerignore)
 COPY . .
 
-# 🏛️ PERMISSIONS
-RUN chmod -R 777 /app/static /app/audio /app/video_creation /app/api
-
-# 🛰️ INDUSTRIAL PORT (Hugging Face Defaults)
-EXPOSE 7860
-
-# 🧱 INFRASTRUCTURE SETUP
-RUN mkdir -p checkpoints static/videos audio video_creation api
-RUN chmod -R 777 checkpoints static audio video_creation api
+# 🏗️ INDUSTRIAL INFRASTRUCTURE BOOTSTRAP
+RUN mkdir -p checkpoints static/videos audio video_creation api && \
+    chmod -R 777 checkpoints static audio video_creation api
 
 # 🛰️ MODEL SYNCHRONIZATION
 COPY download_models.sh .
