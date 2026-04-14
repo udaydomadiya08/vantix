@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Book, GraduationCap, Zap, Activity, Clock, Server, CheckCircle2, AlertCircle, Loader2, Settings, ChevronRight, ArrowRight, ShieldCheck, X, ShieldAlert, CreditCard, Plus, Coins } from "lucide-react";
-import { generateVideo, generateEbook, generateCourse, checkStatus, getJobStatus, cancelJob, getUserBalance } from "@/lib/api";
+import { generateVideo, generateEbook, generateCourse, generateThumbnail, checkStatus, getJobStatus, cancelJob, getUserBalance } from "@/lib/api";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
   const [topic, setTopic] = useState("");
@@ -12,6 +13,7 @@ export default function HomePage() {
   const [serverStatus, setServerStatus] = useState<'online' | 'offline'>('offline');
   const [successMessage, setSuccessMessage] = useState("");
   const [isHydrated, setIsHydrated] = useState(false);
+  const router = useRouter();
 
   const sanitizeResultUrl = (url: string | undefined): string | undefined => {
     if (!url) return url;
