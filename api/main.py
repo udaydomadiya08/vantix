@@ -47,6 +47,8 @@ app.add_middleware(
 os.makedirs(os.path.join(parent_dir, "static/videos"), exist_ok=True)
 os.makedirs(os.path.join(parent_dir, "static/ebooks"), exist_ok=True)
 os.makedirs(os.path.join(parent_dir, "static/thumbnails"), exist_ok=True)
+os.makedirs(os.path.join(parent_dir, "final_video"), exist_ok=True)
+os.makedirs(os.path.join(parent_dir, "courses"), exist_ok=True)
 app.mount("/static", StaticFiles(directory=os.path.join(parent_dir, "static")), name="static")
 app.mount("/final_video", StaticFiles(directory=os.path.join(parent_dir, "final_video")), name="final_video")
 app.mount("/courses", StaticFiles(directory=os.path.join(parent_dir, "courses")), name="courses")
