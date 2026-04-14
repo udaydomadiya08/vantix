@@ -76,7 +76,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   ];
 
   // 👑 [ADMIN] Direct Oracle Link
-  if (user === "udaydomadiya") {
+  if (user === "uday") {
     navItems.push({ name: 'Command Center', icon: ShieldCheck, path: '/admin' });
   }
 

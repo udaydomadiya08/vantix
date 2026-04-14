@@ -593,7 +593,7 @@ def get_history(username: str = Depends(get_current_user)):
 
 # --- 👑 [ADMIN] Command Center Endpoints ---
 def verify_admin(username: str = Depends(get_current_user)):
-    if username != "udaydomadiya":
+    if username != "uday":
         raise HTTPException(status_code=403, detail="Sovereign Access Denied.")
     return username
 
