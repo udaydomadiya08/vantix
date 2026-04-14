@@ -13,7 +13,7 @@ jobs:
           fetch-depth: 0
           lfs: true
       - name: Push to hub
-        uses: huggingface/hub-sync@v1.0
+        uses: huggingface/hub-sync@v0.1.0
         with:
           github_repo_id: udaydomadiya08/vantix
           huggingface_repo_id: UDAYDOMADIYA/vantix-core
