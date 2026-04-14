@@ -97,8 +97,18 @@ class StreamQueueManager:
         await self.queues[key].put((job_id, func, kwargs))
         # 📝 [IDENTITY] Save topic so Library can display meaningful titles
         topic = kwargs.get("topic", stream_type)
-        job_data = {"status": "queued", "stream": stream_type, "topic": topic, "submitted": datetime.now().isoformat()}
+        job_data = {
+            "status": "queued", 
+            "stream": stream_type, 
+            "topic": topic, 
+            "submitted": datetime.now().isoformat(),
+            "est_wait": 0,
+            "position": 0
+        }
         JOB_STATUS[job_id] = job_data
+        
+        # 🛡️ [QUOTA] Log initiation for the hourly ledger
+        db_helper.log_job_initiation(username, job_id)
         
         # 🏛️ [PERSISTENCE] Initial Entry
         db_helper.save_to_history(username, job_id, job_data)
@@ -156,6 +166,32 @@ class StreamQueueManager:
         
         print(f"🏁 [WORKER] Stream {stream_type} for {username} idle.")
         self.active_workers.remove(key)
+
+    def get_queue_info(self, username, stream_type, job_id):
+        """🕵️ [ORACLE] Locate a job's position and estimate wait time."""
+        key = (username, stream_type)
+        if key not in self.queues:
+            return 0, 0
+        
+        # 📸 [SNAPSHOT] We peek at the queue's internal state
+        q_list = list(self.queues[key]._queue)
+        try:
+            position = 1
+            for jid, _, _ in q_list:
+                if jid == job_id: break
+                position += 1
+            else:
+                return 0, 0 # Not in queue
+            
+            # ⏱️ [ESTIMATION] Industrial Synthesis Durations (in seconds)
+            DURATIONS = {"video": 150, "ebook": 300, "course": 600, "thumbnail": 45}
+            avg_time = DURATIONS.get(stream_type, 60)
+            
+            # Calculation: (Position * Avg Time) / Concurrent Slots
+            # Since workers are per-user-stream, it's just Position * Avg Time
+            return position, position * avg_time
+        except Exception:
+            return 0, 0
 
 QUEUE_MANAGER = StreamQueueManager()
 
@@ -319,6 +355,21 @@ def verify_vault_integrity(keys: dict, mandatory: list):
         )
     return True
 
+def verify_industrial_quota(username: str):
+    """⚖️ [SENTINEL] Hard-Enforce 3 jobs per hour limit"""
+    recent_jobs = db_helper.get_recent_job_count(username, minutes=60)
+    if recent_jobs >= 3:
+        raise HTTPException(
+            status_code=429, 
+            detail={
+                "error": "quota_exceeded", 
+                "message": "Industrial Quota Reached. Your node is cooling down.",
+                "limit": 3,
+                "current": recent_jobs
+            }
+        )
+    return True
+
 @app.post("/payments/create-checkout-session")
 async def create_checkout_session(req: CheckoutRequest, username: str = Depends(get_current_user)):
     """💳 Initiate Industrial Credit Transfer via Stripe"""
@@ -406,6 +457,9 @@ async def generate_video(
     x_pexels_key: str = Header(None),
     x_pixabay_key: str = Header(None)
 ):
+    # ⚖️ [QUOTA] Industrial Sentinel
+    verify_industrial_quota(username)
+
     # ⚖️ [TAXATION] Video Cost: 5 Credits
     success, balance = db_helper.deduct_credits(username, 5)
     if not success:
@@ -456,6 +510,9 @@ async def generate_video(
 @app.post("/generate-thumbnail")
 async def generate_thumbnail(request: ThumbnailRequest, username: str = Depends(get_current_user)):
     """🎨 Synthesize an Omnipotent High-CTR Thumbnail"""
+    # ⚖️ [QUOTA] Industrial Sentinel
+    verify_industrial_quota(username)
+
     # ⚖️ [TAXATION] Thumbnail Cost: 2 Credits
     success, balance = db_helper.deduct_credits(username, 2)
     if not success:
@@ -483,6 +540,9 @@ async def generate_ebook(
     x_openrouter_key: str = Header(None)
 ):
     """📚 Industrial E-book Production"""
+    # ⚖️ [QUOTA] Industrial Sentinel
+    verify_industrial_quota(username)
+
     job_id = str(uuid.uuid4())
     db_keys = db_helper.get_user_keys(username)
     
@@ -515,6 +575,9 @@ async def generate_course(
     x_openrouter_key: str = Header(None)
 ):
     """🎓 Industrial E-course Production"""
+    # ⚖️ [QUOTA] Industrial Sentinel
+    verify_industrial_quota(username)
+
     # ⚖️ [TAXATION] E-Course Cost: 25 Credits
     success, balance = db_helper.deduct_credits(username, 25)
     if not success:
@@ -547,7 +610,17 @@ async def get_status(job_id: str):
     # 🏛️ [VANTIX PERSISTENCE] Check In-Memory first, then fall back to Ledger
     # Public access (unguessable UUID) prevents fetch failure during preflight/auth-lag
     if job_id in JOB_STATUS:
-        return JOB_STATUS[job_id]
+        job = JOB_STATUS[job_id]
+        if job["status"] == "queued":
+            # 🕵️ Calculate live position and wait time
+            # We don't have the username/type here easily so we scan
+            for (usr, styp), q in QUEUE_MANAGER.queues.items():
+                pos, est = QUEUE_MANAGER.get_queue_info(usr, styp, job_id)
+                if pos > 0:
+                    job["position"] = pos
+                    job["est_wait"] = est
+                    break
+        return job
     
     # 🕵️ Global search for historical records
     # Note: We return status 200 even for past jobs to keep the polling loop healthy

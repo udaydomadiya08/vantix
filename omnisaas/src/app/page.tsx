@@ -6,7 +6,8 @@ import {
   Play, Book, GraduationCap, Zap, Activity, Clock, Server, 
   CheckCircle2, AlertCircle, Loader2, Settings, ChevronRight, 
   ArrowRight, ShieldCheck, X, ShieldAlert, CreditCard, Plus, 
-  Coins, LayoutGrid, Sparkles, Globe, Cpu, BarChart3, Rocket
+  Coins, LayoutGrid, Sparkles, Globe, Cpu, BarChart3, Rocket, 
+  Hourglass, Flame
 } from "lucide-react";
 import { 
   generateVideo, generateEbook, generateCourse, generateThumbnail, 
@@ -45,7 +46,7 @@ function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-[#020617] text-white selection:bg-emerald-500/30 font-sans">
       {/* 🚀 Hero Section */}
       <section className="relative pt-32 pb-20 px-6 overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-emerald-500/5 blur-[120px] rounded-full" />
@@ -93,7 +94,7 @@ function LandingPage() {
               <ArrowRight size={20} />
             </button>
             <button 
-              className="px-10 py-5 rounded-[2rem] bg-slate-900 border border-slate-800 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-800 transition-all"
+              className="px-10 py-5 rounded-[2rem] bg-slate-900 border border-slate-800 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-800 transition-all font-sans"
             >
               View Documentation
             </button>
@@ -165,21 +166,21 @@ function LandingPage() {
 
           <div className="relative">
              <div className="absolute inset-0 bg-emerald-500/10 blur-[100px] rounded-full" />
-             <div className="glass-card p-8 rounded-[3rem] border-slate-800 bg-slate-900/60 relative overflow-hidden">
+             <div className="glass-card p-8 rounded-[3rem] border-slate-800 bg-slate-900/60 relative overflow-hidden font-sans">
                 <div className="space-y-6">
                    <div className="flex items-center justify-between border-b border-slate-800 pb-6">
                       <div className="flex items-center gap-3">
                          <div className="h-4 w-4 rounded-full bg-emerald-500 animate-pulse" />
                          <span className="text-xs font-black uppercase tracking-widest text-white">Production Log</span>
                       </div>
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">v1.0.4-Industrial</span>
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">v1.1.0-Orchestra</span>
                    </div>
                    
                    <div className="space-y-4 font-mono text-[10px]">
                       <div className="text-emerald-500/60 leading-relaxed">[NODE_INFO] Initializing VANTIX Synthesis Engine...</div>
                       <div className="text-slate-400 leading-relaxed">[VAULT_AUTH] BYOK Handshake Successful: Groq v3-Llama-70b</div>
-                      <div className="text-slate-400 leading-relaxed">[QUEUE_MANAGER] Shorts Factory {"->"} Received 1500 tokens</div>
-                      <div className="text-cyan-400 leading-relaxed">[SYNTHESIS] Video rendering active: 45fps industrial speed</div>
+                      <div className="text-slate-400 leading-relaxed">[TRAFFIC] Load Balancing: High Efficiency Mode Active</div>
+                      <div className="text-cyan-400 leading-relaxed">[QUEUE] Job ID: 8ff2... Position: #1 (Ready in 45s)</div>
                       <div className="text-slate-400/50 leading-relaxed">--------------------------------------------------</div>
                       <div className="text-white animate-pulse">_</div>
                    </div>
@@ -229,6 +230,7 @@ function Dashboard() {
   const [queuedJobs, setQueuedJobs] = useState<any[]>([]); 
   const [serverStatus, setServerStatus] = useState<'online' | 'offline'>('offline');
   const [successMessage, setSuccessMessage] = useState("");
+  const [quotaError, setQuotaError] = useState<any>(null);
   const [isHydrated, setIsHydrated] = useState(false);
   const router = useRouter();
 
@@ -306,9 +308,14 @@ function Dashboard() {
          router.push("/settings/api"); 
       }
     } catch (error: any) {
-      if (error?.message?.includes("402") || (error instanceof Response && error.status === 402)) {
+      const status = error instanceof Response ? error.status : (error.response?.status || 0);
+      
+      if (status === 429) {
+          // 🛡️ Quota Exceeded
+          setQuotaError(true);
+      } else if (status === 402) {
          alert("Insufficient Industrial Power. Please upgrade your node in the sidebar.");
-      } else if (error?.message?.includes("428") || (error instanceof Response && error.status === 428)) {
+      } else if (status === 428) {
          alert("VAULT LOCKED: Core AI keys missing. Please synchronize your API Vault.");
          router.push("/settings/api");
       } else {
@@ -326,12 +333,21 @@ function Dashboard() {
     }
   };
 
+  const formatWaitTime = (seconds: number) => {
+    if (!seconds) return "Calculating...";
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  };
+
+  const hasHeavyTraffic = queuedJobs.some(j => j.position > 1);
+
   return (
-    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="max-w-7xl space-y-16 pb-20">
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="max-w-7xl space-y-16 pb-20 font-sans">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-8 py-6">
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <span className="industrial-badge">Vantix Node v1.0</span>
+            <span className="industrial-badge">Vantix Node v1.1.0</span>
             <div className="h-px w-20 bg-emerald-500/20" />
           </div>
           <h1 className="text-6xl font-black tracking-tight text-white italic">VANTIX</h1>
@@ -352,11 +368,26 @@ function Dashboard() {
         </div>
       </header>
 
+      {/* 🚦 PLATFORM HEALTH & QUOTA ALERTS */}
+      <AnimatePresence>
+        {hasHeavyTraffic && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="bg-indigo-500/10 border border-indigo-500/20 p-5 rounded-3xl flex items-center gap-4 text-indigo-400">
+               <Hourglass size={20} className="animate-spin-slow" />
+               <div className="flex-1">
+                 <p className="text-xs font-black uppercase tracking-widest">Industrial Congestion Detected</p>
+                 <p className="text-[10px] font-medium opacity-60">Wait times may be higher due to global synthesis traffic. Current load: Balanced.</p>
+               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="glass-card border-amber-500/20 bg-amber-500/5 p-6 rounded-[2rem] flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
         <div className="p-4 rounded-2xl bg-amber-500/10 text-amber-500 shadow-inner">
           <ShieldAlert size={28} className="animate-pulse" />
         </div>
-        <div className="space-y-1 text-center md:text-left">
+        <div className="space-y-1 text-center md:text-left font-sans">
           <h3 className="text-amber-500 font-black text-sm uppercase tracking-widest italic">Vantix Ephemeral Protocol Active</h3>
           <p className="text-slate-400 text-xs font-medium max-w-3xl leading-relaxed">All assets destroyed exactly 24 hours after synthesis. Download immediately.</p>
         </div>
@@ -368,7 +399,7 @@ function Dashboard() {
           placeholder="Input topic, news vector, or research identifier..."
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          className="w-full monochrome-input rounded-[2rem] px-10 py-8 text-3xl font-bold bg-slate-900/60 backdrop-blur-3xl border-slate-800/80 outline-none placeholder-slate-700"
+          className="w-full monochrome-input rounded-[2rem] px-10 py-8 text-3xl font-bold bg-slate-900/60 backdrop-blur-3xl border-slate-800/80 outline-none placeholder-slate-700 font-sans"
         />
       </section>
 
@@ -385,7 +416,7 @@ function Dashboard() {
             { type: 'thumbnail', label: 'Thumbnail Oracle', icon: LayoutGrid, color: 'rose', desc: 'High-CTR visual synthesis.' }
           ].map((action) => (
             <button key={action.type} onClick={() => handleLaunch(action.type as any)} className={`w-full glass-card p-6 rounded-3xl flex items-center justify-between group hover:border-${action.color}-500/50 transition-all text-left relative overflow-hidden`}>
-              <div className="flex items-center gap-5 font-bold uppercase tracking-widest">
+              <div className="flex items-center gap-5 font-bold uppercase tracking-widest font-sans">
                 <div className={`p-4 rounded-2xl bg-${action.color}-500/10 text-${action.color}-500`}>
                   <action.icon size={24} />
                 </div>
@@ -423,17 +454,36 @@ function Dashboard() {
                 </div>
               ) : (
                 queuedJobs.map((job) => (
-                  <motion.div key={job.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="glass-card p-8 rounded-3xl flex items-center justify-between gap-6 hover:border-slate-700 transition-all group">
+                  <motion.div key={job.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="glass-card p-8 rounded-3xl flex items-center justify-between gap-6 hover:border-slate-700 transition-all group overflow-hidden relative">
+                    {job.status === 'queued' && (
+                        <div className="absolute top-0 left-0 h-1 bg-emerald-500/30 w-full overflow-hidden">
+                            <motion.div initial={{ x: "-100%" }} animate={{ x: "100%" }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }} className="h-full w-1/3 bg-emerald-500" />
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-6 min-w-0 flex-1">
                       <div className={`p-4 rounded-2xl ${job.status === 'completed' ? 'bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]' : job.status === 'failed' ? 'bg-rose-500 text-white' : 'bg-slate-900 text-slate-400'}`}>
                          {job.status === 'completed' ? <CheckCircle2 size={24} /> : job.status === 'failed' ? <AlertCircle size={24} /> : <Loader2 size={24} className="animate-spin" />}
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 font-sans">
                         <div className="flex items-center gap-3 mb-1">
                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{job.type} Factory</span>
                            {job.status === 'queued' && <button onClick={() => handleCancelJob(job.id)} className="ml-2 p-1 rounded-md bg-rose-500/10 text-rose-500"><X size={10} /></button>}
                         </div>
                         <h3 className="text-white font-bold text-lg truncate mb-1 uppercase tracking-tight">{job.topic}</h3>
+                        
+                        {job.status === 'queued' && (
+                           <div className="flex items-center gap-4">
+                             <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                               <Server size={10} />
+                               Position: #{job.position || 1}
+                             </div>
+                             <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                               <Clock size={10} />
+                               Wait: {formatWaitTime(job.est_wait)}
+                             </div>
+                           </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-3 font-mono text-[10px]">
@@ -449,6 +499,32 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* 🛡️ QUOTA EXCEEDED MODAL */}
+      <AnimatePresence>
+        {quotaError && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md">
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }} className="glass-card max-w-lg w-full p-10 rounded-[3rem] border-rose-500/30 text-center space-y-8">
+               <div className="p-6 rounded-full bg-rose-500/10 text-rose-500 w-fit mx-auto shadow-[0_0_30px_rgba(244,63,94,0.2)]">
+                  <Flame size={48} className="animate-pulse" />
+               </div>
+               <div className="space-y-4">
+                  <h2 className="text-4xl font-black italic tracking-tighter uppercase text-white leading-none">Industrial Quota <br /> Reached</h2>
+                  <p className="text-slate-400 font-medium leading-relaxed">Your synthesis engine is cooling down. Standard nodes are limited to 3 synthesis jobs per industrial hour to ensure global stability.</p>
+               </div>
+               
+               <div className="p-6 rounded-3xl bg-slate-900/50 border border-slate-800 space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Cooling Period Active</p>
+                  <p className="text-xl font-bold text-white tabular-nums">Next slot in ~15 minutes</p>
+               </div>
+
+               <button onClick={() => setQuotaError(null)} className="w-full py-5 rounded-[2rem] bg-rose-500 text-white font-black uppercase tracking-widest hover:brightness-110 transition-all">
+                  Understood
+               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

@@ -9,6 +9,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(CURRENT_DIR, "users.json")
 HISTORY_PATH = os.path.join(CURRENT_DIR, "history.json")
 TRANSACTIONS_PATH = os.path.join(CURRENT_DIR, "transactions.json")
+QUOTAS_PATH = os.path.join(CURRENT_DIR, "quotas.json")
 
 def initialize_db():
     if not os.path.exists(DB_PATH):
@@ -178,6 +179,41 @@ def get_user_history(username):
         reverse=True
     )
     return sorted_history
+
+def log_job_initiation(username, job_id):
+    """⚔️ [LOG] Record the start of a synthesis job for quota tracking."""
+    import time
+    if not os.path.exists(QUOTAS_PATH):
+        with open(QUOTAS_PATH, "w") as f: json.dump([], f)
+    
+    with open(QUOTAS_PATH, "r") as f:
+        quotas = json.load(f)
+    
+    quotas.append({
+        "username": username,
+        "job_id": job_id,
+        "timestamp": time.time()
+    })
+    
+    # 🧹 [PURGE] Keep quotas file clean (remove jobs older than 24h)
+    cutoff = time.time() - (24 * 3600)
+    quotas = [q for q in quotas if q["timestamp"] > cutoff]
+    
+    with open(QUOTAS_PATH, "w") as f:
+        json.dump(quotas, f, indent=4)
+
+def get_recent_job_count(username, minutes=60):
+    """⚖️ [QUOTA] Calculate how many jobs a node initiated in the last window."""
+    import time
+    if not os.path.exists(QUOTAS_PATH):
+        return 0
+    
+    with open(QUOTAS_PATH, "r") as f:
+        quotas = json.load(f)
+    
+    cutoff = time.time() - (minutes * 60)
+    user_recent_jobs = [q for q in quotas if q["username"] == username and q["timestamp"] > cutoff]
+    return len(user_recent_jobs)
 
 def get_user_balance(username):
     """💎 Retrieve current Vantix power level"""
