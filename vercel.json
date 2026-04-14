@@ -1,6 +1,0 @@
-{
-  "buildCommand": "cd omnisaas && npm run build",
-  "outputDirectory": "omnisaas/.next",
-  "installCommand": "cd omnisaas && npm install",
-  "framework": "nextjs"
-}
