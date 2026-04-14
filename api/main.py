@@ -304,6 +304,21 @@ def update_user_defaults(req: DefaultsRequest, username: str = Depends(get_curre
 def get_balance(username: str = Depends(get_current_user)):
     return {"balance": db_helper.get_user_balance(username)}
 
+# --- 🔐 [SECURITY] Vault Sentinel ---
+def verify_vault_integrity(keys: dict, mandatory: list):
+    """🛡️ Sentinel: Hard-Enforce BYOK presence"""
+    missing = [k for k in mandatory if not keys.get(k)]
+    if missing:
+        raise HTTPException(
+            status_code=428, 
+            detail={
+                "error": "vault_locked", 
+                "message": "Industrial Keys Missing from Vault.",
+                "required": missing
+            }
+        )
+    return True
+
 @app.post("/payments/create-checkout-session")
 async def create_checkout_session(req: CheckoutRequest, username: str = Depends(get_current_user)):
     """💳 Initiate Industrial Credit Transfer via Stripe"""
@@ -416,6 +431,9 @@ async def generate_video(
         "pixabay": x_pixabay_key or db_keys.get("pixabay")
     }
     
+    # 🔐 [SENTINEL] Hard-Lock
+    verify_vault_integrity(user_keys, ["groq", "openrouter"])
+    
     # ⚙️ [DEFAULTS MERGE] Properly merge frontend explicit options with saved defaults
     req_dict = request.model_dump(exclude_unset=True) if hasattr(request, "model_dump") else request.dict(exclude_unset=True)
     
@@ -446,6 +464,9 @@ async def generate_thumbnail(request: ThumbnailRequest, username: str = Depends(
     job_id = str(uuid.uuid4())
     user_keys = db_helper.get_user_keys(username)
     
+    # 🔐 [SENTINEL] Hard-Lock
+    verify_vault_integrity(user_keys, ["groq", "openrouter"])
+    
     kwargs = {
         "topic": request.topic,
         "user_keys": user_keys
@@ -469,6 +490,9 @@ async def generate_ebook(
         "groq": x_groq_key or db_keys.get("groq"),
         "openrouter": x_openrouter_key or db_keys.get("openrouter")
     }
+    
+    # 🔐 [SENTINEL] Hard-Lock
+    verify_vault_integrity(user_keys, ["groq", "openrouter"])
     
     kwargs = {
         "topic": request.topic,
@@ -503,6 +527,9 @@ async def generate_course(
         "groq": x_groq_key or db_keys.get("groq"),
         "openrouter": x_openrouter_key or db_keys.get("openrouter")
     }
+    
+    # 🔐 [SENTINEL] Hard-Lock
+    verify_vault_integrity(user_keys, ["groq", "openrouter"])
     
     import ecourse_factory
     kwargs = {

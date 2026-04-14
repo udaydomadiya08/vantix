@@ -69,22 +69,29 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, [queuedJobs]);
 
-  const handleLaunch = async (type: 'video' | 'ebook' | 'course') => {
+  const handleLaunch = async (type: 'video' | 'ebook' | 'course' | 'thumbnail') => {
     if (!topic) return alert("Vantix Input Error: Topic required.");
     try {
       let res;
       if (type === 'video') res = await generateVideo(topic);
       if (type === 'ebook') res = await generateEbook(topic);
       if (type === 'course') res = await generateCourse(topic);
+      if (type === 'thumbnail') res = await generateThumbnail(topic);
 
       if (res && res.job_id) {
         setQueuedJobs(prev => [{ id: res.job_id, status: 'queued', type, topic, timestamp: new Date() }, ...prev]);
         setSuccessMessage(`${type.toUpperCase()} stream synchronized.`);
         setTimeout(() => setSuccessMessage(""), 3000);
+      } else if (res && res.detail && res.detail.error === "vault_locked") {
+         alert(`VAULT LOCKED: ${res.detail.message} - Please configure your Groq/OpenRouter keys in the API Vault.`);
+         router.push("/settings/defaults"); // Redirect to settings
       }
     } catch (error: any) {
       if (error?.message?.includes("402") || (error instanceof Response && error.status === 402)) {
          alert("Insufficient Industrial Power. Please upgrade your node in the sidebar.");
+      } else if (error?.message?.includes("428") || (error instanceof Response && error.status === 428)) {
+         alert("VAULT LOCKED: Core AI keys missing. Please synchronize your API Vault.");
+         router.push("/settings/defaults");
       } else {
          alert("Factory Interruption: Check your Vantix Power / Backend status.");
       }
@@ -155,7 +162,8 @@ export default function HomePage() {
           {[
             { type: 'video', label: 'Short-Video', icon: Play, color: 'emerald', desc: 'Viral visual synthesis.' },
             { type: 'ebook', label: 'E-Book Narrative', icon: Book, color: 'cyan', desc: 'Deep-knowledge layouts.' },
-            { type: 'course', label: 'E-Course Factory', icon: GraduationCap, color: 'indigo', desc: 'Multi-chapter curriculum.' }
+            { type: 'course', label: 'E-Course Factory', icon: GraduationCap, color: 'indigo', desc: 'Multi-chapter curriculum.' },
+            { type: 'thumbnail', label: 'Thumbnail Oracle', icon: LayoutGrid, color: 'rose', desc: 'High-CTR visual synthesis.' }
           ].map((action) => (
             <button key={action.type} onClick={() => handleLaunch(action.type as any)} className={`w-full glass-card p-6 rounded-3xl flex items-center justify-between group hover:border-${action.color}-500/50 transition-all text-left relative overflow-hidden`}>
               <div className="flex items-center gap-5 font-bold uppercase tracking-widest">
