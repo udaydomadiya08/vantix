@@ -8,6 +8,7 @@ from crypto_helper import encrypt_key, decrypt_key
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(CURRENT_DIR, "users.json")
 HISTORY_PATH = os.path.join(CURRENT_DIR, "history.json")
+TRANSACTIONS_PATH = os.path.join(CURRENT_DIR, "transactions.json")
 
 def initialize_db():
     if not os.path.exists(DB_PATH):
@@ -209,7 +210,72 @@ def add_credits(username, amount):
     if username in users:
         current = users[username].get("balance", 0)
         users[username]["balance"] = current + amount
+        
+        # 📜 [TRANSACTION LEDGER] Record the injection
+        import time
+        tx_data = {
+            "username": username,
+            "amount": amount,
+            "timestamp": time.time(),
+            "date": os.popen("date").read().strip()
+        }
+        if not os.path.exists(TRANSACTIONS_PATH):
+            with open(TRANSACTIONS_PATH, "w") as f: json.dump([], f)
+        with open(TRANSACTIONS_PATH, "r") as f:
+            txs = json.load(f)
+        txs.append(tx_data)
+        with open(TRANSACTIONS_PATH, "w") as f: json.dump(txs, f, indent=4)
+        
         with open(DB_PATH, "w") as f:
             json.dump(users, f, indent=4)
         return True, users[username]["balance"]
     return False, 0
+
+def get_admin_stats():
+    """🏛️ [ORACLE] Aggregate ecosystem-wide production metrics"""
+    initialize_db()
+    with open(DB_PATH, "r") as f: users = json.load(f)
+    if not os.path.exists(HISTORY_PATH): history = {}
+    else:
+        with open(HISTORY_PATH, "r") as f: history = json.load(f)
+    
+    total_users = len(users)
+    total_balance = sum(u.get("balance", 0) for u in users.values())
+    
+    # Synthesis Breakdown
+    job_counts = {"video": 0, "ebook": 0, "course": 0, "thumbnail": 0}
+    total_jobs = 0
+    for user_jobs in history.values():
+        for job in user_jobs.values():
+            s_type = job.get("stream", "unknown")
+            if s_type in job_counts:
+                job_counts[s_type] += 1
+                total_jobs += 1
+    
+    # Revenue (from transactions)
+    total_invoiced = 0 # In cents/credits context
+    if os.path.exists(TRANSACTIONS_PATH):
+        with open(TRANSACTIONS_PATH, "r") as f:
+            txs = json.load(f)
+            total_invoiced = sum(tx["amount"] for tx in txs)
+
+    return {
+        "users": total_users,
+        "balance": total_balance,
+        "total_jobs": total_jobs,
+        "job_breakdown": job_counts,
+        "total_invoiced": total_invoiced
+    }
+
+def get_all_users_summary():
+    """👥 [IDENTITY] List all nodes and their status"""
+    initialize_db()
+    with open(DB_PATH, "r") as f: users = json.load(f)
+    summary = []
+    for username, data in users.items():
+        summary.append({
+            "username": username,
+            "balance": data.get("balance", 0),
+            "keys_configured": sum(1 for v in data.get("api_keys", {}).values() if v)
+        })
+    return sorted(summary, key=lambda x: x["balance"], reverse=True)

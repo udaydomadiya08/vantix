@@ -164,3 +164,17 @@ export async function createCheckoutSession(planId: string) {
     });
     return response.json();
 }
+
+export async function getAdminStats() {
+    const response = await fetch(`${API_BASE}/admin/stats`, {
+        headers: getHeaders(),
+    });
+    return response.json();
+}
+
+export async function getAdminUsers() {
+    const response = await fetch(`${API_BASE}/admin/users`, {
+        headers: getHeaders(),
+    });
+    return response.json();
+}

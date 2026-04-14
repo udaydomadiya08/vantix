@@ -564,6 +564,22 @@ def get_history(username: str = Depends(get_current_user)):
     print(f"🏛️ [IDENTITY] Serving production ledger for: {username}")
     return db_helper.get_user_history(username)
 
+# --- 👑 [ADMIN] Command Center Endpoints ---
+def verify_admin(username: str = Depends(get_current_user)):
+    if username != "udaydomadiya":
+        raise HTTPException(status_code=403, detail="Sovereign Access Denied.")
+    return username
+
+@app.get("/admin/stats")
+async def admin_stats(admin: str = Depends(verify_admin)):
+    """🏛️ [ORACLE] Aggregated ecosystem-wide metrics"""
+    return db_helper.get_admin_stats()
+
+@app.get("/admin/users")
+async def admin_users(admin: str = Depends(verify_admin)):
+    """👥 [IDENTITY] Node Directory and Power Levels"""
+    return db_helper.get_all_users_summary()
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
