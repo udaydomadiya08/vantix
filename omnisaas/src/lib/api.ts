@@ -1,0 +1,142 @@
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
+
+function getHeaders() {
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json"
+    };
+
+    // 🔒 [SECURITY] Inject JWT Token
+    if (typeof window !== "undefined") {
+        const token = localStorage.getItem("vantix_token");
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        // Optional: Real-time header overrides from Vault
+        const stored = localStorage.getItem("vantix_api_keys");
+        if (stored) {
+            try {
+                const keys = JSON.parse(stored);
+                if (keys.groq) headers["X-Groq-Key"] = keys.groq;
+                if (keys.openrouter) headers["X-Openrouter-Key"] = keys.openrouter;
+                if (keys.pexels) headers["X-Pexels-Key"] = keys.pexels;
+                if (keys.pixabay) headers["X-Pixabay-Key"] = keys.pixabay;
+            } catch (e) { }
+        }
+    }
+    return headers;
+}
+
+export async function generateVideo(topic: string, options: any = {}) {
+    const response = await fetch(`${API_BASE}/generate/video`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ topic, ...options }),
+    });
+    return response.json();
+}
+
+export async function generateEbook(topic: string, options: any = {}) {
+    const response = await fetch(`${API_BASE}/generate/ebook`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ topic, ...options }),
+    });
+    return response.json();
+}
+
+export async function checkStatus() {
+    const response = await fetch(`${API_BASE}/`);
+    return response.json();
+}
+
+export async function getJobStatus(jobId: string) {
+    const response = await fetch(`${API_BASE}/status/${jobId}`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) return null;
+    return response.json();
+}
+
+export async function syncUserKeys(keys: any) {
+    const response = await fetch(`${API_BASE}/user/keys`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(keys),
+    });
+    return response.json();
+}
+
+export async function loginUser(credentials: any) {
+    const response = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(credentials),
+    });
+    return response.json();
+}
+
+export async function signupUser(user: any) {
+    const response = await fetch(`${API_BASE}/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(user),
+    });
+    return response.json();
+}
+
+export async function getUserKeys() {
+    const response = await fetch(`${API_BASE}/user/keys`, {
+        headers: getHeaders(),
+    });
+    return response.json();
+}
+
+export async function generateCourse(topic: string, options: any = {}) {
+    const response = await fetch(`${API_BASE}/generate/course`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ topic, ...options }),
+    });
+    return response.json();
+}
+
+export async function getUserDefaults() {
+    const response = await fetch(`${API_BASE}/user/defaults`, {
+        headers: getHeaders(),
+    });
+    return response.json();
+}
+
+export async function updateUserDefaults(factoryType: string, settings: any) {
+    const response = await fetch(`${API_BASE}/user/defaults`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ factory_type: factoryType, settings }),
+    });
+    return response.json();
+}
+
+export async function generateThumbnail(topic: string) {
+    const response = await fetch(`${API_BASE}/generate-thumbnail`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ topic }),
+    });
+    return response.json();
+}
+
+export async function cancelJob(jobId: string) {
+    const response = await fetch(`${API_BASE}/status/${jobId}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+    });
+    return response.json();
+}
+
+export async function getHistory() {
+    const response = await fetch(`${API_BASE}/history`, {
+        headers: getHeaders(),
+    });
+    return response.json();
+}
