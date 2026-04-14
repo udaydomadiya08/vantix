@@ -186,7 +186,9 @@ export default function ApiVaultPage() {
                 <footer className="p-8 md:p-12 bg-slate-950/30 border-t border-slate-800/50 flex flex-col md:flex-row md:items-center justify-between gap-8">
                     <div className="flex items-center gap-4 text-slate-500">
                         <Server size={18} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Production Host: 127.0.0.1:8000</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">
+                            Production Host: {typeof window !== 'undefined' ? (window.location.host === 'localhost:3000' ? '127.0.0.1:8000' : window.location.host) : 'Syncing...'}
+                        </span>
                     </div>
 
                     <button
