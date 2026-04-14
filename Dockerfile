@@ -46,6 +46,10 @@ RUN chmod -R 777 /app/static /app/audio /app/video_creation /app/api
 # 🛰️ INDUSTRIAL PORT (Hugging Face Defaults)
 EXPOSE 7860
 
+# 🧱 INFRASTRUCTURE SETUP
+RUN mkdir -p checkpoints static/videos audio video_creation api
+RUN chmod -R 777 checkpoints static audio video_creation api
+
 # 🛰️ MODEL SYNCHRONIZATION
 COPY download_models.sh .
 RUN chmod +x download_models.sh && ./download_models.sh
