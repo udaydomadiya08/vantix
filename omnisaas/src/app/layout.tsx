@@ -17,12 +17,13 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated && !pathname.startsWith('/auth')) {
+    // 🛡️ [SECURITY] Allow public access to the landing page (/)
+    if (!isAuthenticated && !pathname.startsWith('/auth') && pathname !== '/') {
       router.push('/auth/login');
     }
   }, [isAuthenticated, pathname, router]);
 
-  if (!isAuthenticated && !pathname.startsWith('/auth')) {
+  if (!isAuthenticated && !pathname.startsWith('/auth') && pathname !== '/') {
     return null; // or a loading spinner
   }
 
@@ -81,14 +82,19 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="relative flex min-h-screen">
+  // 🏗️ [LAYOUT] Cinematic Mode: Hide sidebar on landing page for visitors
+  const showSidebar = !(!isAuthenticated && pathname === '/');
+
+  return (
+    <div className="relative flex min-h-screen font-sans">
       {/* Dashboard Sidebar */}
-      <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-slate-800/50 bg-[#020617]/80 backdrop-blur-xl">
-        <div className="flex h-full flex-col px-4 py-6">
-          <div className="mb-10 flex items-center gap-3 px-2">
-            <div className="h-8 w-8 rounded-lg bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.6)]" />
-            <span className="text-xl font-black tracking-[0.15em] text-white">VANTIX</span>
-          </div>
+      {showSidebar && (
+        <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-slate-800/50 bg-[#020617]/80 backdrop-blur-xl">
+          <div className="flex h-full flex-col px-4 py-6">
+            <div className="mb-10 flex items-center gap-3 px-2">
+              <div className="h-8 w-8 rounded-lg bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.6)]" />
+              <span className="text-xl font-black tracking-[0.15em] text-white uppercase italic">VANTIX</span>
+            </div>
 
           <nav className="flex-1 space-y-1">
             {navItems.map((item) => (
@@ -147,8 +153,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 flex-1 p-8">
-        <div className="max-w-7xl mx-auto">
+      <main className={`${showSidebar ? 'ml-64' : ''} flex-1 p-8`}>
+        <div className={showSidebar ? "max-w-7xl mx-auto" : ""}>
           {children}
         </div>
       </main>

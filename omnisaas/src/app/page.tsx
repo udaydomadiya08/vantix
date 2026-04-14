@@ -2,12 +2,229 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Book, GraduationCap, Zap, Activity, Clock, Server, CheckCircle2, AlertCircle, Loader2, Settings, ChevronRight, ArrowRight, ShieldCheck, X, ShieldAlert, CreditCard, Plus, Coins, LayoutGrid } from "lucide-react";
-import { generateVideo, generateEbook, generateCourse, generateThumbnail, checkStatus, getJobStatus, cancelJob, getUserBalance } from "@/lib/api";
+import { 
+  Play, Book, GraduationCap, Zap, Activity, Clock, Server, 
+  CheckCircle2, AlertCircle, Loader2, Settings, ChevronRight, 
+  ArrowRight, ShieldCheck, X, ShieldAlert, CreditCard, Plus, 
+  Coins, LayoutGrid, Sparkles, Globe, Cpu, BarChart3, Rocket
+} from "lucide-react";
+import { 
+  generateVideo, generateEbook, generateCourse, generateThumbnail, 
+  checkStatus, getJobStatus, cancelJob, getUserBalance 
+} from "@/lib/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
-export default function HomePage() {
+// --- 🏙️ [COMPONENT] VANTIX LANDING NODE ---
+function LandingPage() {
+  const router = useRouter();
+
+  const factories = [
+    { 
+      title: "Short-Video Factory", 
+      label: "Viral Synthesis", 
+      icon: Play, 
+      color: "emerald",
+      desc: "Generate high-retention viral content using industrial-grade motion templates and AI narration."
+    },
+    { 
+      title: "E-Book Synthesizer", 
+      label: "Deep Narrative", 
+      icon: Book, 
+      color: "cyan",
+      desc: "Transform topics into comprehensive, multi-chapter industrial guides with AI-generated art." 
+    },
+    { 
+      title: "E-Course Foundry", 
+      label: "Autonomous Curriculum", 
+      icon: GraduationCap, 
+      color: "indigo",
+      desc: "Orchestrate entire educational streams with logical structure and high-fidelity layouts." 
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#020617] text-white selection:bg-emerald-500/30">
+      {/* 🚀 Hero Section */}
+      <section className="relative pt-32 pb-20 px-6 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-emerald-500/5 blur-[120px] rounded-full" />
+        <div className="max-w-7xl mx-auto text-center relative space-y-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-[0.2em]"
+          >
+            <Sparkles size={14} />
+            Autonomous Media Synthesis Active
+          </motion.div>
+          
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-6xl md:text-8xl font-black italic tracking-tighter leading-none"
+          >
+            VANTIX <br />
+            <span className="text-emerald-500 underline decoration-emerald-500/20 decoration-8 underline-offset-8">INDUSTRIAL</span>
+          </motion.h1>
+
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-slate-400 text-xl md:text-2xl max-w-3xl mx-auto font-medium leading-relaxed"
+          >
+            Orchestrate high-throughput media clusters with zero operating costs. 
+            The world's first BYOK-native autonomous synthesis platform.
+          </motion.p>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-col md:flex-row items-center justify-center gap-6 pt-8"
+          >
+            <button 
+              onClick={() => router.push('/auth/login')}
+              className="px-10 py-5 rounded-[2rem] bg-emerald-500 text-white font-black uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_30px_rgba(16,185,129,0.4)] flex items-center gap-3"
+            >
+              Initiate Connection
+              <ArrowRight size={20} />
+            </button>
+            <button 
+              className="px-10 py-5 rounded-[2rem] bg-slate-900 border border-slate-800 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-800 transition-all"
+            >
+              View Documentation
+            </button>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* 🏭 Factory Showcase */}
+      <section className="py-24 px-6 bg-slate-900/40 border-y border-slate-800">
+        <div className="max-w-7xl mx-auto space-y-16">
+          <div className="text-center space-y-4">
+            <h2 className="text-xs font-black text-emerald-400 uppercase tracking-[0.3em]">Industrial Nodes</h2>
+            <p className="text-4xl font-black italic tracking-tight">The Synthesis Cluster</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {factories.map((factory, i) => (
+              <motion.div 
+                key={factory.title}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="glass-card p-10 rounded-[3rem] border-slate-800 hover:border-emerald-500/50 transition-all flex flex-col space-y-6 group"
+              >
+                <div className={`p-4 rounded-2xl bg-${factory.color}-500/10 text-${factory.color}-400 w-fit group-hover:scale-110 transition-transform`}>
+                  <factory.icon size={32} />
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <span className={`text-[10px] font-black text-${factory.color}-500 uppercase tracking-widest block mb-1 underline decoration-2 underline-offset-4`}>{factory.label}</span>
+                    <h3 className="text-2xl font-black italic tracking-tight">{factory.title}</h3>
+                  </div>
+                  <p className="text-slate-500 font-medium text-sm leading-relaxed">{factory.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 🛠️ Technical Node */}
+      <section className="py-24 px-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+          <div className="space-y-10">
+            <div className="space-y-4">
+              <h2 className="text-xs font-black text-emerald-400 uppercase tracking-[0.3em]">Economic Protocol</h2>
+              <p className="text-5xl font-black italic tracking-tight leading-tight">Zero Operating Costs. <br />Infinite Scale.</p>
+            </div>
+            
+            <div className="space-y-8">
+              {[
+                { icon: Cpu, title: "Bring Your Own Key (BYOK)", desc: "Link your Groq and OpenRouter keys directly to the VANTIX vault. We process, you own the costs." },
+                { icon: BarChart3, title: "Synthesis Taxation", desc: "Pay only for what you synthesize using our industrial credit ledger. No monthly subscriptions." },
+                { icon: ShieldCheck, title: "Ephemeral Security", desc: "All data is purged every 24 hours. Minimal footprint, maximum privacy." }
+              ].map(item => (
+                <div key={item.title} className="flex gap-6">
+                   <div className="p-3 h-fit rounded-xl bg-slate-900 border border-slate-800 text-emerald-400">
+                      <item.icon size={24} />
+                   </div>
+                   <div className="space-y-1">
+                      <h4 className="font-black italic uppercase tracking-wider">{item.title}</h4>
+                      <p className="text-slate-500 text-sm font-medium">{item.desc}</p>
+                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative">
+             <div className="absolute inset-0 bg-emerald-500/10 blur-[100px] rounded-full" />
+             <div className="glass-card p-8 rounded-[3rem] border-slate-800 bg-slate-900/60 relative overflow-hidden">
+                <div className="space-y-6">
+                   <div className="flex items-center justify-between border-b border-slate-800 pb-6">
+                      <div className="flex items-center gap-3">
+                         <div className="h-4 w-4 rounded-full bg-emerald-500 animate-pulse" />
+                         <span className="text-xs font-black uppercase tracking-widest text-white">Production Log</span>
+                      </div>
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">v1.0.4-Industrial</span>
+                   </div>
+                   
+                   <div className="space-y-4 font-mono text-[10px]">
+                      <div className="text-emerald-500/60 leading-relaxed">[NODE_INFO] Initializing VANTIX Synthesis Engine...</div>
+                      <div className="text-slate-400 leading-relaxed">[VAULT_AUTH] BYOK Handshake Successful: Groq v3-Llama-70b</div>
+                      <div className="text-slate-400 leading-relaxed">[QUEUE_MANAGER] Shorts Factory -> Received 1500 tokens</div>
+                      <div className="text-cyan-400 leading-relaxed">[SYNTHESIS] Video rendering active: 45fps industrial speed</div>
+                      <div className="text-slate-400/50 leading-relaxed">--------------------------------------------------</div>
+                      <div className="text-white animate-pulse">_</div>
+                   </div>
+                </div>
+             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 💳 Pricing Preview */}
+      <section className="py-24 px-6 bg-slate-900/40 border-t border-slate-800 text-center">
+         <div className="max-w-4xl mx-auto space-y-12">
+            <div className="space-y-4">
+               <h2 className="text-xs font-black text-emerald-400 uppercase tracking-[0.3em]">Commercial Link</h2>
+               <p className="text-4xl font-black italic tracking-tight">Industrial Power Tiers</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               {['Starter ($10)', 'Engine Core ($45)', 'Industrial Grid ($150)'].map(tier => (
+                 <div key={tier} className="p-6 rounded-2xl bg-slate-900 border border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 transition-all cursor-default">
+                   {tier}
+                 </div>
+               ))}
+            </div>
+
+            <button 
+              onClick={() => router.push('/auth/login')}
+              className="px-12 py-6 rounded-[2.5rem] bg-emerald-500 text-white font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-xl group"
+            >
+              Start Synthesis Now
+              <Plus size={18} className="inline-block ml-3 group-hover:rotate-90 transition-transform" />
+            </button>
+         </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 px-6 border-t border-slate-900 text-center">
+         <p className="text-[10px] font-black text-slate-700 uppercase tracking-[0.5em]">VANTIX BYOK-NATIVE MEDIA CLUSTER © 2026</p>
+      </footer>
+    </div>
+  );
+}
+
+// --- 🏗️ [COMPONENT] VANTIX INDUSTRIAL DASHBOARD ---
+function Dashboard() {
   const [topic, setTopic] = useState("");
   const [queuedJobs, setQueuedJobs] = useState<any[]>([]); 
   const [serverStatus, setServerStatus] = useState<'online' | 'offline'>('offline');
@@ -18,7 +235,7 @@ export default function HomePage() {
   const sanitizeResultUrl = (url: string | undefined): string | undefined => {
     if (!url) return url;
     const match = url.match(/(static\/.+\.\w+|courses\/.+\.\w+|final_video\/.+\.\w+)/);
-    if (match) return `http://127.0.0.1:8000/download?path=${match[1]}`;
+    if (match) return `https://udaydomadiya-vantix-core.hf.space/download?path=${match[1]}`;
     if (url.startsWith('http')) return url;
     return undefined;
   };
@@ -86,7 +303,7 @@ export default function HomePage() {
         setTimeout(() => setSuccessMessage(""), 3000);
       } else if (res && res.detail && res.detail.error === "vault_locked") {
          alert(`VAULT LOCKED: ${res.detail.message} - Please configure your Groq/OpenRouter keys in the API Vault.`);
-         router.push("/settings/api"); // Redirect to API Vault
+         router.push("/settings/api"); 
       }
     } catch (error: any) {
       if (error?.message?.includes("402") || (error instanceof Response && error.status === 402)) {
@@ -234,4 +451,14 @@ export default function HomePage() {
       </div>
     </motion.div>
   );
+}
+
+export default function RootPage() {
+  const { isAuthenticated } = useAuth();
+  
+  if (isAuthenticated) {
+    return <Dashboard />;
+  }
+  
+  return <LandingPage />;
 }
