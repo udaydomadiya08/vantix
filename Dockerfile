@@ -41,8 +41,8 @@ RUN python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perc
 COPY . .
 
 # 🏗️ INDUSTRIAL INFRASTRUCTURE BOOTSTRAP
-RUN mkdir -p checkpoints static/videos audio video_creation api && \
-    chmod -R 777 checkpoints static audio video_creation api
+RUN mkdir -p checkpoints static/videos audio video_creation api final_video && \
+    chmod -R 777 checkpoints static audio video_creation api final_video
 
 # 🛰️ MODEL SYNCHRONIZATION
 COPY download_models.sh .
