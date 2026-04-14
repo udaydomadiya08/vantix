@@ -1,4 +1,4 @@
-# VANTIX Master Production Manifest (Modernized v1.1)
+# VANTIX Master Production Manifest (Final Neutralization v1.2)
 # --- CORE API ---
 fastapi==0.115.0
 uvicorn==0.32.0
@@ -29,13 +29,16 @@ torch --index-url https://download.pytorch.org/whl/cpu
 torchaudio --index-url https://download.pytorch.org/whl/cpu
 torchvision --index-url https://download.pytorch.org/whl/cpu
 
-# --- WAV2LIP SUBMODULE (Modernized for Py3.11) ---
+# --- WAV2LIP NEURAL SPECIALISTS ---
 librosa>=0.10.0
 numba>=0.57.0
 mediapipe
 opencv-contrib-python-headless
 scipy
 tqdm
+# specialized neural packages
+https://raw.githubusercontent.com/AwaleSajil/ghc/master/ghc-1.0-py3-none-any.whl
+git+https://github.com/elliottzheng/batch-face.git@master
 
 # --- RESEARCH & UTILS ---
 google-search-results==2.4.2
