@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Book, GraduationCap, Zap, Activity, Clock, Server, CheckCircle2, AlertCircle, Loader2, Settings, ChevronRight, ArrowRight, ShieldCheck, X, ShieldAlert, CreditCard, Plus, Coins } from "lucide-react";
+import { Play, Book, GraduationCap, Zap, Activity, Clock, Server, CheckCircle2, AlertCircle, Loader2, Settings, ChevronRight, ArrowRight, ShieldCheck, X, ShieldAlert, CreditCard, Plus, Coins, LayoutGrid } from "lucide-react";
 import { generateVideo, generateEbook, generateCourse, generateThumbnail, checkStatus, getJobStatus, cancelJob, getUserBalance } from "@/lib/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
