@@ -45,8 +45,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const { logout, user } = useAuth();
   const isAuthPage = pathname.startsWith('/auth');
   const [balance, setBalance] = useState<number | null>(null);
-  const [showRecharge, setShowRecharge] = useState(false);
-  const [isRecharging, setIsRecharging] = useState(false);
 
   useEffect(() => {
     if (!isAuthPage) {
@@ -57,19 +55,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       return () => clearInterval(interval);
     }
   }, [isAuthPage]);
-
-  const handleReload = async (amount: number) => {
-    setIsRecharging(true);
-    try {
-      const data = await reloadCredits(amount);
-      setBalance(data.balance);
-      setShowRecharge(false);
-    } catch (e) {
-      alert("Recharge Failed: Commercial Link Interrupted.");
-    } finally {
-      setIsRecharging(false);
-    }
-  };
 
   if (isAuthPage) return <main className="p-8">{children}</main>;
 
@@ -136,13 +121,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 />
               </div>
 
-              <button 
-                onClick={() => setShowRecharge(true)}
+              <Link 
+                href="/recharge"
                 className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus size={12} className="group-hover:rotate-90 transition-transform" />
                 Upgrade Node
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -154,86 +139,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
-
-      {/* 💳 GLOBAL RECHARGE MODAL */}
-      <AnimatePresence>
-        {showRecharge && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 sm:p-0">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => !isRecharging && setShowRecharge(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" 
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden"
-            >
-              <div className="p-8 space-y-8">
-                <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-3">
-                      <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-400">
-                         <Zap size={24} />
-                      </div>
-                      <h2 className="text-xl font-black text-white italic tracking-tight underline decoration-emerald-500/30 decoration-4 underline-offset-4 uppercase">RECHARGE NODE</h2>
-                   </div>
-                   <button 
-                     onClick={() => !isRecharging && setShowRecharge(false)}
-                     className="p-2 rounded-xl hover:bg-slate-800 text-slate-500 transition-all font-bold"
-                   >
-                     <X size={20} />
-                   </button>
-                </div>
-
-                <div className="space-y-4">
-                  <p className="text-slate-400 text-sm font-medium">Inject industrial power to restore synthesis capabilities. Select a recharge vector:</p>
-                  
-                  <div className="grid grid-cols-1 gap-4">
-                    {[
-                      { amount: 100, price: '10', label: 'Starter Cell', bonus: 'Basic Power' },
-                      { amount: 500, price: '45', label: 'Engine Core', bonus: '10% Extraction Bonus' },
-                      { amount: 2000, price: '150', label: 'Industrial Grid', bonus: '25% Optimization' }
-                    ].map((plan) => (
-                      <button
-                        key={plan.amount}
-                        disabled={isRecharging}
-                        onClick={() => handleReload(plan.amount)}
-                        className="p-6 rounded-3xl border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all text-left flex items-center justify-between group disabled:opacity-50"
-                      >
-                         <div className="space-y-1">
-                            <h4 className="text-white font-black text-xs uppercase tracking-widest">{plan.label}</h4>
-                            <p className="text-[10px] text-slate-500 font-bold">{plan.amount} Credits // {plan.bonus}</p>
-                         </div>
-                         <div className="text-right">
-                            <span className="text-xs font-black text-emerald-400 uppercase tracking-tighter italic">US ${plan.price}</span>
-                            <div className="flex items-center justify-end text-[8px] text-slate-600 font-bold uppercase mt-1 group-hover:text-white transition-colors">
-                               Init Transfer <ChevronRight size={10} />
-                            </div>
-                         </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-6 rounded-3xl bg-slate-950/50 border border-slate-800/50 flex items-center gap-4">
-                   <ShieldCheck size={20} className="text-slate-600" />
-                   <div className="text-[10px] text-slate-600 font-medium leading-relaxed uppercase tracking-widest">Transactions secured by Vantix Cryptographic Ledger. Local simulation active.</div>
-                </div>
-              </div>
-              
-              {isRecharging && (
-                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center space-y-4">
-                   <Loader2 className="animate-spin text-emerald-500" size={40} />
-                   <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] animate-pulse">Synchronizing Ledger...</span>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
