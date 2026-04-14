@@ -72,6 +72,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     { name: 'E-Books', icon: BookOpen, path: '/ebooks' },
     { name: 'API Vault', icon: Zap, path: '/settings/api' },
     { name: 'Library', icon: History, path: '/library' },
+    { name: 'Buy Credits', icon: Coins, path: '/recharge' },
   ];
 
   return (
