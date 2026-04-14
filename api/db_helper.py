@@ -1,0 +1,178 @@
+import json
+import os
+import hashlib
+import crypto_helper
+from crypto_helper import encrypt_key, decrypt_key
+
+# 🏛️ [AUTHORITY] Dynamic Project Paths (Industrial Synchrony)
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(CURRENT_DIR, "users.json")
+HISTORY_PATH = os.path.join(CURRENT_DIR, "history.json")
+
+def initialize_db():
+    if not os.path.exists(DB_PATH):
+        with open(DB_PATH, "w") as f:
+            json.dump({}, f)
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def get_user(username):
+    initialize_db()
+    with open(DB_PATH, "r") as f:
+        users = json.load(f)
+    return users.get(username)
+
+DEFAULT_STRUCTURE = {
+    "video": {
+        "horizontal": False,
+        "include_avatar": False,
+        "voice_id": "alloy",
+        "visual_source": "pexels"
+    },
+    "ebook": {
+        "num_chapters": 3,
+        "min_words": 150,
+        "include_images": True,
+        "chapter_art": True
+    },
+    "course": {
+        "horizontal": False,
+        "include_avatar": False
+    }
+}
+
+def create_user(username, password):
+    initialize_db()
+    with open(DB_PATH, "r") as f:
+        users = json.load(f)
+    
+    if username in users:
+        return False
+    
+    users[username] = {
+        "username": username,
+        "password": hash_password(password),
+        "api_keys": {
+            "groq": None,
+            "openrouter": None,
+            "pexels": None,
+            "pixabay": None
+        },
+        "defaults": DEFAULT_STRUCTURE
+    }
+    
+    with open(DB_PATH, "w") as f:
+        json.dump(users, f, indent=4)
+    return True
+
+def get_user_keys(username):
+    user = get_user(username)
+    if user:
+        keys = user.get("api_keys", {})
+        # Decrypt keys before returning to the engine
+        return {k: decrypt_key(v) if v else None for k, v in keys.items()}
+    return {}
+
+def update_user_keys(username, keys):
+    initialize_db()
+    with open(DB_PATH, "r") as f:
+        users = json.load(f)
+    
+    if username in users:
+        # Encrypt each key before storage
+        encrypted_keys = {k: encrypt_key(v) if v else None for k, v in keys.items()}
+        users[username]["api_keys"].update(encrypted_keys)
+        with open(DB_PATH, "w") as f:
+            json.dump(users, f, indent=4)
+        return True
+    return False
+
+def update_user_defaults(username, factory_type, defaults):
+    initialize_db()
+    with open(DB_PATH, "r") as f:
+        users = json.load(f)
+    
+    if username in users:
+        if "defaults" not in users[username]:
+            users[username]["defaults"] = {}
+        if factory_type not in users[username]["defaults"]:
+            users[username]["defaults"][factory_type] = {}
+            
+        users[username]["defaults"][factory_type].update(defaults)
+        with open(DB_PATH, "w") as f:
+            json.dump(users, f, indent=4)
+        return True
+    return False
+
+def get_user_defaults(username):
+    user = get_user(username)
+    if user:
+        user_defaults = user.get("defaults", {})
+        # Merge with DEFAULT_STRUCTURE to ensure all keys exist
+        for factory, settings in DEFAULT_STRUCTURE.items():
+            if factory not in user_defaults:
+                user_defaults[factory] = settings
+            else:
+                for key, val in settings.items():
+                    if key not in user_defaults[factory]:
+                        user_defaults[factory][key] = val
+        return user_defaults
+    return DEFAULT_STRUCTURE
+
+def save_to_history(username, job_id, job_data):
+    """🏛️ Archive Job Metadata to Industrial Ledger (Completed Only)"""
+    # 🗑️ [CLEAN LEDGER] Only persist completed jobs that have an asset
+    if job_data.get("status") != "completed" or not job_data.get("result_url"):
+        return False
+
+    if not os.path.exists(HISTORY_PATH):
+        with open(HISTORY_PATH, "w") as f: json.dump({}, f)
+    
+    with open(HISTORY_PATH, "r") as f:
+        history = json.load(f)
+    
+    if username not in history:
+        history[username] = {}
+    
+    # Write/update the completed entry
+    if job_id not in history[username]:
+        history[username][job_id] = job_data
+    else:
+        history[username][job_id].update(job_data)
+        
+    with open(HISTORY_PATH, "w") as f:
+        json.dump(history, f, indent=4)
+    return True
+
+def _normalize_result_url(url):
+    """🏛️ [SANITIZER] Normalize any broken result_url to the correct download endpoint."""
+    if not url:
+        return url
+    # If already a proper download endpoint, return it
+    if url.startswith("http://127.0.0.1:8000/download?path="):
+        return url
+    # Extract the relative path (static/..., courses/..., final_video/...)
+    import re
+    match = re.search(r'(static/[^\s]+|courses/[^\s]+|final_video/[^\s]+)', url)
+    if match:
+        return f"http://127.0.0.1:8000/download?path={match.group(1)}"
+    return url
+
+def get_user_history(username):
+    """📜 Retrieve Production Ledger"""
+    if not os.path.exists(HISTORY_PATH):
+        return []
+    
+    with open(HISTORY_PATH, "r") as f:
+        history = json.load(f)
+    
+    user_jobs = history.get(username, {})
+    # Return as list sorted by timestamp (desc), with normalized URLs
+    sorted_history = sorted(
+        [{"id": jid, **{**data, "result_url": _normalize_result_url(data.get("result_url"))}}
+         for jid, data in user_jobs.items()],
+        key=lambda x: x.get("submitted", ""),
+        reverse=True
+    )
+    return sorted_history

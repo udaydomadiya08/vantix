@@ -1,0 +1,84 @@
+
+> omnisaas@0.1.0 dev
+> next dev -p 3000
+
+▲ Next.js 16.2.3 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.176.134:3000
+✓ Ready in 419ms
+
+ GET /shorts 200 in 309ms (next.js: 127ms, application-code: 182ms)
+ GET /auth/login 200 in 318ms (next.js: 175ms, application-code: 143ms)
+ GET / 200 in 70ms (next.js: 53ms, application-code: 17ms)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+ GET /settings/defaults 200 in 1198ms (next.js: 1185ms, application-code: 13ms)
+[browser] ⨯ unhandledRejection: TypeError: Failed to fetch
+    at getUserDefaults (src/lib/api.ts:87:28)
+    at SettingsDefaultsPage.useEffect (src/app/settings/defaults/page.tsx:15:24)
+  85 |
+  86 | export async function getUserDefaults() {
+> 87 |     const response = await fetch(`${API_BASE}/user/defaults`, {
+     |                            ^
+  88 |         headers: getHeaders(),
+  89 |     });
+  90 |     return response.json();
+[browser] ⨯ unhandledRejection: TypeError: Failed to fetch
+    at getUserDefaults (src/lib/api.ts:87:28)
+    at SettingsDefaultsPage.useEffect (src/app/settings/defaults/page.tsx:15:24)
+  85 |
+  86 | export async function getUserDefaults() {
+> 87 |     const response = await fetch(`${API_BASE}/user/defaults`, {
+     |                            ^
+  88 |         headers: getHeaders(),
+  89 |     });
+  90 |     return response.json();
+ GET / 200 in 91ms (next.js: 31ms, application-code: 60ms)
+ GET /shorts 200 in 152ms (next.js: 14ms, application-code: 138ms)
+ GET /courses 200 in 109ms (next.js: 98ms, application-code: 12ms)
+ GET /ebooks 200 in 43ms (next.js: 29ms, application-code: 14ms)
+ GET /shorts 200 in 71ms (next.js: 38ms, application-code: 33ms)
+ GET /courses 200 in 29ms (next.js: 6ms, application-code: 23ms)
+ GET /ebooks 200 in 28ms (next.js: 5ms, application-code: 23ms)
+ GET /courses 200 in 16ms (next.js: 4ms, application-code: 12ms)
+ GET /shorts 200 in 25ms (next.js: 4ms, application-code: 21ms)
+ GET /settings/api 200 in 65ms (next.js: 49ms, application-code: 17ms)
+[browser] Failed to load user keys from backend 
+    at load (src/app/settings/api/page.tsx:25:25)
+  23 |                 if (data) setKeys(prev => ({ ...prev, ...data }));
+  24 |             } catch (e) {
+> 25 |                 console.error("Failed to load user keys from backend");
+     |                         ^
+  26 |             }
+  27 |         }
+  28 |         load(); (src/app/settings/api/page.tsx:25:25)
+[browser] Failed to load user keys from backend 
+    at load (src/app/settings/api/page.tsx:25:25)
+  23 |                 if (data) setKeys(prev => ({ ...prev, ...data }));
+  24 |             } catch (e) {
+> 25 |                 console.error("Failed to load user keys from backend");
+     |                         ^
+  26 |             }
+  27 |         }
+  28 |         load(); (src/app/settings/api/page.tsx:25:25)
+ GET /shorts 200 in 31ms (next.js: 6ms, application-code: 25ms)
+ GET /courses 200 in 31ms (next.js: 7ms, application-code: 24ms)
+ GET /ebooks 200 in 19ms (next.js: 3ms, application-code: 15ms)
+ GET / 200 in 97ms (next.js: 11ms, application-code: 86ms)
+⚠ Blocked cross-origin request to Next.js dev resource /_next/webpack-hmr from "127.0.0.1".
+Cross-origin access to Next.js dev resources is blocked by default for safety.
+
+To allow this host in development, add it to "allowedDevOrigins" in next.config.js and restart the dev server:
+
+// next.config.js
+module.exports = {
+  allowedDevOrigins: ['127.0.0.1'],
+}
+
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ GET / 200 in 97ms (next.js: 15ms, application-code: 82ms)
+ GET /auth/login 200 in 46ms (next.js: 7ms, application-code: 40ms)
+ GET / 200 in 105ms (next.js: 12ms, application-code: 93ms)
+ GET /auth/login 200 in 65ms (next.js: 7ms, application-code: 58ms)
+ GET /auth/login 200 in 33ms (next.js: 5ms, application-code: 28ms)
+ GET /auth/login 200 in 54ms (next.js: 8ms, application-code: 45ms)
+ GET /auth/login 200 in 104ms (next.js: 13ms, application-code: 91ms)

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+auth.json
+api/users.json
+api/history.json
+api/.identity_vault.key
+
+# Next.js
+omnisaas/node_modules/
+omnisaas/.next/
+omnisaas/out/
+omnisaas/build/
+
+# Media Temp
+static/videos/*
+static/audio/*
+static/thumbnails/*
+video_creation/*
+courses/*
+audio/*
+
+# Git
+.git/
+.gitignore
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store

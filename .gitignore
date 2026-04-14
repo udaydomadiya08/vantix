@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.env
+.venv
+venv/
+ENV/
+
+# Next.js
+omnisaas/.next/
+omnisaas/out/
+omnisaas/node_modules/
+
+# Production Data (DO NOT COMMIT)
+api/users.json
+api/history.json
+api/.identity_vault.key
+UPLOAD_STATUS.json
+
+# Media Assets (DO NOT COMMIT)
+static/videos/*.mp4
+static/audio/*.mp3
+static/thumbnails/*.jpg
+video_creation/*
+courses/*
+audio/*
+video_created/*
+
+# OS
+.DS_Store
+Thumbs.db
