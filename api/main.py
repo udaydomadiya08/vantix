@@ -856,4 +856,4 @@ def admin_stats(username: str = Depends(get_current_user)):
 def admin_users(username: str = Depends(get_current_user)):
     if username != "uday":
         raise HTTPException(status_code=403, detail="Industrial protocol: Administrative access restricted.")
-    return db_helper.get_all_users()
+    return db_helper.get_all_users_summary()
