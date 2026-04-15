@@ -100,6 +100,11 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
                 break
         script = "\n".join(user_script_lines)
     elif choice == "FORCE":
+        # ⚡ [API] Intensity Propagation (v1.0)
+        if intensity is not None:
+            shorts.PACING_INTENSITY = float(intensity)
+            print(f"📈 [API] Pacing Intensity locked to: {shorts.PACING_INTENSITY}")
+            
         if not script:
             print(f"🧠 [API] Orchestrating Viral Critic Loop for: {topic}")
             script = main.generate_vantix_script(topic, user_keys=user_keys)

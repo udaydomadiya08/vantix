@@ -84,15 +84,13 @@ nltk.download("punkt_tab")
 nltk.download("stopwords")
 nlp = spacy.load("en_core_web_sm")
 
-# === API KEYS === #
-PEXELS_API_KEY = "DGhCtAB83klpCIv5yq5kMIb2zun7q67IvHJysvW4lInb0WVXaQF2xLMu"
-SERP_API_KEY = "7f55bbfeff700d39fe9ee306af78102a69cf43267987037a77c5b111cbc48e98"
-GEMINI_API_KEY = "AIzaSyBRzQCetzqXL9aQDcQw8T2C0rnzRxIYTTw"
+# === API KEYS (INDUSTRIAL SYNC) === #
+PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
+SERP_API_KEY = os.environ.get("SERP_API_KEY", "")
 
-
-
-genai.configure(api_key=GEMINI_API_KEY)
-gemini_model = genai.GenerativeModel(model_name='models/gemini-2.5-flash-preview-05-20')
+from ai_helper import generate_ai_response, AIResponse
+def generate_gemini_response(prompt, user_keys=None):
+    return generate_ai_response(prompt, user_keys=user_keys)
 
 # Get trending topic from Google Trends using SerpAPI
 

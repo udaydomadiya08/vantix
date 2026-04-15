@@ -94,31 +94,11 @@ from pathlib import Path
 import re  
 from serpapi import GoogleSearch
 import os
-# 🛡️ [ENV-SANITIZATION]: Neutralizing auto-proxy injection for Groq SDK
+# 🛡️ [ENV-SANITIZATION]: Neutralizing auto-proxy injection for legacy SDKs
 os.environ.pop("HTTP_PROXY", None)
 os.environ.pop("HTTPS_PROXY", None)
 os.environ.pop("http_proxy", None)
 os.environ.pop("https_proxy", None)
-
-import groq
-# 🛡️ [GLOBAL SDK LOCKDOWN]: Neutralizing 'proxies' at the root
-_orig_init = groq.Client.__init__
-def _new_init(self, *args, **kwargs):
-    kwargs.pop("proxies", None)
-    _orig_init(self, *args, **kwargs)
-groq.Client.__init__ = _new_init
-groq.Groq.__init__ = _new_init # Double-seal
-
-from groq import Groq
-
-
-# 🛡️ [NUCLEAR NEUTRALIZATION]: Legacy Proxies Fix (v1.0)
-_original_groq_init = Groq.__init__
-def _patched_groq_init(self, *args, **kwargs):
-    print("🛡️ [PATCH]: InterCEPTED Groq Client Initialization! Stripping proxies...")
-    kwargs.pop("proxies", None)
-    return _original_groq_init(self, *args, **kwargs)
-Groq.__init__ = _patched_groq_init
 
 
 import sys
@@ -1649,7 +1629,11 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
 
     # 💥 CINEMATIC STABILIZATION (v54): Cluster short milestones
     # Normal Pacing (0.5) -> 2.0s floor. High Pacing (1.0) -> 0.8s floor.
-    intensity = float(os.environ.get("PACING_INTENSITY", 0.5))
+    if intensity is None:
+        intensity = float(os.environ.get("PACING_INTENSITY", PACING_INTENSITY))
+    else:
+        intensity = float(intensity)
+        
     min_floor = 2.5 * (1.1 - intensity) # Intensity 0.5 -> 1.5s, 1.0 -> 0.25s
     
     milestones = []

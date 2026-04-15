@@ -84,14 +84,13 @@ nltk.download("punkt_tab")
 nltk.download("stopwords")
 nlp = spacy.load("en_core_web_sm")
 
-# === API KEYS === #
-PEXELS_API_KEY = "DGhCtAB83klpCIv5yq5kMIb2zun7q67IvHJysvW4lInb0WVXaQF2xLMu"
-SERP_API_KEY = "7f55bbfeff700d39fe9ee306af78102a69cf43267987037a77c5b111cbc48e98"
-GEMINI_API_KEY = "AIzaSyBRzQCetzqXL9aQDcQw8T2C0rnzRxIYTTw"
+# === API KEYS (INDUSTRIAL SYNC) === #
+PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
+SERP_API_KEY = os.environ.get("SERP_API_KEY", "")
 
-
-
-genai.configure(api_key=GEMINI_API_KEY)
+from ai_helper import generate_ai_response, AIResponse
+def generate_gemini_response(prompt, user_keys=None):
+    return generate_ai_response(prompt, user_keys=user_keys)
 
 # Get trending topic from Google Trends using SerpAPI
 
@@ -129,81 +128,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-class GeminiResponse:
-    def __init__(self, text):
-        self.text = text
-
-FAILED_KEYS_FILE = "disabled_keys.json"
-
-def load_disabled_keys():
-    if not os.path.exists(FAILED_KEYS_FILE):
-        return set()
-
-    with open(FAILED_KEYS_FILE, "r") as f:
-        data = json.load(f)
-    today = datetime.now().strftime("%Y-%m-%d")
-    return set(data.get(today, []))
-
-def save_disabled_key(api_key):
-    today = datetime.now().strftime("%Y-%m-%d")
-    data = {}
-
-    if os.path.exists(FAILED_KEYS_FILE):
-        with open(FAILED_KEYS_FILE, "r") as f:
-            data = json.load(f)
-
-    if today not in data:
-        data[today] = []
-
-    if api_key not in data[today]:
-        data[today].append(api_key)
-
-    with open(FAILED_KEYS_FILE, "w") as f:
-        json.dump(data, f, indent=2)
-
-@retry_infinite(delay=5)
-def generate_gemini_response(prompt, model_name=None, max_retries=5, wait_seconds=5):
-    import google.generativeai as genai
-
-    api_keys = [
-        "AIzaSyA2Hj5phmEsqXBWqIGbZxQXxAzv129Zw1E",
-        "AIzaSyDwTEr-7c2kP7doddq93aG9CpRmiz0Bv44",
-        "AIzaSyAvsg_Oky2NJpD3uNnqMHF4xQJRBK3V9RY",
-        "AIzaSyArpDip4G3DK3MiiN_mwE6CHpgDRtQD9TU",
-        "AIzaSyBRzQCetzqXL9aQDcQw8T2C0rnzRxIYTTw",
-        "AIzaSyCL46bkyk5tvCZNJCsAA3VSf-NC-g7BU3o"
-    ]
-
-    model_names = [
-        "gemini-2.5-flash-preview-05-20",
-        "gemini-2.5-pro-preview-05-06"
-    ]
-
-    disabled_keys_today = load_disabled_keys()
-
-    for attempt in range(max_retries):
-        available_keys = [k for k in api_keys if k not in disabled_keys_today]
-        if not available_keys:
-            raise RuntimeError("❌ All Gemini API keys are disabled for today.")
-
-        key = random.choice(available_keys)
-        model = model_name or random.choice(model_names)
-
-        try:
-            genai.configure(api_key=key)
-            gemini = genai.GenerativeModel(model)
-            print(f"✅ Success with model: {model}, key: {key[-6:]}")
-
-            response = gemini.generate_content(prompt)
-            return GeminiResponse(response.text.strip())
-
-        except Exception as e:
-            print(f"❌ Failed with key {key[-6:]} (Attempt {attempt + 1}): {e}")
-            save_disabled_key(key)
-            disabled_keys_today.add(key)
-            time.sleep(wait_seconds)
-
-    raise RuntimeError("❌ All Gemini API attempts failed.")
+# 🏛️ Unified AI Orchestration Logic Purged (Delegated to ai_helper)
 
 
 

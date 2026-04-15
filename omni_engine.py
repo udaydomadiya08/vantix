@@ -1,13 +1,4 @@
 from ai_helper import generate_ai_response
-import groq
-
-# 🛡️ [GLOBAL SDK LOCKDOWN]: Neutralizing 'proxies' at the root
-_orig_init = groq.Client.__init__
-def _new_init(self, *args, **kwargs):
-    kwargs.pop("proxies", None)
-    _orig_init(self, *args, **kwargs)
-groq.Client.__init__ = _new_init
-groq.Groq.__init__ = _new_init # Double-seal
 
 import socket
 socket.setdefaulttimeout(6000)
