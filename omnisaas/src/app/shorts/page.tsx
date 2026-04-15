@@ -110,7 +110,8 @@ export default function ShortsPage() {
                 const detail = JSON.stringify(error.detail);
                 alert(`UNPROCESSABLE IDENTITY: The server rejected this production cluster. DETAIL: ${detail}`);
             } else {
-                alert("INDUSTRIAL INTERRUPTION: Infrastructure node unreachable. Check backend status.");
+                const { API_BASE } = await import("@/lib/api");
+                alert(`INDUSTRIAL INTERRUPTION: Infrastructure node unreachable at [${API_BASE}]. Check backend status and ensure NEXT_PUBLIC_API_BASE is set.`);
             }
         } finally {
             setIsProcessing(false);

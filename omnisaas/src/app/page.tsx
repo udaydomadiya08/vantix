@@ -350,7 +350,8 @@ function Dashboard() {
           const detail = JSON.stringify(error.detail);
           alert(`UNPROCESSABLE IDENTITY: The server rejected this production cluster. DETAIL: ${detail}`);
       } else {
-         alert("FACTORY INTERRUPTION: Infrastructure unreachable. Check your Vantix Power / Backend status.");
+          const { API_BASE } = await import("@/lib/api");
+          alert(`FACTORY INTERRUPTION: Infrastructure unreachable at [${API_BASE}]. Check your Vantix Power / Backend status.`);
       }
     }
   };

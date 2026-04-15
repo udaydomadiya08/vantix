@@ -2,12 +2,14 @@ const IS_BROWSER = typeof window !== 'undefined';
 let API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
 
 if (IS_BROWSER) {
-    if (window.location.hostname.includes('vercel.app') && !process.env.NEXT_PUBLIC_API_BASE) {
-        // 🛰️ [SMART RESOLVER] If on Vercel but no ENV, try to hit the backend at same origin or related node
-        // Often backends are on a dedicated 'api' subdomain or different route
-        console.log("🛠️ [VANTIX RESOLVER]: Vercel Node Detected. Attempting infrastructure sync...");
+    const isVercel = window.location.hostname.includes('vercel.app');
+    if (isVercel && (!process.env.NEXT_PUBLIC_API_BASE || API_BASE.includes('127.0.0.1'))) {
+        // 🛰️ [AUTO-PROXY] If on Vercel but pointing to localhost, force to same-origin /api
+        // This is the industrial standard for monorepo deployments
+        API_BASE = window.location.origin + "/api";
+        console.log("🛠️ [VANTIX PROXY]: Infrastructure redirected to production node -> " + API_BASE);
     }
-    console.log(`📡 [INFRASTRUCTURE]: Pinging backend at -> ${API_BASE}`);
+    console.log(`📡 [INFRASTRUCTURE]: Pinging backend cluster at -> ${API_BASE}`);
 }
 
 function getHeaders() {
