@@ -10,7 +10,13 @@ from crypto_helper import encrypt_key, decrypt_key
 DB_LOCK = threading.Lock()
 
 # 🏛️ [AUTHORITY] Dynamic Project Paths (Industrial Synchrony)
-DATA_DIR = os.getenv("VANTIX_DATA_DIR", os.path.dirname(os.path.abspath(__file__)))
+# Prioritize /data for HuggingFace Persistent Storage, then environment var, then local fallback
+if os.path.exists("/data"):
+    DATA_DIR = "/data/vantix"
+    os.makedirs(DATA_DIR, exist_ok=True)
+else:
+    DATA_DIR = os.getenv("VANTIX_DATA_DIR", os.path.dirname(os.path.abspath(__file__)))
+
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR, exist_ok=True)
 
