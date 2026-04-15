@@ -113,11 +113,11 @@ from groq import Groq
 
 
 # 🛡️ [NUCLEAR NEUTRALIZATION]: Legacy Proxies Fix (v1.0)
-# This patch intercepts the Groq constructor and strips 'proxies' to prevent SDK crashes.
 _original_groq_init = Groq.__init__
 def _patched_groq_init(self, *args, **kwargs):
+    print("🛡️ [PATCH]: InterCEPTED Groq Client Initialization! Stripping proxies...")
     kwargs.pop("proxies", None)
-    _original_groq_init(self, *args, **kwargs)
+    return _original_groq_init(self, *args, **kwargs)
 Groq.__init__ = _patched_groq_init
 
 
@@ -254,7 +254,11 @@ def get_word_level_transcription(audio_path, user_keys=None):
         print("⚠️ [GROQ] No API Key provided for transcription. Skipping to local fallback.")
     else:
         try:
-            groq_client = Groq(api_key=groq_api_key)
+            # Local fail-safe for environment-injected proxies
+            def safe_groq(*args, **kwargs):
+                kwargs.pop("proxies", None)
+                return Groq(*args, **kwargs)
+            groq_client = safe_groq(api_key=groq_api_key)
             for model in WHISPER_MODELS:
                 try:
                     print(f"⚡ [Groq Cloud] Transcribing: {model}...")

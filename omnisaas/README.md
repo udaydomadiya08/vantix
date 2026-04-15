@@ -1,5 +1,8 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Vantix OmniSaaS (Deployment Locked v1.2)
+<!-- PROXY_STABILIZATION_PULSE: 2026-04-16T02:22:00Z -->
+
 ## Getting Started
 
 First, run the development server:

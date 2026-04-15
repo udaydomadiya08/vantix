@@ -54,3 +54,5 @@ video_created/*
 # OS
 .DS_Store
 Thumbs.db
+*.pickle
+client_secret_.json
