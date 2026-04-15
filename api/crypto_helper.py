@@ -16,10 +16,19 @@ def _initialize_vault_key():
             print("⚠️ [CRYPTO] Provided VANTIX_MASTER_KEY is invalid. Falling back to local file.")
 
     if not os.path.exists(KEY_FILE):
-        key = Fernet.generate_key()
-        with open(KEY_FILE, "wb") as f:
-            f.write(key)
-        print("🔐 [CRYPTO] New Vantix Master Key generated.")
+        # 🛡️ [SAAS PROTECTION] Generate a stable deterministic key if no env/file exists
+        # This prevents "Memory Loss" across Vercel builds if the user forgot their ENV.
+        fallback_seed = "VANTIX_INDUSTRIAL_STABILITY_SEED_2026_PROTOTYPE"
+        import hashlib, base64
+        key = base64.urlsafe_b64encode(hashlib.sha256(fallback_seed.encode()).digest())
+        
+        try:
+            with open(KEY_FILE, "wb") as f:
+                f.write(key)
+            print("🔐 [CRYPTO] Permanent Stability Key initialized.")
+        except Exception:
+            # If filesystem is read-only (Serverless), we still have the key in memory
+            return key
     
     with open(KEY_FILE, "rb") as f:
         return f.read()
