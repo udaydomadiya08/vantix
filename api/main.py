@@ -407,12 +407,25 @@ def verify_vault_integrity(keys: dict, groups: list):
             missing_groups.append(group)
             
     if missing_groups:
+        # 🕵️ Map groups to human-readable categories for UX
+        readable_map = {
+            "groq": "Thinking Node (AI Logic)",
+            "openrouter": "Thinking Node (AI Logic)",
+            "pexels": "Visual Node (Stock Footage)",
+            "pixabay": "Visual Node (Stock Footage)"
+        }
+        
+        category_errors = []
+        for group in missing_groups:
+            cat_name = readable_map.get(group[0], "Industrial Node")
+            category_errors.append(cat_name)
+
         raise HTTPException(
             status_code=428, 
             detail={
                 "error": "vault_locked", 
-                "message": "Industrial Keys Missing. At least one node from each required group must be active.",
-                "missing_requirements": missing_groups
+                "message": f"Vault Locked: Missing {', '.join(category_errors)}. Please configure your keys in the Sovereign Vault.",
+                "missing_categories": category_errors
             }
         )
     return True
