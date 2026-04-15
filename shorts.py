@@ -910,7 +910,7 @@ def rank_candidates_with_ai(candidates, sentence, user_keys=None):
 def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=1, horizontal=False, user_keys=None):
     print(f"🔍 ULTIMATE RELEVANCE SEARCH for: {sentence}")
     
-    precise_queries = generate_visual_search_queries(sentence, user_topic)
+    precise_queries = generate_visual_search_queries(sentence, user_topic, user_keys=user_keys)
     semantic_keyword = extract_visual_keywords(sentence)
 
     def get_relevance_score(clip_text, sentence):
@@ -1707,7 +1707,7 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                 return None
 
         # Execute Parallel Discovery & Processing
-        orch = ParallelOrchestrator(max_workers=5)
+        orch = ParallelOrchestrator(max_workers=2)
         parallel_results = orch.parallel_map_indexed(process_milestone, milestones, task_name="Milestone")
         
         # Assemble in Sequence
