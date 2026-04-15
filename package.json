@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "build": "cd omnisaas && npm run build",
+    "start": "cd omnisaas && npm run start"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.8.0",
+    "tailwind-merge": "^3.5.0"
+  }
+}
