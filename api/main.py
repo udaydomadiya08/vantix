@@ -57,6 +57,7 @@ def log_trace(message: str):
         pass
 
 # 🔒 [SECURITY] Allow Frontend access (Industrial Origin Echo)
+IS_HF_SPACE = os.getenv("SPACE_ID") is not None
 # Expanded to include explicit production nodes for total reachability
 ALLOWED_ORIGINS = [
     "http://localhost:3000", "http://127.0.0.1:3000",
@@ -64,6 +65,11 @@ ALLOWED_ORIGINS = [
     "https://vantix-j4z4vx0js-udays-projects-07023851.vercel.app", # Vercel Node
     "https://udaydomadiya-vantix-core.hf.space", # Hugging Face Production Node
 ]
+
+# 🧪 [SOVEREIGN OVERRIDE] If in HF Space, widen origins to prevent stubborn CORS blocks
+if IS_HF_SPACE:
+    ALLOWED_ORIGINS = ["*"]
+
 env_origins = os.getenv("ALLOWED_ORIGINS")
 if env_origins:
     ALLOWED_ORIGINS.extend([o.strip() for o in env_origins.split(",") if o.strip() and o.strip() != "*"])
