@@ -628,13 +628,16 @@ async def generate_ebook(
         # 🔐 [SENTINEL] Hard-Lock
         verify_vault_integrity(user_keys, ["groq", "openrouter"])
         
+        db_defaults = db_helper.get_user_defaults(username).get("ebook", {})
+        req_dict = request.model_dump(exclude_unset=True) if hasattr(request, "model_dump") else request.dict(exclude_unset=True)
+
         kwargs = {
             "topic": request.topic,
-            "description": request.description,
-            "num_chapters": request.chapters,
-            "min_words": request.min_words,
-            "theme_color": request.theme_color,
-            "images_toggle": request.images_toggle,
+            "description": req_dict.get("description", db_defaults.get("description", "")),
+            "num_chapters": req_dict.get("chapters", db_defaults.get("num_chapters", 3)),
+            "min_words": req_dict.get("min_words", db_defaults.get("min_words", 150)),
+            "theme_color": req_dict.get("theme_color", db_defaults.get("theme_color", "#1e293b")),
+            "images_toggle": req_dict.get("images_toggle", db_defaults.get("include_images", True)),
             "user_keys": user_keys
         }
         
@@ -674,11 +677,14 @@ async def generate_course(
         # 🔐 [SENTINEL] Hard-Lock
         verify_vault_integrity(user_keys, ["groq", "openrouter"])
         
+        db_defaults = db_helper.get_user_defaults(username).get("course", {})
+        req_dict = request.model_dump(exclude_unset=True) if hasattr(request, "model_dump") else request.dict(exclude_unset=True)
+
         import ecourse_factory
         kwargs = {
             "topic": request.topic,
-            "horizontal": request.horizontal,
-            "include_avatar": request.include_avatar,
+            "horizontal": req_dict.get("horizontal", db_defaults.get("horizontal", False)),
+            "include_avatar": req_dict.get("include_avatar", db_defaults.get("include_avatar", False)),
             "user_keys": user_keys
         }
         
