@@ -56,22 +56,35 @@ def log_trace(message: str):
         pass
 
 # 🔒 [SECURITY] Allow Frontend access (Industrial Origin Echo)
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,*").split(",")
+# Note: credentials=True is incompatible with origins=["*"]
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+]
+env_origins = os.getenv("ALLOWED_ORIGINS")
+if env_origins:
+    ALLOWED_ORIGINS.extend([o.strip() for o in env_origins.split(",") if o.strip() and o.strip() != "*"])
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin.strip() for origin in ALLOWED_ORIGINS],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # 📂 [DELIVERY] Mount Static Assets (Absolute Project Mapping)
-os.makedirs(os.path.join(parent_dir, "static/videos"), exist_ok=True)
-os.makedirs(os.path.join(parent_dir, "static/ebooks"), exist_ok=True)
-os.makedirs(os.path.join(parent_dir, "static/thumbnails"), exist_ok=True)
-os.makedirs(os.path.join(parent_dir, "final_video"), exist_ok=True)
-os.makedirs(os.path.join(parent_dir, "courses"), exist_ok=True)
+try:
+    os.makedirs(os.path.join(parent_dir, "static/videos"), exist_ok=True)
+    os.makedirs(os.path.join(parent_dir, "static/ebooks"), exist_ok=True)
+    os.makedirs(os.path.join(parent_dir, "static/thumbnails"), exist_ok=True)
+    os.makedirs(os.path.join(parent_dir, "final_video"), exist_ok=True)
+    os.makedirs(os.path.join(parent_dir, "courses"), exist_ok=True)
+except Exception:
+    # Fail gracefully if filesystem is read-only (Serverless Persistence)
+    pass
 app.mount("/static", StaticFiles(directory=os.path.join(parent_dir, "static")), name="static")
 app.mount("/final_video", StaticFiles(directory=os.path.join(parent_dir, "final_video")), name="final_video")
 app.mount("/courses", StaticFiles(directory=os.path.join(parent_dir, "courses")), name="courses")
