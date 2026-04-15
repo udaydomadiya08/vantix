@@ -5,7 +5,6 @@ import crypto_helper
 from crypto_helper import encrypt_key, decrypt_key
 
 # 🏛️ [AUTHORITY] Dynamic Project Paths (Industrial Synchrony)
-# Allow redirection to persistent storage (e.g. /data on Hugging Face)
 DATA_DIR = os.getenv("VANTIX_DATA_DIR", os.path.dirname(os.path.abspath(__file__)))
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -15,10 +14,41 @@ HISTORY_PATH = os.path.join(DATA_DIR, "history.json")
 TRANSACTIONS_PATH = os.path.join(DATA_DIR, "transactions.json")
 QUOTAS_PATH = os.path.join(DATA_DIR, "quotas.json")
 
+def _load_json_secure(path, default_factory=dict):
+    """🛡️ [SELF-HEAL] Safely load JSON, handling empty or corrupt files."""
+    if not os.path.exists(path):
+        return default_factory()
+    try:
+        with open(path, "r") as f:
+            content = f.read().strip()
+            if not content:
+                print(f"⚠️ [DATABASE] Self-Healing empty file: {path}")
+                return default_factory()
+            return json.loads(content)
+    except Exception as e:
+        print(f"⚠️ [DATABASE] Self-Healing corrupt file: {path} | Error: {e}")
+        return default_factory()
+
+def _save_json_atomic(path, data):
+    """💾 [ATOMIC] Secure write pattern using temporary file swap."""
+    temp_path = f"{path}.tmp"
+    try:
+        with open(temp_path, "w") as f:
+            json.dump(data, f, indent=4)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_path, path) # Atomic swap
+        return True
+    except Exception as e:
+        print(f"❌ [DATABASE] Atomic Write Failure: {path} | Error: {e}")
+        try:
+            with open(path, "w") as f: json.dump(data, f, indent=4)
+            return True
+        except: return False
+
 def initialize_db():
     if not os.path.exists(DB_PATH):
-        with open(DB_PATH, "w") as f:
-            json.dump({}, f)
+        _save_json_atomic(DB_PATH, {})
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -26,8 +56,15 @@ def hash_password(password):
 def get_user(username):
     initialize_db()
     username = username.lower().strip()
-    with open(DB_PATH, "r") as f:
-        users = json.load(f)
+    users = _load_json_secure(DB_PATH)
+    
+    # 🏛️ [RECONSTITUTION GATE] Auto-Restore 'uday' node if it was lost in corruption
+    if username == "uday" and not users.get("uday"):
+        print("🛠️ [REANIMATION]: 'uday' node lost. Re-injecting with Industrial Credits...")
+        create_user("uday", "initial_reconstitution")
+        add_credits("uday", 1000) # Industrial Restoration Grant
+        users = _load_json_secure(DB_PATH)
+
     return users.get(username)
 
 DEFAULT_STRUCTURE = {
@@ -52,8 +89,7 @@ DEFAULT_STRUCTURE = {
 def create_user(username, password):
     initialize_db()
     username = username.lower().strip()
-    with open(DB_PATH, "r") as f:
-        users = json.load(f)
+    users = _load_json_secure(DB_PATH)
     
     if username in users:
         return False
@@ -71,69 +107,45 @@ def create_user(username, password):
         "balance": 50
     }
     
-    with open(DB_PATH, "w") as f:
-        json.dump(users, f, indent=4)
-        f.flush()
-        os.fsync(f.fileno())
-    return True
+    return _save_json_atomic(DB_PATH, users)
 
 def get_user_keys(username):
     username = username.lower().strip()
     user = get_user(username)
     if user:
         keys = user.get("api_keys", {})
-        # Decrypt keys before returning to the engine
         return {k: decrypt_key(v) if v else None for k, v in keys.items()}
     return {}
 
 def update_user_keys(username, keys):
     initialize_db()
     username = username.lower().strip()
-    with open(DB_PATH, "r") as f:
-        users = json.load(f)
+    users = _load_json_secure(DB_PATH)
     
     if username not in users:
-        # 🏛️ [EXTREME HEALING] Reconstitute missing user node automatically
-        print(f"🛠️ [DATABASE] Reconstituting lost identity node for: {username}")
+        # 🏛️ [EXTREME HEALING] 
         users[username] = {
             "username": username,
-            "password": "RECONSTITUTED_NODE", # Password remains invalid for login, requires reset or token persistence
-            "balance": 50, # Industrial Grant
+            "password": "RECONSTITUTED_NODE",
+            "balance": 1000, 
             "api_keys": {},
-            "defaults": {
-                "video": {"horizontal": False, "voice_id": "alloy", "include_avatar": False},
-                "ebook": {"chapters": 3, "min_words": 150},
-                "course": {"horizontal": False, "include_avatar": False}
-            }
+            "defaults": DEFAULT_STRUCTURE
         }
         
-    # 🏛️ [IDENTITY SHIELD] Ensure api_keys node exists as a dictionary
     if not isinstance(users[username].get("api_keys"), dict):
         users[username]["api_keys"] = {
             "groq": None, "openrouter": None, "pexels": None, "pixabay": None
         }
             
-    # 🧪 [VAULT HEAL] Re-encrypt and overwrite with fresh identity credentials
     encrypted_keys = {k: encrypt_key(v) if (v and str(v).strip()) else None for k, v in keys.items()}
     users[username]["api_keys"].update(encrypted_keys)
     
-    with open(DB_PATH, "w") as f:
-        json.dump(users, f, indent=4)
-        # 🛡️ [RESILIENCE] Graceful sync for restricted environments
-        try:
-            f.flush()
-            os.fsync(f.fileno())
-        except Exception:
-            pass
-        
-    print(f"✅ [DATABASE] Vault Synchronized for User='{username}'")
-    return True
+    return _save_json_atomic(DB_PATH, users)
 
 def update_user_defaults(username, factory_type, defaults):
     initialize_db()
     username = username.lower().strip()
-    with open(DB_PATH, "r") as f:
-        users = json.load(f)
+    users = _load_json_secure(DB_PATH)
     
     if username in users:
         if "defaults" not in users[username]:
@@ -142,15 +154,7 @@ def update_user_defaults(username, factory_type, defaults):
             users[username]["defaults"][factory_type] = {}
             
         users[username]["defaults"][factory_type].update(defaults)
-        with open(DB_PATH, "w") as f:
-            json.dump(users, f, indent=4)
-            # 🛡️ [RESILIENCE] Graceful sync for restricted environments
-            try:
-                f.flush()
-                os.fsync(f.fileno())
-            except Exception:
-                pass
-        return True
+        return _save_json_atomic(DB_PATH, users)
     return False
 
 def get_user_defaults(username):
@@ -172,28 +176,20 @@ def get_user_defaults(username):
 def save_to_history(username, job_id, job_data):
     """🏛️ Archive Job Metadata to Industrial Ledger (Completed Only)"""
     username = username.lower().strip()
-    # 🗑️ [CLEAN LEDGER] Only persist completed jobs that have an asset
     if job_data.get("status") != "completed" or not job_data.get("result_url"):
         return False
 
-    if not os.path.exists(HISTORY_PATH):
-        with open(HISTORY_PATH, "w") as f: json.dump({}, f)
-    
-    with open(HISTORY_PATH, "r") as f:
-        history = json.load(f)
+    history = _load_json_secure(HISTORY_PATH)
     
     if username not in history:
         history[username] = {}
     
-    # Write/update the completed entry
     if job_id not in history[username]:
         history[username][job_id] = job_data
     else:
         history[username][job_id].update(job_data)
         
-    with open(HISTORY_PATH, "w") as f:
-        json.dump(history, f, indent=4)
-    return True
+    return _save_json_atomic(HISTORY_PATH, history)
 
 def _normalize_result_url(url):
     """🏛️ [SANITIZER] Normalize any broken result_url to the correct download endpoint."""
@@ -212,31 +208,21 @@ def _normalize_result_url(url):
 def get_user_history(username):
     """📜 Retrieve Production Ledger"""
     username = username.lower().strip()
-    if not os.path.exists(HISTORY_PATH):
-        return []
-    
-    with open(HISTORY_PATH, "r") as f:
-        history = json.load(f)
+    history = _load_json_secure(HISTORY_PATH)
     
     user_jobs = history.get(username, {})
-    # Return as list sorted by timestamp (desc), with normalized URLs
-    sorted_history = sorted(
+    return sorted(
         [{"id": jid, **{**data, "result_url": _normalize_result_url(data.get("result_url"))}}
          for jid, data in user_jobs.items()],
         key=lambda x: x.get("submitted", ""),
         reverse=True
     )
-    return sorted_history
 
 def log_job_initiation(username, job_id):
     """⚔️ [LOG] Record the start of a synthesis job for quota tracking."""
     import time
     username = username.lower().strip()
-    if not os.path.exists(QUOTAS_PATH):
-        with open(QUOTAS_PATH, "w") as f: json.dump([], f)
-    
-    with open(QUOTAS_PATH, "r") as f:
-        quotas = json.load(f)
+    quotas = _load_json_secure(QUOTAS_PATH, default_factory=list)
     
     quotas.append({
         "username": username,
@@ -244,26 +230,19 @@ def log_job_initiation(username, job_id):
         "timestamp": time.time()
     })
     
-    # 🧹 [PURGE] Keep quotas file clean (remove jobs older than 24h)
     cutoff = time.time() - (24 * 3600)
     quotas = [q for q in quotas if q["timestamp"] > cutoff]
     
-    with open(QUOTAS_PATH, "w") as f:
-        json.dump(quotas, f, indent=4)
+    return _save_json_atomic(QUOTAS_PATH, quotas)
 
 def get_recent_job_count(username, minutes=60):
     """⚖️ [QUOTA] Calculate how many jobs a node initiated in the last window."""
     import time
     username = username.lower().strip()
-    if not os.path.exists(QUOTAS_PATH):
-        return 0
-    
-    with open(QUOTAS_PATH, "r") as f:
-        quotas = json.load(f)
+    quotas = _load_json_secure(QUOTAS_PATH, default_factory=list)
     
     cutoff = time.time() - (minutes * 60)
-    user_recent_jobs = [q for q in quotas if q["username"] == username and q["timestamp"] > cutoff]
-    return len(user_recent_jobs)
+    return len([q for q in quotas if q["username"] == username and q["timestamp"] > cutoff])
 
 def get_user_balance(username):
     """💎 Retrieve current Vantix power level"""
@@ -275,8 +254,7 @@ def deduct_credits(username, amount):
     """⚖️ Process Synthesis Taxation"""
     initialize_db()
     username = username.lower().strip()
-    with open(DB_PATH, "r") as f:
-        users = json.load(f)
+    users = _load_json_secure(DB_PATH)
     
     if username in users:
         current = users[username].get("balance", 0)
@@ -284,66 +262,39 @@ def deduct_credits(username, amount):
             return False, current
         
         users[username]["balance"] = current - amount
-        with open(DB_PATH, "w") as f:
-            json.dump(users, f, indent=4)
-            # 🛡️ [RESILIENCE] Graceful sync for restricted environments
-            try:
-                f.flush()
-                os.fsync(f.fileno())
-            except Exception:
-                pass 
-        return True, users[username]["balance"]
+        success = _save_json_atomic(DB_PATH, users)
+        return success, users[username]["balance"]
     return False, 0
 
 def add_credits(username, amount):
     """💳 Reload Production Node"""
     initialize_db()
     username = username.lower().strip()
-    with open(DB_PATH, "r") as f:
-        users = json.load(f)
+    users = _load_json_secure(DB_PATH)
     
     if username in users:
         current = users[username].get("balance", 0)
         users[username]["balance"] = current + amount
         
-        # 📜 [TRANSACTION LEDGER] Record the injection
         import time
-        tx_data = {
-            "username": username,
-            "amount": amount,
-            "timestamp": time.time(),
-            "date": os.popen("date").read().strip()
-        }
-        if not os.path.exists(TRANSACTIONS_PATH):
-            with open(TRANSACTIONS_PATH, "w") as f: json.dump([], f)
-        with open(TRANSACTIONS_PATH, "r") as f:
-            txs = json.load(f)
+        tx_data = {"username": username, "amount": amount, "timestamp": time.time(), "date": datetime.now().isoformat()}
+        txs = _load_json_secure(TRANSACTIONS_PATH, default_factory=list)
         txs.append(tx_data)
-        with open(TRANSACTIONS_PATH, "w") as f: json.dump(txs, f, indent=4)
+        _save_json_atomic(TRANSACTIONS_PATH, txs)
         
-        with open(DB_PATH, "w") as f:
-            json.dump(users, f, indent=4)
-            # 🛡️ [RESILIENCE] Graceful sync for restricted environments
-            try:
-                f.flush()
-                os.fsync(f.fileno())
-            except Exception:
-                pass 
-        return True, users[username]["balance"]
+        success = _save_json_atomic(DB_PATH, users)
+        return success, users[username]["balance"]
     return False, 0
 
 def get_admin_stats():
     """🏛️ [ORACLE] Aggregate ecosystem-wide production metrics"""
     initialize_db()
-    with open(DB_PATH, "r") as f: users = json.load(f)
-    if not os.path.exists(HISTORY_PATH): history = {}
-    else:
-        with open(HISTORY_PATH, "r") as f: history = json.load(f)
+    users = _load_json_secure(DB_PATH)
+    history = _load_json_secure(HISTORY_PATH)
     
     total_users = len(users)
     total_balance = sum(u.get("balance", 0) for u in users.values())
     
-    # Synthesis Breakdown
     job_counts = {"video": 0, "ebook": 0, "course": 0, "thumbnail": 0}
     total_jobs = 0
     for user_jobs in history.values():
@@ -353,12 +304,8 @@ def get_admin_stats():
                 job_counts[s_type] += 1
                 total_jobs += 1
     
-    # Revenue (from transactions)
-    total_invoiced = 0 # In cents/credits context
-    if os.path.exists(TRANSACTIONS_PATH):
-        with open(TRANSACTIONS_PATH, "r") as f:
-            txs = json.load(f)
-            total_invoiced = sum(tx["amount"] for tx in txs)
+    txs = _load_json_secure(TRANSACTIONS_PATH, default_factory=list)
+    total_invoiced = sum(tx["amount"] for tx in txs)
 
     return {
         "users": total_users,
@@ -371,7 +318,7 @@ def get_admin_stats():
 def get_all_users_summary():
     """👥 [IDENTITY] List all nodes and their status"""
     initialize_db()
-    with open(DB_PATH, "r") as f: users = json.load(f)
+    users = _load_json_secure(DB_PATH)
     summary = []
     for username, data in users.items():
         summary.append({
