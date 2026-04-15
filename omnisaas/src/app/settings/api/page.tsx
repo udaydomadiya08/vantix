@@ -149,8 +149,21 @@ export default function ApiVaultPage() {
                                     </span>
                                 </div>
                                 <button
-                                    onClick={() => {
-                                        setKeys(prev => ({ ...prev, [field.id]: "" }));
+                                    onClick={async () => {
+                                        // 🗑️ [IMMEDIATE PURGE] Update state and trigger a focused sync
+                                        const newKeys = { ...keys, [field.id]: "" };
+                                        setKeys(newKeys);
+                                        setIsSyncing(true);
+                                        try {
+                                            const res = await syncUserKeys(newKeys);
+                                            if (res && !res.detail) {
+                                                localStorage.setItem("vantix_api_keys", JSON.stringify(res));
+                                                setSaved(true);
+                                                setTimeout(() => setSaved(false), 2000);
+                                            }
+                                        } finally {
+                                            setIsSyncing(false);
+                                        }
                                     }}
                                     className="text-[9px] text-rose-500 font-black uppercase tracking-widest hover:text-rose-400 transition-all flex items-center gap-2 bg-rose-500/5 px-3 py-1.5 rounded-lg border border-rose-500/10"
                                 >
