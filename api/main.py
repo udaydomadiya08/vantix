@@ -553,7 +553,7 @@ def reload_credits(amount: int, username: str = Depends(get_current_user)):
 # --- Home ---
 @app.get("/")
 def read_root():
-    return {"status": "Vantix Engine Active", "version": "1.0"}
+    return {"status": "Vantix Sovereign Engine Active", "version": "Industrial Hardening Active"}
 
 # --- Endpoints ---
 
