@@ -92,12 +92,26 @@ def update_user_keys(username, keys):
     with open(DB_PATH, "r") as f:
         users = json.load(f)
     
-    if username in users:
-        # 🏛️ [IDENTITY SHIELD] Ensure api_keys node exists as a dictionary
-        if not isinstance(users[username].get("api_keys"), dict):
-            users[username]["api_keys"] = {
-                "groq": None, "openrouter": None, "pexels": None, "pixabay": None
+    if username not in users:
+        # 🏛️ [EXTREME HEALING] Reconstitute missing user node automatically
+        print(f"🛠️ [DATABASE] Reconstituting lost identity node for: {username}")
+        users[username] = {
+            "username": username,
+            "password": "RECONSTITUTED_NODE", # Password remains invalid for login, requires reset or token persistence
+            "balance": 50, # Industrial Grant
+            "api_keys": {},
+            "defaults": {
+                "video": {"horizontal": False, "voice_id": "alloy", "include_avatar": False},
+                "ebook": {"chapters": 3, "min_words": 150},
+                "course": {"horizontal": False, "include_avatar": False}
             }
+        }
+        
+    # 🏛️ [IDENTITY SHIELD] Ensure api_keys node exists as a dictionary
+    if not isinstance(users[username].get("api_keys"), dict):
+        users[username]["api_keys"] = {
+            "groq": None, "openrouter": None, "pexels": None, "pixabay": None
+        }
             
         # 🧪 [VAULT HEAL] Re-encrypt and overwrite with fresh identity credentials
         encrypted_keys = {k: encrypt_key(v) if (v and str(v).strip()) else None for k, v in keys.items()}
