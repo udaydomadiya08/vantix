@@ -89,8 +89,14 @@ def update_user_keys(username, keys):
         users = json.load(f)
     
     if username in users:
+        # 🏛️ [IDENTITY SHIELD] Ensure api_keys node exists as a dictionary
+        if not isinstance(users[username].get("api_keys"), dict):
+            users[username]["api_keys"] = {
+                "groq": None, "openrouter": None, "pexels": None, "pixabay": None
+            }
+            
         # Encrypt each key before storage
-        encrypted_keys = {k: encrypt_key(v) if v else None for k, v in keys.items()}
+        encrypted_keys = {k: encrypt_key(v) if (v and str(v).strip()) else None for k, v in keys.items()}
         users[username]["api_keys"].update(encrypted_keys)
         with open(DB_PATH, "w") as f:
             json.dump(users, f, indent=4)

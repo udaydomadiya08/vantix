@@ -6,6 +6,15 @@ KEY_FILE = os.path.join(os.path.dirname(__file__), ".identity_vault.key")
 
 def _initialize_vault_key():
     """Ensures a persistent master key exists for the platform's identity vault."""
+    # 🏛️ [SaaS Hardening] Prioritize static environment secret for persistence
+    env_key = os.getenv("VANTIX_MASTER_KEY")
+    if env_key:
+        try:
+            # Ensure it's valid base64 for Fernet
+            return env_key.encode()
+        except Exception:
+            print("⚠️ [CRYPTO] Provided VANTIX_MASTER_KEY is invalid. Falling back to local file.")
+
     if not os.path.exists(KEY_FILE):
         key = Fernet.generate_key()
         with open(KEY_FILE, "wb") as f:

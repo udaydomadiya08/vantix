@@ -571,19 +571,24 @@ async def generate_thumbnail(request: ThumbnailRequest, username: str = Depends(
     if not success:
         raise HTTPException(status_code=402, detail=f"Insufficient Vantix Power. Balance: {balance}")
 
-    job_id = str(uuid.uuid4())
-    user_keys = db_helper.get_user_keys(username)
-    
-    # 🔐 [SENTINEL] Hard-Lock
-    verify_vault_integrity(user_keys, ["groq", "openrouter"])
-    
-    kwargs = {
-        "topic": request.topic,
-        "user_keys": user_keys
-    }
-    
-    await QUEUE_MANAGER.add_job(username, "thumbnail", job_id, thumbnail_service.create_vantix_thumbnail, kwargs)
-    return {"job_id": job_id, "message": "Thumbnail synthesis engine active", "topic": request.topic}
+    try:
+        job_id = str(uuid.uuid4())
+        user_keys = db_helper.get_user_keys(username)
+        # 🔐 [SENTINEL] Hard-Lock
+        verify_vault_integrity(user_keys, ["groq", "openrouter"])
+        
+        kwargs = {
+            "topic": request.topic,
+            "user_keys": user_keys
+        }
+        
+        await QUEUE_MANAGER.add_job(username, "thumbnail", job_id, thumbnail_service.create_vantix_thumbnail, kwargs)
+        return {"job_id": job_id, "message": "Thumbnail synthesis engine active", "topic": request.topic}
+    except Exception as e:
+        db_helper.add_credits(username, 2)
+        log_trace(f"REFUND: User='{username}' | Job='thumbnail' | Reason='{str(e)}'")
+        if isinstance(e, HTTPException): raise e
+        raise HTTPException(status_code=500, detail=f"Factory node failure: {str(e)}")
 
 @app.post("/generate/ebook")
 async def generate_ebook(
