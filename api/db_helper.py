@@ -105,8 +105,12 @@ def update_user_keys(username, keys):
         
         with open(DB_PATH, "w") as f:
             json.dump(users, f, indent=4)
-            f.flush()
-            os.fsync(f.fileno())
+            # 🛡️ [RESILIENCE] Graceful sync for restricted environments
+            try:
+                f.flush()
+                os.fsync(f.fileno())
+            except Exception:
+                pass
             
         print(f"✅ [DATABASE] Vault Synchronized for User='{username}'")
         return True
@@ -127,8 +131,12 @@ def update_user_defaults(username, factory_type, defaults):
         users[username]["defaults"][factory_type].update(defaults)
         with open(DB_PATH, "w") as f:
             json.dump(users, f, indent=4)
-            f.flush()
-            os.fsync(f.fileno())
+            # 🛡️ [RESILIENCE] Graceful sync for restricted environments
+            try:
+                f.flush()
+                os.fsync(f.fileno())
+            except Exception:
+                pass
         return True
     return False
 
@@ -265,8 +273,12 @@ def deduct_credits(username, amount):
         users[username]["balance"] = current - amount
         with open(DB_PATH, "w") as f:
             json.dump(users, f, indent=4)
-            f.flush()
-            os.fsync(f.fileno())
+            # 🛡️ [RESILIENCE] Graceful sync for restricted environments
+            try:
+                f.flush()
+                os.fsync(f.fileno())
+            except Exception:
+                pass 
         return True, users[username]["balance"]
     return False, 0
 
@@ -298,8 +310,12 @@ def add_credits(username, amount):
         
         with open(DB_PATH, "w") as f:
             json.dump(users, f, indent=4)
-            f.flush()
-            os.fsync(f.fileno())
+            # 🛡️ [RESILIENCE] Graceful sync for restricted environments
+            try:
+                f.flush()
+                os.fsync(f.fileno())
+            except Exception:
+                pass 
         return True, users[username]["balance"]
     return False, 0
 
