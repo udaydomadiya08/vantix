@@ -42,6 +42,11 @@ export default function ApiVaultPage() {
                  alert("Vault Error: Your session identity doesn't match the database logic. Please log in again.");
                  return;
             }
+            // 🛡️ [STATE LOCK] Confirm local state with server truth
+            if (res && !res.detail) {
+                setKeys(prev => ({ ...prev, ...res }));
+                localStorage.setItem("vantix_api_keys", JSON.stringify(res));
+            }
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);
         } catch (e) {

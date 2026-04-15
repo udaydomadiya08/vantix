@@ -68,7 +68,8 @@ export async function syncUserKeys(keys: any) {
     const result = await response.json();
     if (response.ok) {
         // 🔒 [SYNC] Harmonize backend vault with local cluster session
-        localStorage.setItem("vantix_api_keys", JSON.stringify(keys));
+        // We now store exactly what the server confirmed
+        localStorage.setItem("vantix_api_keys", JSON.stringify(result));
     }
     return result;
 }

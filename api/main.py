@@ -354,7 +354,8 @@ def update_user_keys(keys: APIKeys, username: str = Depends(get_current_user)):
     success = db_helper.update_user_keys(username, keys.dict(exclude_unset=True))
     if not success:
         raise HTTPException(status_code=404, detail="Industrial node: Identity mismatch. Vault synchronization failed.")
-    return {"message": "Keys updated successfully"}
+    # Return the current set of keys as confirmation
+    return db_helper.get_user_keys(username)
 
 @app.get("/user/defaults")
 def get_user_defaults(username: str = Depends(get_current_user)):
