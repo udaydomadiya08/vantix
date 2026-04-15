@@ -1,7 +1,10 @@
 {
+  "name": "vantix-root",
+  "version": "1.1.0",
   "scripts": {
-    "build": "cd omnisaas && npm run build",
-    "start": "cd omnisaas && npm run start"
+    "build": "if [ -d omnisaas ]; then cd omnisaas && npm run build; else npm run build; fi",
+    "start": "if [ -d omnisaas ]; then cd omnisaas && npm run start; else npm run start; fi",
+    "install-all": "if [ -d omnisaas ]; then cd omnisaas && npm install; else npm install; fi"
   },
   "dependencies": {
     "clsx": "^2.1.1",

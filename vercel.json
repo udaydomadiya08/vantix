@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd omnisaas && npm run build",
-  "installCommand": "cd omnisaas && npm install",
+  "buildCommand": "if [ -d omnisaas ]; then cd omnisaas && npm run build; else npm run build; fi",
+  "installCommand": "if [ -d omnisaas ]; then cd omnisaas && npm install; else npm install; fi",
   "outputDirectory": "omnisaas/.next"
 }

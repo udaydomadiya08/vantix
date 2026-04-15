@@ -1,10 +1,12 @@
 export const IS_BROWSER = typeof window !== 'undefined';
 export let API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
 
+// 📡 [INFRASTRUCTURE ARBITRATION]
 if (IS_BROWSER) {
     const isVercel = window.location.hostname.includes('vercel.app');
-    if (isVercel && (!process.env.NEXT_PUBLIC_API_BASE || API_BASE.includes('127.0.0.1'))) {
-        API_BASE = window.location.origin; // 🛰️ [Sovereign Proxy] Hit same-origin Vercel node
+    // We only fallback to self if NO base is provided and we are on Vercel
+    if (isVercel && !process.env.NEXT_PUBLIC_API_BASE) {
+        API_BASE = window.location.origin;
         console.log("🛠️ [VANTIX PROXY]: Infrastructure synchronized to production origin -> " + API_BASE);
     }
 }

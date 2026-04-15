@@ -11,7 +11,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -37,6 +36,13 @@ api/.identity_vault.key
 UPLOAD_STATUS.json
 
 # Media Assets (DO NOT COMMIT)
+*.mp4
+*.mp3
+*.wav
+*.pdf
+*.pages
+*.jpg
+*.png
 static/videos/*.mp4
 static/audio/*.mp3
 static/thumbnails/*.jpg

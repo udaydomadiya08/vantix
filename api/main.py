@@ -62,7 +62,8 @@ IS_HF_SPACE = os.getenv("SPACE_ID") is not None
 ALLOWED_ORIGINS = [
     "http://localhost:3000", "http://127.0.0.1:3000",
     "http://localhost:3001", "http://127.0.0.1:3001",
-    "https://vantix-j4z4vx0js-udays-projects-07023851.vercel.app", # Vercel Node
+    "https://vantix-bice.vercel.app", # Vercel Primary Production Node
+    "https://vantix-three.vercel.app", # Vercel Secondary
     "https://udaydomadiya-vantix-core.hf.space", # Hugging Face Production Node
 ]
 
@@ -75,12 +76,11 @@ if env_origins:
     ALLOWED_ORIGINS.extend([o.strip() for o in env_origins.split(",") if o.strip() and o.strip() != "*"])
 
 # 🛡️ [NUCLEAR RESILIENCE] Enable total Vercel & HuggingFace stream matching
-# Note: we use allow_credentials=False to allow for wildcard (*) transition on HF
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex="https://.*\.vercel\.app|https://.*\.hf\.space",
-    allow_credentials=False,
+    allow_origin_regex="https://.*-udays-projects-07023851\.vercel\.app|https://.*\.vercel\.app",
+    allow_credentials=not IS_HF_SPACE, # Credentials forbidden with wildcard origins
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -774,16 +774,14 @@ async def get_status(job_id: str):
         return job
     
     # 🕵️ Global search for historical records
-    # Note: We return status 200 even for past jobs to keep the polling loop healthy
-    history_path = os.path.join(parent_dir, "api/history.json")
-    if os.path.exists(history_path):
-        with open(history_path, "r") as f:
+    history_file = os.path.join(parent_dir, "api/history.json")
+    if os.path.exists(history_file):
+        with open(history_file, "r") as f:
             all_history = json.load(f)
-            # Flattened scan across all users for this specific job ID (Vantix Recovery)
             for user, jobs in all_history.items():
                 if job_id in jobs:
                     return jobs[job_id]
-        
+    
     raise HTTPException(status_code=404, detail="Industrial node: Job identity unknown.")
 
 @app.delete("/status/{job_id}")
@@ -800,41 +798,26 @@ def cancel_job(job_id: str):
     if os.path.exists(history_file):
         with open(history_file, "r") as f:
             history = json.load(f)
-        for user in history:
-            if job_id in history[user]:
-                del history[user][job_id]
-                print(f"🗑️ [PURGE] Job {job_id} permanently deleted from {user}'s ledger.")
-        with open(history_file, "w") as f:
-            json.dump(history, f, indent=4)
+            for user in history:
+                if job_id in history[user]:
+                    del history[user][job_id]
+            with open(history_file, "w") as f:
+                json.dump(history, f, indent=4)
     
-    return {"status": "purged", "job_id": job_id}
+    return {"message": "Job killed and purged from ledger."}
 
 @app.get("/history")
-def get_history(username: str = Depends(get_current_user)):
-    """📜 Retrieve Production Ledger from Disk (Identity Traced)"""
-    print(f"🏛️ [IDENTITY] Serving production ledger for: {username}")
+def read_history(username: str = Depends(get_current_user)):
     return db_helper.get_user_history(username)
 
-# --- 👑 [ADMIN] Command Center Endpoints ---
-def verify_admin(username: str = Depends(get_current_user)):
-    if username != "uday":
-        raise HTTPException(status_code=403, detail="Sovereign Access Denied.")
-    return username
-
 @app.get("/admin/stats")
-async def admin_stats(admin: str = Depends(verify_admin)):
-    """🏛️ [ORACLE] Aggregated ecosystem-wide metrics (Live + Historical)"""
-    db_stats = db_helper.get_admin_stats()
-    live_stats = QUEUE_MANAGER.get_global_stats()
-    
-    # Merge Industrial Telemetry
-    return {**db_stats, **live_stats}
+def admin_stats(username: str = Depends(get_current_user)):
+    if username != "uday":
+        raise HTTPException(status_code=403, detail="Industrial protocol: Administrative access restricted.")
+    return QUEUE_MANAGER.get_global_stats()
 
 @app.get("/admin/users")
-async def admin_users(admin: str = Depends(verify_admin)):
-    """👥 [IDENTITY] Node Directory and Power Levels"""
-    return db_helper.get_all_users_summary()
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+def admin_users(username: str = Depends(get_current_user)):
+    if username != "uday":
+        raise HTTPException(status_code=403, detail="Industrial protocol: Administrative access restricted.")
+    return db_helper.get_all_users()
