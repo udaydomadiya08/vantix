@@ -15,10 +15,11 @@ export default function CoursesPage() {
         setIsProcessing(true);
         try {
             console.log("🚀 [FACTORY]: Initiating Autonomous Curriculum Foundry...", topic);
-            const res = await generateCourse(topic, {
+            const config = {
                 horizontal,
                 include_avatar: includeAvatar
-            });
+            };
+            const res = await generateCourse(topic, config);
             if (res && res.job_id) {
                 console.log("✅ [FACTORY]: Course Orchestra Stream Active. Job ID:", res.job_id);
                 // 🛰️ [SYNC] Hydrate Global Dashboard Ledger
@@ -38,7 +39,21 @@ export default function CoursesPage() {
             if (status === 402) {
                 alert("INSUFFICIENT POWER: Node balance depleted. Recharge your industrial balance to continue.");
             } else if (status === 428) {
-                alert("VAULT LOCKED: Core AI keys missing. Please synchronize your Sovereign Vault.");
+                // 🛰️ [HEAL] Industrial Identity Synchronization
+                const stored = localStorage.getItem("vantix_api_keys");
+                if (stored) {
+                    try {
+                        const keys = JSON.parse(stored);
+                        const { syncUserKeys } = await import("@/lib/api");
+                        await syncUserKeys(keys);
+                        console.log("🛠️ [HEAL]: Identity Synced. Retrying curriculum stream...");
+                        return handleLaunch(); // Recursive Auto-Retry
+                    } catch (e) {
+                        alert("VAULT LOCKED: Industrial keys missing. Please synchronize manually in the Sovereign Vault.");
+                    }
+                } else {
+                    alert("VAULT LOCKED: Core AI keys missing. Please synchronize your Sovereign Vault.");
+                }
             } else if (status === 422) {
                 alert("UNPROCESSABLE IDENTITY: The server rejected this curriculum cluster. Parameter mismatch detected.");
             } else {

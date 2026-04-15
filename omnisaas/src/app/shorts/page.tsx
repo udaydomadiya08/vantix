@@ -48,27 +48,22 @@ export default function ShortsPage() {
     }, [activeJobId]);
 
     const handleLaunch = async () => {
-        const payload: any = { 
+        const finalTopic = mode === 'niche' ? niche : topic;
+        const config: any = { 
             mode, 
             horizontal, 
-            avatar: withAvatar
+            avatar: withAvatar,
+            script: mode === 'script' ? script : null,
+            niche: mode === 'niche' ? niche : null
         };
-
-        if (mode === 'topic' && !topic) return alert("Vantix Error: Narrative concept required.");
-        if (mode === 'script' && !script) return alert("Vantix Error: Production script required.");
-        if (mode === 'news' && !topic) return alert("Vantix Error: Source link or headline required.");
-
-        payload.topic = mode === 'niche' ? niche : topic;
-        payload.script = mode === 'script' ? script : null;
-        payload.niche = mode === 'niche' ? niche : null;
 
         setIsProcessing(true);
         setActiveJobId(null);
         setJobStatus(null);
 
         try {
-            console.log("🚀 [FACTORY]: Initiating Short-Video Production...", payload.topic);
-            const res = await generateVideo(payload.topic, payload);
+            console.log("🚀 [FACTORY]: Initiating Short-Video Production...", finalTopic);
+            const res = await generateVideo(finalTopic, config);
             if (res && res.job_id) {
                 console.log("✅ [FACTORY]: Production Stream Active. Job ID:", res.job_id);
                 setActiveJobId(res.job_id);
@@ -81,7 +76,21 @@ export default function ShortsPage() {
             if (status === 402) {
                 alert("INSUFFICIENT POWER: Industrial balance depleted. Please recharge your node.");
             } else if (status === 428) {
-                alert("VAULT LOCKED: Groq/OpenRouter keys missing. Synchronize your API Vault to continue.");
+                // 🛰️ [HEAL] Industrial Identity Synchronization
+                const stored = localStorage.getItem("vantix_api_keys");
+                if (stored) {
+                    try {
+                        const keys = JSON.parse(stored);
+                        const { syncUserKeys } = await import("@/lib/api");
+                        await syncUserKeys(keys);
+                        console.log("🛠️ [HEAL]: Identity Synced. Retrying production stream...");
+                        return handleLaunch(); // Recursive Auto-Retry
+                    } catch (e) {
+                        alert("VAULT LOCKED: Industrial keys missing. Please synchronize manually in the Sovereign Vault.");
+                    }
+                } else {
+                    alert("VAULT LOCKED: Groq/OpenRouter keys missing. Synchronize your API Vault to continue.");
+                }
             } else if (status === 422) {
                 alert(`UNPROCESSABLE IDENTITY: The server rejected this production cluster. ${error.detail?.message || "Check your parameters."}`);
             } else {

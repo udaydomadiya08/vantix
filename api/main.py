@@ -313,6 +313,9 @@ class VideoRequest(BaseModel):
     horizontal: bool = None
     voice_id: str = "alloy"
 
+    class Config:
+        extra = "allow"
+
 class EbookRequest(BaseModel):
     topic: str
     description: str = ""
@@ -321,10 +324,16 @@ class EbookRequest(BaseModel):
     theme_color: str = "#1e293b"
     images_toggle: bool = True
 
+    class Config:
+        extra = "allow"
+
 class CourseRequest(BaseModel):
     topic: str
     horizontal: bool = False
     include_avatar: bool = False
+
+    class Config:
+        extra = "allow"
 
 class ThumbnailRequest(BaseModel):
     topic: str

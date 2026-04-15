@@ -20,13 +20,14 @@ export default function EbooksPage() {
         setIsProcessing(true);
         try {
             console.log("🚀 [FACTORY]: Initiating E-Book Production Cluster...", topic);
-            const res = await generateEbook(topic, {
+            const config = {
                 description: desc,
                 chapters,
                 min_words: minWords,
                 theme_color: themeColor,
                 images_toggle: includeImages
-            });
+            };
+            const res = await generateEbook(topic, config);
             if (res && res.job_id) {
                 console.log("✅ [FACTORY]: E-Book Narrative Stream Active. Job ID:", res.job_id);
                 // 🛰️ [SYNC] Hydrate Global Dashboard Ledger
@@ -46,7 +47,21 @@ export default function EbooksPage() {
             if (status === 402) {
                 alert("INSUFFICIENT POWER: Node balance depleted. Recharge your industrial balance to continue.");
             } else if (status === 428) {
-                alert("VAULT LOCKED: Core AI keys missing. Please synchronize your Sovereign Vault.");
+                // 🛰️ [HEAL] Industrial Identity Synchronization
+                const stored = localStorage.getItem("vantix_api_keys");
+                if (stored) {
+                    try {
+                        const keys = JSON.parse(stored);
+                        const { syncUserKeys } = await import("@/lib/api");
+                        await syncUserKeys(keys);
+                        console.log("🛠️ [HEAL]: Identity Synced. Retrying narrative stream...");
+                        return handleLaunch(); // Recursive Auto-Retry
+                    } catch (e) {
+                        alert("VAULT LOCKED: Industrial keys missing. Please synchronize manually in the Sovereign Vault.");
+                    }
+                } else {
+                    alert("VAULT LOCKED: Core AI keys missing. Please synchronize your Sovereign Vault.");
+                }
             } else if (status === 422) {
                 alert("UNPROCESSABLE IDENTITY: The server rejected this narrative cluster. Check your topic and settings.");
             } else {
