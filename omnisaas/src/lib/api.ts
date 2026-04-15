@@ -33,6 +33,13 @@ export async function generateVideo(topic: string, options: any = {}) {
         headers: getHeaders(),
         body: JSON.stringify({ topic, ...options }),
     });
+    
+    if (!response.ok) {
+        const error: any = new Error("Vantix Production Node Failure");
+        error.status = response.status;
+        error.detail = await response.json().catch(() => ({}));
+        throw error;
+    }
     return response.json();
 }
 
@@ -42,6 +49,13 @@ export async function generateEbook(topic: string, options: any = {}) {
         headers: getHeaders(),
         body: JSON.stringify({ topic, ...options }),
     });
+
+    if (!response.ok) {
+        const error: any = new Error("Vantix E-book Node Failure");
+        error.status = response.status;
+        error.detail = await response.json().catch(() => ({}));
+        throw error;
+    }
     return response.json();
 }
 
@@ -111,6 +125,13 @@ export async function generateCourse(topic: string, options: any = {}) {
         headers: getHeaders(),
         body: JSON.stringify({ topic, ...options }),
     });
+
+    if (!response.ok) {
+        const error: any = new Error("Vantix Course Node Failure");
+        error.status = response.status;
+        error.detail = await response.json().catch(() => ({}));
+        throw error;
+    }
     return response.json();
 }
 
@@ -136,6 +157,13 @@ export async function generateThumbnail(topic: string) {
         headers: getHeaders(),
         body: JSON.stringify({ topic }),
     });
+    
+    if (!response.ok) {
+        const error: any = new Error("Vantix Thumbnail Node Failure");
+        error.status = response.status;
+        error.detail = await response.json().catch(() => ({}));
+        throw error;
+    }
     return response.json();
 }
 
