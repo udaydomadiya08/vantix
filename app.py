@@ -1,3 +1,10 @@
+import os
+# 🛡️ [ENV-SANITIZATION]: Neutralizing auto-proxy injection for Groq SDK
+os.environ.pop("HTTP_PROXY", None)
+os.environ.pop("HTTPS_PROXY", None)
+os.environ.pop("http_proxy", None)
+os.environ.pop("https_proxy", None)
+
 import groq
 # 🛡️ [ABS-SOVEREIGN IMMUNITY]: Killing 'proxies' bug at the root
 try:
@@ -11,7 +18,6 @@ except Exception as e:
     print(f"⚠️ Immunity Patch Failed: {e}")
 
 # 🛰️ [SOVEREIGN ENGINE] Hugging Face Deployment Node
-import os
 import sys
 
 # 🚀 Add the api directory to path so we can import the hardened engine

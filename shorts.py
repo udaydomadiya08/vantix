@@ -93,6 +93,13 @@ import shutil
 from pathlib import Path
 import re  
 from serpapi import GoogleSearch
+import os
+# 🛡️ [ENV-SANITIZATION]: Neutralizing auto-proxy injection for Groq SDK
+os.environ.pop("HTTP_PROXY", None)
+os.environ.pop("HTTPS_PROXY", None)
+os.environ.pop("http_proxy", None)
+os.environ.pop("https_proxy", None)
+
 import groq
 # 🛡️ [GLOBAL SDK LOCKDOWN]: Neutralizing 'proxies' at the root
 _orig_init = groq.Client.__init__
