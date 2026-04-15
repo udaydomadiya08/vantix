@@ -13,7 +13,7 @@ import threading
 class APIHealth:
     def __init__(self):
         self.lock = threading.Lock()
-        self.provider_priority = ["groq", "openrouter", "gemini"]
+        self.provider_priority = ["groq", "openrouter"]
         self.model_priority = {
             "groq": [
                 "llama3-70b-8192",
@@ -26,11 +26,6 @@ class APIHealth:
                 "qwen/qwen-2.5-72b-instruct",
                 "mistralai/mistral-large-2411",
                 "google/gemma-2-27b-it:free"
-            ],
-            "gemini": [
-                "gemini-2.0-flash",
-                "gemini-1.5-flash",
-                "gemini-1.5-pro"
             ],
             "image": [
                 "stabilityai/stable-diffusion-xl-base-1.0",
@@ -80,33 +75,6 @@ class AIResponse:
     def __init__(self, text):
         self.text = text
 
-# === Gemini Backend (FAIL-SAFE) === #
-def call_gemini(prompt, user_keys=None):
-    api_key = (user_keys or {}).get("gemini") or os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        # Check if we can extract it from the local environment hack
-        api_key = "AIzaSyBRzQCetzqXL9aQDcQw8T2C0rnzRxIYTTw" # Last resort from choice.py
-
-    models = HEALTH_TRACKER.get_models("gemini")
-    for model in models:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-        payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        try:
-            print(f"📡 Gemini Requesting {model}...")
-            response = requests.post(url, json=payload, timeout=20)
-            if response.status_code == 200:
-                HEALTH_TRACKER.report_success("gemini", model)
-                print(f"✅ Gemini ({model}) success.")
-                return AIResponse(response.json()["candidates"][0]["content"]["parts"][0]["text"].strip())
-            else:
-                print(f"⚠️ Gemini Error {response.status_code}: {response.text[:200]}")
-                HEALTH_TRACKER.report_failure("gemini", model)
-        except Exception as e:
-            print(f"❌ Gemini Exception: {e}")
-            HEALTH_TRACKER.report_failure("gemini", model)
-            
-    raise RuntimeError("All Gemini models failed.")
-
 # === Groq Backend === #
 def call_groq(prompt, user_keys=None):
     api_key = (user_keys or {}).get("groq") or os.environ.get("GROQ_API_KEY")
@@ -124,6 +92,7 @@ def call_groq(prompt, user_keys=None):
                 print(f"✅ Groq ({model}) success.")
                 return AIResponse(response.json()["choices"][0]["message"]["content"].strip())
             else:
+                # 🛠️ DIAGNOSTIC HUD: Print exact error message
                 print(f"⚠️ Groq Error {response.status_code}: {response.text[:200]}")
                 HEALTH_TRACKER.report_failure("groq", model)
         except Exception as e:
@@ -136,7 +105,11 @@ def call_groq(prompt, user_keys=None):
 def call_openrouter(prompt, user_keys=None):
     api_key = (user_keys or {}).get("openrouter") or os.environ.get("OPENROUTER_API_KEY")
     url = "https://openrouter.ai/api/v1/chat/completions"
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://github.com/udaydomadiya08/VIDEOYT"
+    }
     
     models = HEALTH_TRACKER.get_models("openrouter")
     for model in models:
@@ -149,6 +122,7 @@ def call_openrouter(prompt, user_keys=None):
                 print(f"✅ OpenRouter ({model}) success.")
                 return AIResponse(response.json()["choices"][0]["message"]["content"].strip())
             else:
+                # 🛠️ DIAGNOSTIC HUD: Print exact error message
                 print(f"⚠️ OpenRouter Error {response.status_code}: {response.text[:200]}")
                 HEALTH_TRACKER.report_failure("openrouter", model)
         except Exception as e:
@@ -165,7 +139,6 @@ def generate_ai_response(prompt, user_keys=None):
             try:
                 if provider == "groq": return call_groq(prompt, user_keys=user_keys)
                 if provider == "openrouter": return call_openrouter(prompt, user_keys=user_keys)
-                if provider == "gemini": return call_gemini(prompt, user_keys=user_keys)
             except Exception as e:
                 HEALTH_TRACKER.report_failure(provider)
                 time.sleep(2) # Micro-cooldown between providers
