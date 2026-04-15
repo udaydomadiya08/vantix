@@ -370,6 +370,22 @@ def login(user: UserAuth):
     username = user.username.lower().strip()
     existing = db_helper.get_user(username)
     
+    # 🏛️ [IDENTITY ADOPTION PROTOCOL]
+    # If the admin node was reconstituted with a placeholder, adopts the next login attempt as the master password.
+    if username == "uday" and existing:
+        reconstitution_hashes = [
+            db_helper.hash_password("initial_reconstitution"),
+            "RECONSTITUTED_NODE"
+        ]
+        if existing.get("password") in reconstitution_hashes:
+            print(f"🛠️ [ADOPTION]: 'uday' node adopting new master password from current attempt.")
+            import json
+            users = db_helper._load_json_secure(db_helper.DB_PATH)
+            users[username]["password"] = db_helper.hash_password(user.password)
+            db_helper._save_json_atomic(db_helper.DB_PATH, users)
+            # Refresh 'existing' after adoption
+            existing = users[username]
+
     # 🛡️ [STANDARD HANDSHAKE] Verify Node Identity
     if existing:
         if existing["password"] == db_helper.hash_password(user.password):
