@@ -1,12 +1,13 @@
 from ai_helper import generate_ai_response
 import groq
 
-# 🛡️ [NUCLEAR NEUTRALIZATION]: Legacy Proxies Fix (v1.0)
-_original_groq_init = groq.Groq.__init__
-def _patched_groq_init(self, *args, **kwargs):
+# 🛡️ [GLOBAL SDK LOCKDOWN]: Neutralizing 'proxies' at the root
+_orig_init = groq.Client.__init__
+def _new_init(self, *args, **kwargs):
     kwargs.pop("proxies", None)
-    _original_groq_init(self, *args, **kwargs)
-groq.Groq.__init__ = _patched_groq_init
+    _orig_init(self, *args, **kwargs)
+groq.Client.__init__ = _new_init
+groq.Groq.__init__ = _new_init # Double-seal
 
 import socket
 socket.setdefaulttimeout(6000)

@@ -93,7 +93,17 @@ import shutil
 from pathlib import Path
 import re  
 from serpapi import GoogleSearch
+import groq
+# 🛡️ [GLOBAL SDK LOCKDOWN]: Neutralizing 'proxies' at the root
+_orig_init = groq.Client.__init__
+def _new_init(self, *args, **kwargs):
+    kwargs.pop("proxies", None)
+    _orig_init(self, *args, **kwargs)
+groq.Client.__init__ = _new_init
+groq.Groq.__init__ = _new_init # Double-seal
+
 from groq import Groq
+
 
 # 🛡️ [NUCLEAR NEUTRALIZATION]: Legacy Proxies Fix (v1.0)
 # This patch intercepts the Groq constructor and strips 'proxies' to prevent SDK crashes.

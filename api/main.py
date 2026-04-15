@@ -1,3 +1,15 @@
+import groq
+# 🛡️ [GLOBAL SDK LOCKDOWN]: Neutralizing 'proxies' at the root
+try:
+    _orig_init = groq.Client.__init__
+    def _new_init(self, *args, **kwargs):
+        kwargs.pop("proxies", None)
+        _orig_init(self, *args, **kwargs)
+    groq.Client.__init__ = _new_init
+    groq.Groq.__init__ = _new_init # Double-seal
+except:
+    pass
+
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Header, Request, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
