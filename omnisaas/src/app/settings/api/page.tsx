@@ -10,14 +10,16 @@ export default function ApiVaultPage() {
         groq: "",
         openrouter: "",
         pexels: "",
-        pixabay: ""
+        pixabay: "",
+        hf_token: ""
     });
     // Default visibility to true for total transparency
     const [visible, setVisible] = useState<Record<string, boolean>>({
         groq: true,
         openrouter: true,
         pexels: true,
-        pixabay: true
+        pixabay: true,
+        hf_token: false
     });
     const [isSyncing, setIsSyncing] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -85,6 +87,7 @@ export default function ApiVaultPage() {
         { id: 'openrouter', name: 'OpenRouter Key', provider: 'OpenRouter', subtitle: 'Global model orchestration (Llama 3.3/Qwen)' },
         { id: 'pexels', name: 'Pexels Key', provider: 'Pexels', subtitle: 'High-fidelity cinematic stock discovery' },
         { id: 'pixabay', name: 'Pixabay Key', provider: 'Pixabay', subtitle: 'Illustrative and vector asset fallback search' },
+        { id: 'hf_token', name: 'HF Access Token', provider: 'Hugging Face', subtitle: 'Required for Live System Telemetry (Logs)' },
     ];
 
     return (

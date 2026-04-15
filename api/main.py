@@ -106,6 +106,49 @@ async def download_file(path: str):
         media_type='application/octet-stream'
     )
 
+# 🛰️ [TELEMETRY] Live Industrial Log Proxy (SSE)
+@app.get("/admin/logs/stream")
+async def stream_logs(request: Request, payload: dict = Depends(get_current_user)):
+    if payload.get("username") != "uday":
+        raise HTTPException(status_code=403, detail="Sovereign Access Denied.")
+
+    import httpx
+    from fastapi.responses import StreamingResponse
+
+    # 🔗 Extract HF Token from Vault (stored in users.json)
+    user_data = db_helper.get_user(payload.get("username"))
+    hf_token = user_data.get("keys", {}).get("hf_token") or os.getenv("HF_TOKEN")
+
+    if not hf_token:
+        # Fallback to local trace.log if no HF Token is configured
+        async def local_generator():
+            if os.path.exists(TRACE_LOG):
+                with open(TRACE_LOG, "r") as f:
+                    # Send last 50 lines initially
+                    lines = f.readlines()
+                    for line in lines[-50:]:
+                        yield f"data: {line}\n\n"
+                    # Tail the file (Basic realization)
+                    while True:
+                        line = f.readline()
+                        if line: yield f"data: {line}\n\n"
+                        await asyncio.sleep(1)
+            else:
+                yield "data: [SYSTEM]: Industrial Audit Ledger empty.\n\n"
+        return StreamingResponse(local_generator(), media_type="text/event-stream")
+
+    # 🚀 Proxy to Hugging Face API
+    async def hf_generator():
+        url = "https://huggingface.co/api/spaces/UDAYDOMADIYA/vantix-core/logs/run"
+        headers = {"Authorization": f"Bearer {hf_token}"}
+        async with httpx.AsyncClient(timeout=None) as client:
+            async with client.stream("GET", url, headers=headers) as response:
+                async for line in response.aiter_lines():
+                    if await request.is_disconnected(): break
+                    yield f"data: {line}\n\n"
+
+    return StreamingResponse(hf_generator(), media_type="text/event-stream")
+
 # 📊 [STATE] Industrial Queue Management System
 JOB_STATUS = {}
 CANCELLED_JOBS = set() # 🕹️ Vantix Kills

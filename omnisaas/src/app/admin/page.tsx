@@ -360,6 +360,79 @@ export default function AdminDashboard() {
             )}
          </div>
       </div>
+
+      {/* 📡 INDUSTRIAL TELEMETRY: SYSTEM TERMINAL */}
+      <div className="space-y-6">
+          <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                  <Server size={20} className="text-indigo-400" />
+                  <h2 className="text-xs font-black text-white uppercase tracking-[0.3em]">Industrial System Terminal</h2>
+              </div>
+              <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                  <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Live Stream</span>
+                  <span>Port: 7860</span>
+              </div>
+          </div>
+          <SystemLogs />
+      </div>
     </div>
   );
+}
+
+function SystemLogs() {
+    const [logs, setLogs] = useState<string[]>(["[SYSTEM]: Initializing secure log session...", "[SYSTEM]: Connecting to HF telemetry..."]);
+    const [active, setActive] = useState(true);
+
+    useEffect(() => {
+        if (!active) return;
+
+        const { API_BASE } = require("@/lib/api");
+        const token = localStorage.getItem("vantix_token");
+        
+        // 🛰️ [SSE] Establish Industrial Stream
+        const url = `${API_BASE}/admin/logs/stream?token=${token}`;
+        const source = new EventSource(url);
+
+        source.onmessage = (event) => {
+            setLogs(prev => [...prev.slice(-49), event.data]);
+        };
+
+        source.onerror = () => {
+            setLogs(prev => [...prev, "❌ [ERROR]: System Telemetry Interrupted (Node Offline or Unauthorized)."]);
+            source.close();
+        };
+
+        return () => source.close();
+    }, [active]);
+
+    return (
+        <div className="glass-card rounded-[2.5rem] bg-black border-slate-800 overflow-hidden flex flex-col shadow-2xl">
+            <div className="p-4 bg-slate-900/50 border-b border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-rose-500/50" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500/50" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/50" />
+                </div>
+                <button 
+                    onClick={() => setActive(!active)}
+                    className="text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
+                >
+                    {active ? "Pause Stream" : "Resume Stream"}
+                </button>
+            </div>
+            <div className="p-8 h-[400px] overflow-y-auto font-mono text-[11px] leading-relaxed scrollbar-hide flex flex-col-reverse">
+                <div className="space-y-1">
+                    {logs.map((log, i) => (
+                        <div key={i} className={`flex gap-4 ${log.includes("ERROR") ? 'text-rose-500' : log.includes("SYSTEM") ? 'text-indigo-400' : 'text-slate-400'}`}>
+                            <span className="text-slate-700 select-none">[{i.toString().padStart(3, '0')}]</span>
+                            <span className="whitespace-pre-wrap">{log}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <div className="p-4 bg-slate-950 border-t border-slate-800 text-center uppercase tracking-[0.5em] font-black text-[8px] text-slate-700">
+                Sovereign Command Console v1.0
+            </div>
+        </div>
+    );
 }
