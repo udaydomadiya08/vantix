@@ -610,11 +610,12 @@ def identify_narrative_sfx(sentence, user_keys=None):
         print(f"⚠️ SFX Marker Fallback: {e}")
     return []
 
-@retry_infinite(delay=5)
-def search_pexels_videos(query, per_page=15, max_results=8, horizontal=False, api_key=None, **kwargs):
-    """👑 LIGHTNING ASSEMBLY (v57): Faster subject discovery"""
+@retry_infinite(delay=15)
+def search_pexels_videos(query, per_page=15, max_results=8, horizontal=False, user_keys=None, **kwargs):
+    """👑 Discovery Node: Pexels API"""
+    api_key = (user_keys or {}).get("pexels") or os.environ.get("PEXELS_API_KEY")
     if not api_key:
-        print("⚠️ [PEXELS] No API Key provided. Skipping.")
+        print("⚠️ [PEXELS] No API Key in vault. Skipping.")
         return []
         
     orientation = "landscape" if horizontal else "portrait"
@@ -622,29 +623,51 @@ def search_pexels_videos(query, per_page=15, max_results=8, horizontal=False, ap
     headers = {"Authorization": api_key}
     try:
         response = requests.get(url, headers=headers, timeout=15)
+        if response.status_code == 429:
+             print("🚦 [PEXELS THROTTLE] Rate limit reached. Backing off...")
+             response.raise_for_status()
+             
         response.raise_for_status()
         videos = response.json().get('videos', [])
         print(f"🎬 [Pexels] Discovery Found {len(videos)} videos for '{query}'")
-        return videos[:max_results]
+        
+        # 💥 RELEVANCE TAGGING (v1.0)
+        suitable = []
+        for v in videos:
+             v["source"] = "pexels"
+             # Normalize resolution data
+             v["width"] = v.get("width")
+             v["height"] = v.get("height")
+             suitable.append(v)
+             
+        return suitable[:max_results]
     except Exception as e:
-        print(f"⚠️ [PEXELS] Error: {e}")
-        raise e # 💥 RERAISE to trigger @retry_infinite
+        print(f"⚠️ [PEXELS] Discovery Error: {e}")
+        raise e
 
 @retry_infinite(delay=5)
-def search_pixabay_videos(query, per_page=20, max_results=8, horizontal=False, api_key=None, **kwargs):
-    """👑 LIGHTNING ASSEMBLY (v57): Faster subject discovery"""
+@retry_infinite(delay=15)
+def search_pixabay_videos(query, per_page=20, max_results=8, horizontal=False, user_keys=None, **kwargs):
+    """👑 Discovery Node: Pixabay API"""
+    api_key = (user_keys or {}).get("pixabay") or os.environ.get("PIXABAY_API_KEY")
     if not api_key:
-        print("⚠️ [PIXABAY] No API Key provided. Skipping.")
+        print("⚠️ [PIXABAY] No API Key in vault. Skipping.")
         return []
         
     url = 'https://pixabay.com/api/videos/'
     params = {'key': api_key, 'q': query, 'per_page': per_page}
     params["orientation"] = "horizontal" if horizontal else "vertical"
+    
     try:
         response = requests.get(url, params=params, timeout=15)
+        if response.status_code == 429:
+             print("🚦 [PIXABAY THROTTLE] Rate limit reached. Backing off...")
+             response.raise_for_status()
+             
         response.raise_for_status()
         hits = response.json().get('hits', [])
         print(f"🎬 [Pixabay] Discovery Found {len(hits)} videos for '{query}'")
+        
         suitable = []
         for hit in hits:
             videos = hit.get("videos", {})
@@ -657,8 +680,8 @@ def search_pixabay_videos(query, per_page=20, max_results=8, horizontal=False, a
                 suitable.append(hit)
         return suitable[:max_results]
     except Exception as e:
-        print(f"⚠️ [PIXABAY] Error: {e}")
-        raise e # 💥 RERAISE to trigger @retry_infinite
+        print(f"⚠️ [PIXABAY] Discovery Error: {e}")
+        raise e
 
 @retry_infinite(delay=5)
 def discover_global_sfx(query):
@@ -888,148 +911,77 @@ def rank_candidates_with_ai(candidates, sentence, user_keys=None):
 
 @retry_infinite(delay=5)
 def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=1, horizontal=False, user_keys=None):
-    print(f"🔍 ULTIMATE RELEVANCE SEARCH for: {sentence}")
+    """👑 VANTIX DUAL-CORE DISCOVERY (v1.1): Hybrid Search Engine"""
+    print(f"🔍 [DISCOVERY] Initiating Hybrid Search for: '{sentence}'")
     
     precise_queries = generate_visual_search_queries(sentence, user_topic, user_keys=user_keys)
     semantic_keyword = extract_visual_keywords(sentence)
+    if semantic_keyword not in [q.lower() for q in precise_queries]:
+        precise_queries.append(semantic_keyword)
 
     def get_relevance_score(clip_text, sentence):
-        """💥 CONTEXTUAL PURITY (v45): Advanced weighted overlap"""
         if not clip_text: return 0.2
         stop_words = set(['the', 'is', 'are', 'was', 'were', 'and', 'but', 'or', 'a', 'an', 'in', 'on', 'at', 'with', 'know', 'how', 'why'])
-        
         words_sentence = set([w for w in re.sub(r'[^\w\s]', '', sentence.lower()).split() if w not in stop_words and len(w) > 2])
         words_clip = set([w for w in re.sub(r'[^\w\s]', '', clip_text.lower()).split() if w not in stop_words])
-        
         if not words_sentence: return 0.5
         overlap = words_sentence.intersection(words_clip)
-        
-        # 💥 ANTI-LIFESTYLE PENALTY (v37): Penalize generic lifestyle distractions in technical niches
-        distractors = ["office", "family", "smiling", "couple", "shopping", "home", "lifestyle"]
-        penalty = 0.0
-        if any(d in clip_text.lower() for d in distractors) and not any(d in sentence.lower() for d in distractors):
-            penalty = 0.3
-            
-        return (len(overlap) / len(words_sentence)) - penalty
+        return len(overlap) / len(words_sentence)
 
-    def process_pixels(query, limit, min_score=0.3, horizontal=horizontal, **kwargs):
+    def process_pixels(query, limit):
         print(f"🔎 [Pexels] Stage: {query}")
-        candidates = search_pexels_videos(query, max_results=limit*4, horizontal=horizontal, api_key=(user_keys or {}).get("pexels"))
+        candidates = search_pexels_videos(query, max_results=limit*4, horizontal=horizontal, user_keys=user_keys)
         scored = []
         for clip in candidates:
             try:
-                video_url = clip["video_files"][0]["link"]
-                if video_url in used_video_urls or video_url in GLOBAL_USED_URLS: continue
-                
+                url = clip["video_files"][0]["link"]
+                if url in used_video_urls or url in GLOBAL_USED_URLS: continue
                 tags = " ".join([t.get('title', '') for t in clip.get('tags', [])])
                 score = get_relevance_score(tags + " " + query, sentence)
-                if score >= min_score: scored.append((score, clip))
+                scored.append((score, clip))
             except: continue
-        
-        scored.sort(key=lambda x: x[0], reverse=True)
-        return scored[:3] # Return top 3 (score, clip) tuples
+        return sorted(scored, key=lambda x: x[0], reverse=True)[:limit]
 
-    def process_pixabay(query, limit, min_score=0.3, horizontal=horizontal, **kwargs):
+    def process_pixabay(query, limit):
         print(f"🔎 [Pixabay] Stage: {query}")
-        candidates = search_pixabay_videos(query, per_page=100, max_results=limit*4, horizontal=horizontal, api_key=(user_keys or {}).get("pixabay"))
+        candidates = search_pixabay_videos(query, max_results=limit*4, horizontal=horizontal, user_keys=user_keys)
         scored = []
         for clip in candidates:
             try:
-                video_url = clip["video_files"][0]["link"]
-                if video_url in used_video_urls or video_url in GLOBAL_USED_URLS: continue
+                url = clip["video_files"][0]["link"]
+                if url in used_video_urls or url in GLOBAL_USED_URLS: continue
                 tags = clip.get('tags', '')
                 score = get_relevance_score(tags + " " + query, sentence)
-                if score >= min_score: scored.append((score, clip))
+                scored.append((score, clip))
             except: continue
-        scored.sort(key=lambda x: x[0], reverse=True)
-        return scored[:3]
+        return sorted(scored, key=lambda x: x[0], reverse=True)[:limit]
 
-    global_best_score = -1.0
-    global_best_candidate = None
-
-    # --- TIER 1: VANTIX LITERAL SEARCH ---
-    print(f"🌀 [Tier 1] Literal Search: '{sentence}'...")
-    all_raw = []
-    for q in precise_queries:
-        stage_scored = process_pixels(q, 5, min_score=0.2)
-        stage_scored += process_pixabay(q, 5, min_score=0.2)
+    collected = []
+    # 🏛️ ENGINE ROTATION: Priorities search engines based on available keys
+    engines = []
+    if (user_keys or {}).get("pexels") or os.environ.get("PEXELS_API_KEY"):
+        engines.append(("Pexels", process_pixels))
+    if (user_keys or {}).get("pixabay") or os.environ.get("PIXABAY_API_KEY"):
+        engines.append(("Pixabay", process_pixabay))
         
-        if stage_scored:
-            stage_clips = [s[1] for s in stage_scored]
-            all_raw += stage_clips
-            
-            # EARLY EXIT: If this stage found a VERY high overlap, rank and exit.
-            if any(s[0] >= 0.8 for s in stage_scored) or len(all_raw) >= 10:
-                print(f"🚀 [EARLY EXIT] High-Confidence candidates found for '{q}'. Ranking...")
-                score, candidate = rank_candidates_with_ai(all_raw, sentence, user_keys=user_keys)
-                if candidate and score >= 9.0:
-                     print(f"✅ [EARLY SUCCESS] Perfect Symmetry achieved: {score}/10")
-                     return [candidate]
-                if score > global_best_score:
-                     global_best_score, global_best_candidate = score, candidate
-        
-        if len(all_raw) >= 30: break
-    
-    # Final Tier 1 check if not already exited
-    if all_raw and global_best_score < 9.0:
-        score, candidate = rank_candidates_with_ai(all_raw, sentence, user_keys=user_keys)
-        if candidate and score >= 9.5:
-             print(f"✅ [TIER 1 MATCH] High Symmetry: {score}/10")
-             return [candidate]
-        if score > global_best_score:
-             global_best_score, global_best_candidate = score, candidate
+    if not engines:
+         print("❌ [DISCOVERY] Critical Failure: No visual keys in vault.")
+         return []
 
-    # --- TIER 2: NARRATIVE FUSION ---
-    print(f"🌍 [Tier 2] Semantic Fusion: '{semantic_keyword}' + Topic...")
-    all_raw_tier2 = []
-    fusion_query = f"{semantic_keyword} {user_topic}"
-    all_raw_tier2 += [s[1] for s in process_pixels(fusion_query, 10, min_score=0.3)]
-    all_raw_tier2 += [s[1] for s in process_pixabay(fusion_query, 10, min_score=0.3)]
-    
-    if all_raw_tier2:
-        score, candidate = rank_candidates_with_ai(all_raw_tier2, sentence, user_keys=user_keys)
-        if candidate and score >= 9.0:
-             print(f"✅ [TIER 2 MATCH] High Symmetry: {score}/10")
-             return [candidate]
-        if score > global_best_score:
-             global_best_score, global_best_candidate = score, candidate
-
-    # --- TIER 3: CORE SUBJECT LOCKDOWN ---
-    doc = nlp(sentence)
-    literal_nouns = [token.text.lower() for token in doc if token.pos_ in ["NOUN", "PROPN"]]
-    primary_noun = literal_nouns[0] if literal_nouns else user_topic
-    
-    print(f"🛡️ [Tier 3] Core Subject Lockdown: '{primary_noun}'...")
-    all_raw_tier3 = [s[1] for s in process_pixels(primary_noun, 10, min_score=0.1)]
-    all_raw_tier3 += [s[1] for s in process_pixabay(primary_noun, 10, min_score=0.1)]
-    
-    if all_raw_tier3:
-        score, candidate = rank_candidates_with_ai(all_raw_tier3, sentence)
-        if score > global_best_score:
-             global_best_score, global_best_candidate = score, candidate
-
-    # --- FINAL SYNTHESIS ---
-    if global_best_candidate:
-         print(f"🏁 [SYNTHESIS COMPLETE] Selecting best available: {global_best_score:.1f}/10")
-         return [global_best_candidate]
-    
-    # Absolute Emergency fallback to first pixels result for topic
-    print("🆘 [EMERGENCY] No candidates passed synthesis. Fetching immediate topic fallback.")
-    return process_pixels(user_topic, 1, min_score=0.0, horizontal=horizontal)
-
-
-
-
-
-
-
-    
- # List of up to 3 unique clips, one per query
-
-
-
-# === Download Video === #
-@retry_infinite(delay=5)
+    for query in precise_queries:
+        for name, engine in engines:
+            try:
+                results = engine(query, max_clips)
+                for score, clip in results:
+                    collected.append(clip)
+                    if len(collected) >= max_clips:
+                         print(f"✅ [DISCOVERY] Successfully captured {len(collected)} assets via {name}.")
+                         return collected
+            except Exception as e:
+                print(f"⚠️ [DISCOVERY] Engine {name} failed for query '{query}': {e}")
+                continue # Try next engine or query
+                
+    return collected
 def download_video(url, filename):
     response = requests.get(url, stream=True)
     with open(filename, "wb") as f:
