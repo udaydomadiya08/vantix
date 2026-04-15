@@ -200,17 +200,17 @@ def retry_infinite(delay=5, max_delay=15, backoff_factor=2):
 from ai_helper import generate_ai_response, AIResponse
 
 # Aliases for drop-in compatibility
-def generate_groq_response(prompt, system_message="You are a cinematic assistant."):
-    return generate_ai_response(f"System: {system_message}\nUser: {prompt}")
+def generate_groq_response(prompt, system_message="You are a cinematic assistant.", user_keys=None):
+    return generate_ai_response(f"System: {system_message}\nUser: {prompt}", user_keys=user_keys)
 
-def generate_gemini_response(prompt, system_message="You are a cinematic assistant."):
-    return generate_ai_response(f"System: {system_message}\nUser: {prompt}")
+def generate_gemini_response(prompt, system_message="You are a cinematic assistant.", user_keys=None):
+    return generate_ai_response(f"System: {system_message}\nUser: {prompt}", user_keys=user_keys)
 
 class GroqResponse:
     def __init__(self, text):
         self.text = text
 # --- VANTIX CORE NEURAL PACING (v1.0) --- #
-def get_scene_pacing_intent(sentence):
+def get_scene_pacing_intent(sentence, user_keys=None):
     """
     🧠 SCRIPT INTENT ANALYZER (v47.2):
     Classifies a sentence as MONTAGE (descriptive/busy) or SUSTAINED (singular/majestic).
@@ -226,7 +226,7 @@ def get_scene_pacing_intent(sentence):
     {{"intent": "MONTAGE" | "SUSTAINED", "justification": "<short reason>"}}
     """
     try:
-        resp_obj = generate_groq_response(prompt, system_message="Return ONLY JSON valid object.")
+        resp_obj = generate_groq_response(prompt, system_message="Return ONLY JSON valid object.", user_keys=user_keys)
         json_match = re.search(r'\{.*\}', resp_obj.text.strip(), re.DOTALL)
         if json_match:
             data = json.loads(json_match.group(0))
@@ -1593,7 +1593,7 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
              word_segments = []
 
         # 💥 NEURAL SFX ORCHESTRATION (v55): Audio Fusion Pass
-        sfx_markers = identify_narrative_sfx(text)
+        sfx_markers = identify_narrative_sfx(text, user_keys=user_keys)
         if sfx_markers and word_segments:
              print(f"🎵 [SFX PHONICS] Identifying {len(sfx_markers)} narrative sound markers...")
              layering_list = []
@@ -1623,7 +1623,7 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         except: audio_duration = 3.0
     
     # 💥 CONTEXT-DRIVEN PACING (v47.2): Analyze Script Intent
-    pacing_intent = get_scene_pacing_intent(text)
+    pacing_intent = get_scene_pacing_intent(text, user_keys=user_keys)
 
     # --- PHASE 1: SEMANTIC MILESTONE EXTRACTION (v54: Cinematic Stabilization) ---
     raw_milestones = []
@@ -1763,7 +1763,7 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         
         novelty_queries = []
         try:
-             resp_obj = generate_groq_response(expansion_prompt, system_message="Return ONLY JSON valid list.")
+             resp_obj = generate_groq_response(expansion_prompt, system_message="Return ONLY JSON valid list.", user_keys=user_keys)
              json_match = re.search(r'\[.*\]', resp_obj.text, re.DOTALL)
              if json_match:
                   novelty_queries = json.loads(json_match.group(0))
