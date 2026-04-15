@@ -338,14 +338,12 @@ function Dashboard() {
                   const { syncUserKeys } = await import("@/lib/api");
                   await syncUserKeys(keys);
                   setSuccessMessage("⚙️ Identity healed. Retrying synthesis...");
-                  return handleLaunch(type); // Recursive Auto-Retry
+                  return handleLaunch(type); // Recursive Auto-Retry (Silent)
               } catch (e) {
-                  alert("VAULT LOCKED: Industrial keys missing. Please synchronize manually in the Sovereign Vault.");
+                  console.error("Vault Heal Failed:", e);
               }
-          } else {
-              alert("VAULT LOCKED: Core AI keys (Groq/OpenRouter) missing. Redirecting to your Sovereign Vault...");
-              router.push("/settings/api");
           }
+          alert("VAULT LOCKED: Industrial keys missing. Please synchronize manually in the Sovereign Vault.");
       } else if (status === 422) {
           const detail = JSON.stringify(error.detail);
           alert(`UNPROCESSABLE IDENTITY: The server rejected this production cluster. DETAIL: ${detail}`);

@@ -47,13 +47,12 @@ export default function CoursesPage() {
                         const { syncUserKeys } = await import("@/lib/api");
                         await syncUserKeys(keys);
                         console.log("🛠️ [HEAL]: Identity Synced. Retrying curriculum stream...");
-                        return handleLaunch(); // Recursive Auto-Retry
+                        return handleLaunch(); // Recursive Auto-Retry (Silent)
                     } catch (e) {
-                        alert("VAULT LOCKED: Industrial keys missing. Please synchronize manually in the Sovereign Vault.");
+                        console.error("Vault Heal Failed:", e);
                     }
-                } else {
-                    alert("VAULT LOCKED: Core AI keys missing. Please synchronize your Sovereign Vault.");
                 }
+                alert("VAULT LOCKED: Core AI keys missing. Please synchronize manually in the Sovereign Vault.");
             } else if (status === 422) {
                 const detail = JSON.stringify(error.detail);
                 alert(`UNPROCESSABLE IDENTITY: The server rejected this curriculum cluster. DETAIL: ${detail}`);

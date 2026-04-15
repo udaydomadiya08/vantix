@@ -84,13 +84,12 @@ export default function ShortsPage() {
                         const { syncUserKeys } = await import("@/lib/api");
                         await syncUserKeys(keys);
                         console.log("🛠️ [HEAL]: Identity Synced. Retrying production stream...");
-                        return handleLaunch(); // Recursive Auto-Retry
+                        return handleLaunch(); // Recursive Auto-Retry (Silent)
                     } catch (e) {
-                        alert("VAULT LOCKED: Industrial keys missing. Please synchronize manually in the Sovereign Vault.");
+                        console.error("Vault Heal Failed:", e);
                     }
-                } else {
-                    alert("VAULT LOCKED: Groq/OpenRouter keys missing. Synchronize your API Vault to continue.");
                 }
+                alert("VAULT LOCKED: Groq/OpenRouter keys missing. Please synchronize manually in the Sovereign Vault.");
             } else if (status === 422) {
                 const detail = JSON.stringify(error.detail);
                 alert(`UNPROCESSABLE IDENTITY: The server rejected this production cluster. DETAIL: ${detail}`);
