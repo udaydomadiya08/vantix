@@ -622,6 +622,10 @@ async def generate_video(
         if isinstance(e, HTTPException): raise e
         raise HTTPException(status_code=500, detail=f"Factory node failure: {str(e)}")
 
+@app.get("/version")
+async def get_version():
+    return {"version": "Industrial Hardening Active", "timestamp": "2026-04-15", "node": "Sovereign-1"}
+
 @app.post("/generate-thumbnail")
 async def generate_thumbnail(request: ThumbnailRequest, username: str = Depends(get_current_user)):
     """🎨 Synthesize an Omnipotent High-CTR Thumbnail"""
