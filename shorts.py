@@ -95,6 +95,15 @@ import re
 from serpapi import GoogleSearch
 from groq import Groq
 
+# 🛡️ [NUCLEAR NEUTRALIZATION]: Legacy Proxies Fix (v1.0)
+# This patch intercepts the Groq constructor and strips 'proxies' to prevent SDK crashes.
+_original_groq_init = Groq.__init__
+def _patched_groq_init(self, *args, **kwargs):
+    kwargs.pop("proxies", None)
+    _original_groq_init(self, *args, **kwargs)
+Groq.__init__ = _patched_groq_init
+
+
 import sys
 sys.path.append(os.path.abspath('Wav2Lip'))
 
