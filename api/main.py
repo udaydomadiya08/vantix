@@ -317,7 +317,7 @@ class VideoRequest(BaseModel):
         extra = "allow"
 
 class EbookRequest(BaseModel):
-    topic: str
+    topic: str = ""
     description: str = ""
     chapters: int = 3
     min_words: int = 150
@@ -328,7 +328,7 @@ class EbookRequest(BaseModel):
         extra = "allow"
 
 class CourseRequest(BaseModel):
-    topic: str
+    topic: str = ""
     horizontal: bool = False
     include_avatar: bool = False
 
@@ -336,7 +336,10 @@ class CourseRequest(BaseModel):
         extra = "allow"
 
 class ThumbnailRequest(BaseModel):
-    topic: str
+    topic: str = ""
+
+    class Config:
+        extra = "allow"
 
 class DefaultsRequest(BaseModel):
     factory_type: str
