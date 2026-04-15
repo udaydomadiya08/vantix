@@ -99,13 +99,16 @@ def update_user_keys(username, keys):
                 "groq": None, "openrouter": None, "pexels": None, "pixabay": None
             }
             
-        # Encrypt each key before storage
+        # 🧪 [VAULT HEAL] Re-encrypt and overwrite with fresh identity credentials
         encrypted_keys = {k: encrypt_key(v) if (v and str(v).strip()) else None for k, v in keys.items()}
         users[username]["api_keys"].update(encrypted_keys)
+        
         with open(DB_PATH, "w") as f:
             json.dump(users, f, indent=4)
             f.flush()
             os.fsync(f.fileno())
+            
+        print(f"✅ [DATABASE] Vault Synchronized for User='{username}'")
         return True
     return False
 
