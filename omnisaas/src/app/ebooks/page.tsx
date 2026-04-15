@@ -45,31 +45,17 @@ export default function EbooksPage() {
                 alert("INDUSTRIAL SUCCESS: E-book synthesis enqueued. Return to Dashboard to track progress.");
             }
         } catch (error: any) {
-            // 🛡️ [FILTER] If success happened elsewhere, ignore noise
-            const status = error.status || (error instanceof Response ? error.status : (error.response?.status || 0));
+            const { parseApiError, API_BASE } = await import("@/lib/api");
+            const { status, message } = await parseApiError(error);
+
             if (status === 402) {
                 alert("INSUFFICIENT POWER: Node balance depleted. Recharge your industrial balance to continue.");
             } else if (status === 428) {
-                // 🛰️ [HEAL] Industrial Identity Synchronization
-                const stored = localStorage.getItem("vantix_api_keys");
-                if (stored) {
-                    try {
-                        const keys = JSON.parse(stored);
-                        const { syncUserKeys } = await import("@/lib/api");
-                        await syncUserKeys(keys);
-                        console.log("🛠️ [HEAL]: Identity Synced. Retrying narrative stream...");
-                        return handleLaunch(); // Recursive Auto-Retry (Silent)
-                    } catch (e) {
-                        console.error("Vault Heal Failed:", e);
-                    }
-                }
-                alert("VAULT LOCKED: Core AI keys missing. Please synchronize manually in the Sovereign Vault.");
+                alert("VAULT LOCKED: Core AI keys missing. Please synchronize in the Sovereign Vault.");
             } else if (status === 422) {
-                const detail = JSON.stringify(error.detail);
-                alert(`UNPROCESSABLE IDENTITY: The server rejected this narrative cluster. DETAIL: ${detail}`);
+                alert(`UNPROCESSABLE IDENTITY: ${message}`);
             } else {
-                const { API_BASE } = await import("@/lib/api");
-                alert(`INDUSTRIAL INTERRUPTION: Infrastructure node unreachable at [${API_BASE}]. Check backend status and ensure NEXT_PUBLIC_API_BASE is set.`);
+                alert(`INDUSTRIAL INTERRUPTION: ${message} (Node: ${API_BASE})`);
             }
         } finally {
             setIsProcessing(false);

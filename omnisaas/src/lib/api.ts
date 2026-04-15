@@ -40,36 +40,54 @@ function getHeaders() {
     return headers;
 }
 
+export async function parseApiError(error: any) {
+    const status = error.status || (error instanceof Response ? error.status : (error.response?.status || 0));
+    const detail = error.detail || {};
+    const message = detail.message || detail.detail || error.message || "Unknown Industrial Exception";
+    return { status, message, detail };
+}
+
 export async function generateVideo(topic: string, options: any = {}) {
-    const response = await fetch(`${API_BASE}/generate/video`, {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify({ topic, ...options }),
-    });
-    
-    if (!response.ok) {
-        const error: any = new Error("Vantix Production Node Failure");
-        error.status = response.status;
-        error.detail = await response.json().catch(() => ({}));
-        throw error;
+    try {
+        const response = await fetch(`${API_BASE}/generate/video`, {
+            method: "POST",
+            headers: getHeaders(),
+            body: JSON.stringify({ topic, ...options }),
+        });
+        
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            const error: any = new Error(errData.detail?.message || errData.message || "Vantix Video Node Failure");
+            error.status = response.status;
+            error.detail = errData.detail || errData;
+            throw error;
+        }
+        return response.json();
+    } catch (e: any) {
+        if (!e.status) console.error("📡 [NETWORK ERROR]: Infrastructure node may be offline.", e);
+        throw e;
     }
-    return response.json();
 }
 
 export async function generateEbook(topic: string, options: any = {}) {
-    const response = await fetch(`${API_BASE}/generate/ebook`, {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify({ topic, ...options }),
-    });
+    try {
+        const response = await fetch(`${API_BASE}/generate/ebook`, {
+            method: "POST",
+            headers: getHeaders(),
+            body: JSON.stringify({ topic, ...options }),
+        });
 
-    if (!response.ok) {
-        const error: any = new Error("Vantix E-book Node Failure");
-        error.status = response.status;
-        error.detail = await response.json().catch(() => ({}));
-        throw error;
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            const error: any = new Error(errData.detail?.message || errData.message || "Vantix E-book Node Failure");
+            error.status = response.status;
+            error.detail = errData.detail || errData;
+            throw error;
+        }
+        return response.json();
+    } catch (e: any) {
+        throw e;
     }
-    return response.json();
 }
 
 export async function checkStatus() {
@@ -94,8 +112,6 @@ export async function syncUserKeys(keys: any) {
     
     const result = await response.json();
     if (response.ok) {
-        // 🔒 [SYNC] Harmonize backend vault with local cluster session
-        // We now store exactly what the server confirmed
         localStorage.setItem("vantix_api_keys", JSON.stringify(result));
     }
     return result;
@@ -133,19 +149,24 @@ export async function getUserKeys() {
 }
 
 export async function generateCourse(topic: string, options: any = {}) {
-    const response = await fetch(`${API_BASE}/generate/course`, {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify({ topic, ...options }),
-    });
+    try {
+        const response = await fetch(`${API_BASE}/generate/course`, {
+            method: "POST",
+            headers: getHeaders(),
+            body: JSON.stringify({ topic, ...options }),
+        });
 
-    if (!response.ok) {
-        const error: any = new Error("Vantix Course Node Failure");
-        error.status = response.status;
-        error.detail = await response.json().catch(() => ({}));
-        throw error;
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            const error: any = new Error(errData.detail?.message || errData.message || "Vantix Course Node Failure");
+            error.status = response.status;
+            error.detail = errData.detail || errData;
+            throw error;
+        }
+        return response.json();
+    } catch (e: any) {
+        throw e;
     }
-    return response.json();
 }
 
 export async function getUserDefaults() {
@@ -165,19 +186,24 @@ export async function updateUserDefaults(factoryType: string, settings: any) {
 }
 
 export async function generateThumbnail(topic: string) {
-    const response = await fetch(`${API_BASE}/generate-thumbnail`, {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify({ topic }),
-    });
-    
-    if (!response.ok) {
-        const error: any = new Error("Vantix Thumbnail Node Failure");
-        error.status = response.status;
-        error.detail = await response.json().catch(() => ({}));
-        throw error;
+    try {
+        const response = await fetch(`${API_BASE}/generate-thumbnail`, {
+            method: "POST",
+            headers: getHeaders(),
+            body: JSON.stringify({ topic }),
+        });
+        
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            const error: any = new Error(errData.detail?.message || errData.message || "Vantix Thumbnail Node Failure");
+            error.status = response.status;
+            error.detail = errData.detail || errData;
+            throw error;
+        }
+        return response.json();
+    } catch (e: any) {
+        throw e;
     }
-    return response.json();
 }
 
 export async function cancelJob(jobId: string) {
