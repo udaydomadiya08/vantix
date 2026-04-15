@@ -18,6 +18,7 @@ export default function ShortsPage() {
     const [isGeneratingThumb, setIsGeneratingThumb] = useState(false);
     const [activeJobId, setActiveJobId] = useState<string | null>(null);
     const [jobStatus, setJobStatus] = useState<any>(null);
+    const [successMessage, setSuccessMessage] = useState("");
 
     // 🧬 Inherit Settings from Vantix Vault
     useEffect(() => {
@@ -173,6 +174,20 @@ export default function ShortsPage() {
                     </h1>
                     <p className="text-slate-400 text-lg max-w-xl">Multi-vector synthesis for high-throughput social content streams.</p>
                 </div>
+
+                <AnimatePresence>
+                    {successMessage && (
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="bg-emerald-500 text-white px-6 py-3 rounded-2xl flex items-center gap-3 font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                        >
+                            <CheckCircle2 size={18} />
+                            {successMessage}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </header>
 
             {/* Mode Selector */}
