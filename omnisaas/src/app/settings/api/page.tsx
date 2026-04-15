@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Shield, Eye, EyeOff, Save, CheckCircle2, Loader2, Lock, Cpu, Server, Sparkles, Trash2 } from "lucide-react";
+import { Zap, Shield, ShieldCheck, Eye, EyeOff, Save, CheckCircle2, Loader2, Lock, Cpu, Server, Sparkles, Trash2 } from "lucide-react";
 import { getUserKeys, syncUserKeys } from "@/lib/api";
 
 export default function ApiVaultPage() {
