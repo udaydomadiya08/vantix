@@ -1,9 +1,13 @@
 import json
 import os
 import hashlib
+import threading
 from datetime import datetime
 import crypto_helper
 from crypto_helper import encrypt_key, decrypt_key
+
+# 🏛️ [GLOBAL SENTINEL] Thread Lock for Database Integrity
+DB_LOCK = threading.Lock()
 
 # 🏛️ [AUTHORITY] Dynamic Project Paths (Industrial Synchrony)
 DATA_DIR = os.getenv("VANTIX_DATA_DIR", os.path.dirname(os.path.abspath(__file__)))
@@ -17,35 +21,44 @@ QUOTAS_PATH = os.path.join(DATA_DIR, "quotas.json")
 
 def _load_json_secure(path, default_factory=dict):
     """🛡️ [SELF-HEAL] Safely load JSON, handling empty or corrupt files."""
-    if not os.path.exists(path):
-        return default_factory()
-    try:
-        with open(path, "r") as f:
-            content = f.read().strip()
-            if not content:
-                print(f"⚠️ [DATABASE] Self-Healing empty file: {path}")
-                return default_factory()
-            return json.loads(content)
-    except Exception as e:
-        print(f"⚠️ [DATABASE] Self-Healing corrupt file: {path} | Error: {e}")
-        return default_factory()
+    with DB_LOCK:
+        if not os.path.exists(path):
+            return default_factory()
+        try:
+            with open(path, "r") as f:
+                content = f.read().strip()
+                if not content:
+                    return default_factory()
+                return json.loads(content)
+        except Exception as e:
+            print(f"⚠️ [DATABASE] Self-Healing corrupt file: {path} | Error: {e}")
+            return default_factory()
 
 def _save_json_atomic(path, data):
-    """💾 [ATOMIC] Secure write pattern using temporary file swap."""
-    temp_path = f"{path}.tmp"
-    try:
-        with open(temp_path, "w") as f:
-            json.dump(data, f, indent=4)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(temp_path, path) # Atomic swap
-        return True
-    except Exception as e:
-        print(f"❌ [DATABASE] Atomic Write Failure: {path} | Error: {e}")
+    """💾 [ATOMIC] Secure write pattern using unique temporary file swap."""
+    import uuid
+    temp_path = f"{path}.{uuid.uuid4().hex}.tmp"
+    with DB_LOCK:
         try:
-            with open(path, "w") as f: json.dump(data, f, indent=4)
+            with open(temp_path, "w") as f:
+                json.dump(data, f, indent=4)
+                f.flush()
+                # Use a safer sync for cloud environments
+                try: os.fsync(f.fileno())
+                except: pass
+            os.replace(temp_path, path) # Atomic swap
             return True
-        except: return False
+        except Exception as e:
+            print(f"❌ [DATABASE] Atomic Write Failure: {path} | Error: {e}")
+            # Clean up orphan temp file if it exists
+            if os.path.exists(temp_path):
+                try: os.remove(temp_path)
+                except: pass
+            # Total Fallback: Standard Write
+            try:
+                with open(path, "w") as f: json.dump(data, f, indent=4)
+                return True
+            except: return False
 
 def initialize_db():
     if not os.path.exists(DB_PATH):
