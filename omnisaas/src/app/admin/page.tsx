@@ -19,42 +19,41 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   // 🏛️ [POLLING] Industrial Refresh Loop (5-Second Interval)
+  const loadData = async () => {
+    try {
+      const [statsData, usersData] = await Promise.all([
+        getAdminStats(),
+        getAdminUsers()
+      ]);
+      
+      if (statsData?.detail || usersData?.detail) {
+        setError("Sovereign Access Denied. Master Node Identity Required.");
+        return;
+      }
+
+      if (statsData) setStats(statsData);
+      if (usersData) setUsers(usersData);
+    } catch (err) {
+      if (loading) setError("Commercial Link Failure. Admin Node Unreachable.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKill = async (jobId: string) => {
+    try {
+      await cancelJob(jobId);
+      loadData(); // Re-sync immediately
+    } catch (e) {
+      console.error("Industrial Kill Failure:", e);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [statsData, usersData] = await Promise.all([
-          getAdminStats(),
-          getAdminUsers()
-        ]);
-        
-        if (statsData?.detail || usersData?.detail) {
-          setError("Sovereign Access Denied. Master Node Identity Required.");
-          return;
-        }
-
-        if (statsData) setStats(statsData);
-        if (usersData) setUsers(usersData);
-      } catch (err) {
-        if (loading) setError("Commercial Link Failure. Admin Node Unreachable.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const handleKill = async (jobId: string) => {
-      try {
-        await cancelJob(jobId);
-        loadData(); // Re-sync immediately
-      } catch (e) {
-        console.error("Industrial Kill Failure:", e);
-      }
-    };
-
-    useEffect(() => {
-      loadData();
-      const interval = setInterval(loadData, 5000);
-      return () => clearInterval(interval);
-    }, [loading]);
+    loadData();
+    const interval = setInterval(loadData, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   if (loading) {
     return (
