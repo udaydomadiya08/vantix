@@ -1,3 +1,15 @@
+import groq
+# 🛡️ [ABS-SOVEREIGN IMMUNITY]: Killing 'proxies' bug at the root
+try:
+    _orig_init = groq.Client.__init__
+    def _new_init(self, *args, **kwargs):
+        kwargs.pop("proxies", None)
+        return _orig_init(self, *args, **kwargs)
+    groq.Client.__init__ = _new_init
+    groq.Groq.__init__ = _new_init
+except Exception as e:
+    print(f"⚠️ Immunity Patch Failed: {e}")
+
 # 🛰️ [SOVEREIGN ENGINE] Hugging Face Deployment Node
 import os
 import sys
