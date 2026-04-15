@@ -57,34 +57,25 @@ def log_trace(message: str):
         pass
 
 # 🔒 [SECURITY] Allow Frontend access (Industrial Origin Echo)
-# Note: credentials=True is incompatible with origins=["*"]
+# Expanded to include explicit production nodes for total reachability
 ALLOWED_ORIGINS = [
     "http://localhost:3000", "http://127.0.0.1:3000",
     "http://localhost:3001", "http://127.0.0.1:3001",
-    # Allow all industrial Vercel nodes for production parity
+    "https://vantix-j4z4vx0js-udays-projects-07023851.vercel.app", # Explicit Production Node
 ]
 env_origins = os.getenv("ALLOWED_ORIGINS")
 if env_origins:
     ALLOWED_ORIGINS.extend([o.strip() for o in env_origins.split(",") if o.strip() and o.strip() != "*"])
 
-# 🛡️ [RESILIENCE] Detect production environment and allow vercel streams
-if os.getenv("VERCEL") or os.getenv("PRODUCTION"):
-    # This allows for the dynamic nature of Vercel deployments
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origin_regex="https://.*\.vercel\.app",
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-else:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=ALLOWED_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+# 🛡️ [NUCLEAR RESILIENCE] Enable total Vercel stream matching with credentials
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex="https://.*\.vercel\.app",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # 📂 [DELIVERY] Mount Static Assets (Absolute Project Mapping)
 try:
