@@ -24,10 +24,17 @@ export default function LoginPage() {
             if (data && data.token) {
                 login(username, data.token);
             } else {
-                setError(data?.detail || "Invalid credentials.");
+                // 🛡️ [STANDARD HANDSHAKE] Direct feedback loop
+                const detail = data?.detail || "Invalid credentials.";
+                setError(detail);
+                
+                // If user not found, gently suggest signup after a delay or secondary link
+                if (detail.includes("node not found")) {
+                    console.warn("⚠️ [AUTH]: Identity not matched in database cluster.");
+                }
             }
         } catch (err) {
-            setError("Network error.");
+            setError("INDUSTRIAL ERROR: Database node unreachable or network interruption.");
         } finally {
             setIsLoading(false);
         }

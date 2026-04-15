@@ -325,7 +325,8 @@ class CheckoutRequest(BaseModel):
 
 # --- Auth Utilities ---
 def create_token(username: str):
-    expire = datetime.utcnow() + timedelta(days=7)
+    # 🏛️ [SAAS PROTOCOL] 30-Day Industrial Session Window
+    expire = datetime.utcnow() + timedelta(days=30)
     return jwt.encode({"sub": username, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -352,9 +353,18 @@ def signup(user: UserAuth):
 def login(user: UserAuth):
     username = user.username.lower().strip()
     existing = db_helper.get_user(username)
-    if existing and existing["password"] == db_helper.hash_password(user.password):
-        return {"token": create_token(username), "username": username}
-    raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # 🛡️ [STANDARD HANDSHAKE] Verify Node Identity
+    if existing:
+        if existing["password"] == db_helper.hash_password(user.password):
+            log_trace(f"LOGIN_SUCCESS: User='{username}' | Status=Authenticated")
+            return {"token": create_token(username), "username": username}
+        else:
+            log_trace(f"LOGIN_FAIL: User='{username}' | Reason='Invalid Password'")
+    else:
+        log_trace(f"LOGIN_FAIL: User='{username}' | Reason='Identity Not Found'")
+
+    raise HTTPException(status_code=401, detail="Vantix Authentication Failure: Invalid credentials or node not found.")
 
 @app.get("/user/keys")
 def get_user_keys(username: str = Depends(get_current_user)):

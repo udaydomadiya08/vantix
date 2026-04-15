@@ -5,11 +5,15 @@ import crypto_helper
 from crypto_helper import encrypt_key, decrypt_key
 
 # 🏛️ [AUTHORITY] Dynamic Project Paths (Industrial Synchrony)
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(CURRENT_DIR, "users.json")
-HISTORY_PATH = os.path.join(CURRENT_DIR, "history.json")
-TRANSACTIONS_PATH = os.path.join(CURRENT_DIR, "transactions.json")
-QUOTAS_PATH = os.path.join(CURRENT_DIR, "quotas.json")
+# Allow redirection to persistent storage (e.g. /data on Hugging Face)
+DATA_DIR = os.getenv("VANTIX_DATA_DIR", os.path.dirname(os.path.abspath(__file__)))
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR, exist_ok=True)
+
+DB_PATH = os.path.join(DATA_DIR, "users.json")
+HISTORY_PATH = os.path.join(DATA_DIR, "history.json")
+TRANSACTIONS_PATH = os.path.join(DATA_DIR, "transactions.json")
+QUOTAS_PATH = os.path.join(DATA_DIR, "quotas.json")
 
 def initialize_db():
     if not os.path.exists(DB_PATH):
