@@ -330,8 +330,25 @@ function Dashboard() {
          alert("INSUFFICIENT POWER: Your industrial balance is depleted. Please recharge your node to continue synthesis.");
          router.push("/recharge");
       } else if (status === 428) {
-         alert("VAULT LOCKED: Core AI keys (Groq/OpenRouter) missing. Redirecting to your Sovereign Vault...");
-         router.push("/settings/api");
+          // 🛰️ [HEAL] Industrial Identity Synchronization
+          const stored = localStorage.getItem("vantix_api_keys");
+          if (stored) {
+              try {
+                  const keys = JSON.parse(stored);
+                  const { syncUserKeys } = await import("@/lib/api");
+                  await syncUserKeys(keys);
+                  setSuccessMessage("⚙️ Identity healed. Retrying synthesis...");
+                  return handleLaunch(type); // Recursive Auto-Retry
+              } catch (e) {
+                  alert("VAULT LOCKED: Industrial keys missing. Please synchronize manually in the Sovereign Vault.");
+              }
+          } else {
+              alert("VAULT LOCKED: Core AI keys (Groq/OpenRouter) missing. Redirecting to your Sovereign Vault...");
+              router.push("/settings/api");
+          }
+      } else if (status === 422) {
+          const detail = JSON.stringify(error.detail);
+          alert(`UNPROCESSABLE IDENTITY: The server rejected this production cluster. DETAIL: ${detail}`);
       } else {
          alert("FACTORY INTERRUPTION: Infrastructure unreachable. Check your Vantix Power / Backend status.");
       }

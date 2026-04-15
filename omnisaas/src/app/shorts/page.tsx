@@ -92,7 +92,8 @@ export default function ShortsPage() {
                     alert("VAULT LOCKED: Groq/OpenRouter keys missing. Synchronize your API Vault to continue.");
                 }
             } else if (status === 422) {
-                alert(`UNPROCESSABLE IDENTITY: The server rejected this production cluster. ${error.detail?.message || "Check your parameters."}`);
+                const detail = JSON.stringify(error.detail);
+                alert(`UNPROCESSABLE IDENTITY: The server rejected this production cluster. DETAIL: ${detail}`);
             } else {
                 alert("INDUSTRIAL INTERRUPTION: Infrastructure node unreachable. Check backend status.");
             }

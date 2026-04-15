@@ -55,7 +55,8 @@ export default function CoursesPage() {
                     alert("VAULT LOCKED: Core AI keys missing. Please synchronize your Sovereign Vault.");
                 }
             } else if (status === 422) {
-                alert("UNPROCESSABLE IDENTITY: The server rejected this curriculum cluster. Parameter mismatch detected.");
+                const detail = JSON.stringify(error.detail);
+                alert(`UNPROCESSABLE IDENTITY: The server rejected this curriculum cluster. DETAIL: ${detail}`);
             } else {
                 alert("INDUSTRIAL INTERRUPTION: Infrastructure node unreachable. Check backend status.");
             }

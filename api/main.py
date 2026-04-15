@@ -10,6 +10,7 @@ import uuid
 import jwt
 import json
 from datetime import datetime, timedelta
+from typing import List, Optional, Any
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import functools
@@ -307,10 +308,10 @@ class APIKeys(BaseModel):
 class VideoRequest(BaseModel):
     topic: str = ""
     script: str = None
-    mode: str = "topic" # topic, script, news, niche
+    mode: str = "topic"
     niche: str = None
-    avatar: bool = None # Changed to bool to handle frontend toggles cleanly
-    horizontal: bool = None
+    avatar: Any = None 
+    horizontal: Any = None
     voice_id: str = "alloy"
 
     class Config:
@@ -329,8 +330,8 @@ class EbookRequest(BaseModel):
 
 class CourseRequest(BaseModel):
     topic: str = ""
-    horizontal: bool = False
-    include_avatar: bool = False
+    horizontal: Any = False
+    include_avatar: Any = False
 
     class Config:
         extra = "allow"

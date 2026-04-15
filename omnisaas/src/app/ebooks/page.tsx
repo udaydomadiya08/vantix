@@ -63,7 +63,8 @@ export default function EbooksPage() {
                     alert("VAULT LOCKED: Core AI keys missing. Please synchronize your Sovereign Vault.");
                 }
             } else if (status === 422) {
-                alert("UNPROCESSABLE IDENTITY: The server rejected this narrative cluster. Check your topic and settings.");
+                const detail = JSON.stringify(error.detail);
+                alert(`UNPROCESSABLE IDENTITY: The server rejected this narrative cluster. DETAIL: ${detail}`);
             } else {
                 alert("INDUSTRIAL INTERRUPTION: Infrastructure node unreachable. Check backend status.");
             }
