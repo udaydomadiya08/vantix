@@ -1,16 +1,15 @@
-const IS_BROWSER = typeof window !== 'undefined';
-let API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
+export const IS_BROWSER = typeof window !== 'undefined';
+export let API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
 
 if (IS_BROWSER) {
     const isVercel = window.location.hostname.includes('vercel.app');
     if (isVercel && (!process.env.NEXT_PUBLIC_API_BASE || API_BASE.includes('127.0.0.1'))) {
-        // 🛰️ [AUTO-PROXY] If on Vercel but pointing to localhost, force to same-origin /api
-        // This is the industrial standard for monorepo deployments
-        API_BASE = window.location.origin + "/api";
-        console.log("🛠️ [VANTIX PROXY]: Infrastructure redirected to production node -> " + API_BASE);
+        API_BASE = window.location.origin; // 🛰️ [Sovereign Proxy] Hit same-origin Vercel node
+        console.log("🛠️ [VANTIX PROXY]: Infrastructure synchronized to production origin -> " + API_BASE);
     }
-    console.log(`📡 [INFRASTRUCTURE]: Pinging backend cluster at -> ${API_BASE}`);
 }
+
+console.log(`📡 [INFRASTRUCTURE]: Active synthesis node -> ${API_BASE}`);
 
 function getHeaders() {
     const headers: Record<string, string> = {
