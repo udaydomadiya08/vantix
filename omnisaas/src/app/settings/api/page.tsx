@@ -62,10 +62,6 @@ export default function ApiVaultPage() {
         setIsSyncing(true);
         try {
             const res = await syncUserKeys(keys);
-            if (res.detail && res.detail.includes("Identity mismatch")) {
-                 alert("Vault Error: Your session identity doesn't match the database logic. Please log in again.");
-                 return;
-            }
             // 🛡️ [STATE LOCK] Confirm local state with server truth
             if (res && !res.detail) {
                 setKeys(prev => ({ ...prev, ...res }));

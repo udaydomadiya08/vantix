@@ -113,22 +113,21 @@ def update_user_keys(username, keys):
             "groq": None, "openrouter": None, "pexels": None, "pixabay": None
         }
             
-        # 🧪 [VAULT HEAL] Re-encrypt and overwrite with fresh identity credentials
-        encrypted_keys = {k: encrypt_key(v) if (v and str(v).strip()) else None for k, v in keys.items()}
-        users[username]["api_keys"].update(encrypted_keys)
+    # 🧪 [VAULT HEAL] Re-encrypt and overwrite with fresh identity credentials
+    encrypted_keys = {k: encrypt_key(v) if (v and str(v).strip()) else None for k, v in keys.items()}
+    users[username]["api_keys"].update(encrypted_keys)
+    
+    with open(DB_PATH, "w") as f:
+        json.dump(users, f, indent=4)
+        # 🛡️ [RESILIENCE] Graceful sync for restricted environments
+        try:
+            f.flush()
+            os.fsync(f.fileno())
+        except Exception:
+            pass
         
-        with open(DB_PATH, "w") as f:
-            json.dump(users, f, indent=4)
-            # 🛡️ [RESILIENCE] Graceful sync for restricted environments
-            try:
-                f.flush()
-                os.fsync(f.fileno())
-            except Exception:
-                pass
-            
-        print(f"✅ [DATABASE] Vault Synchronized for User='{username}'")
-        return True
-    return False
+    print(f"✅ [DATABASE] Vault Synchronized for User='{username}'")
+    return True
 
 def update_user_defaults(username, factory_type, defaults):
     initialize_db()
