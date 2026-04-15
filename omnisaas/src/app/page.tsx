@@ -500,7 +500,15 @@ function Dashboard() {
                       <div className="min-w-0 font-sans">
                         <div className="flex items-center gap-3 mb-1">
                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{job.type} Factory</span>
-                           {job.status === 'queued' && <button onClick={() => handleCancelJob(job.id)} className="ml-2 p-1 rounded-md bg-rose-500/10 text-rose-500"><X size={10} /></button>}
+                           {['queued', 'processing'].includes(job.status) && (
+                               <button 
+                                 onClick={() => handleCancelJob(job.id)} 
+                                 className="ml-4 p-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all group/kill"
+                                 title="Terminate Synthesis"
+                               >
+                                 <X size={14} className="group-hover/kill:scale-110 transition-transform" />
+                               </button>
+                           )}
                         </div>
                         <h3 className="text-white font-bold text-lg truncate mb-1 uppercase tracking-tight">{job.topic}</h3>
                         

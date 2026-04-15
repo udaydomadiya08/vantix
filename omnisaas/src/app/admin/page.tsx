@@ -8,7 +8,7 @@ import {
   Loader2, Play, Book, GraduationCap, AlertCircle,
   ExternalLink, User, Activity, Clock, Server, Hourglass, Cpu
 } from "lucide-react";
-import { getAdminStats, getAdminUsers } from "@/lib/api";
+import { getAdminStats, getAdminUsers, cancelJob } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
@@ -20,7 +20,7 @@ export default function AdminDashboard() {
 
   // 🏛️ [POLLING] Industrial Refresh Loop (5-Second Interval)
   useEffect(() => {
-    async function loadData() {
+    const loadData = async () => {
       try {
         const [statsData, usersData] = await Promise.all([
           getAdminStats(),
@@ -35,17 +35,26 @@ export default function AdminDashboard() {
         if (statsData) setStats(statsData);
         if (usersData) setUsers(usersData);
       } catch (err) {
-        // We only show the full error page if the initial load fails
         if (loading) setError("Commercial Link Failure. Admin Node Unreachable.");
       } finally {
         setLoading(false);
       }
-    }
+    };
 
-    loadData();
-    const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
-  }, [loading]);
+    const handleKill = async (jobId: string) => {
+      try {
+        await cancelJob(jobId);
+        loadData(); // Re-sync immediately
+      } catch (e) {
+        console.error("Industrial Kill Failure:", e);
+      }
+    };
+
+    useEffect(() => {
+      loadData();
+      const interval = setInterval(loadData, 5000);
+      return () => clearInterval(interval);
+    }, [loading]);
 
   if (loading) {
     return (
@@ -324,6 +333,7 @@ export default function AdminDashboard() {
                         <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Synthesis Topic</th>
                         <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Factory Type</th>
                         <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Wait Time</th>
+                        <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Terminal</th>
                      </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/50 cursor-default">
@@ -352,6 +362,15 @@ export default function AdminDashboard() {
                                  <Clock size={12} className="text-emerald-500" />
                                  <span className="text-[10px] font-black text-white tabular-nums tracking-widest">PRIORITY_QUEUE</span>
                               </div>
+                           </td>
+                           <td className="px-8 py-6 text-right">
+                              <button 
+                                onClick={() => handleKill(job.id)}
+                                className="p-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all group/admin-kill"
+                                title="Kill User Process"
+                              >
+                                 <X size={14} className="group-hover/admin-kill:scale-110 transition-transform" />
+                              </button>
                            </td>
                         </tr>
                      ))}
