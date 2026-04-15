@@ -16,19 +16,40 @@ export default function EbooksPage() {
     const [showAdvanced, setShowAdvanced] = useState(false);
 
     const handleLaunch = async () => {
-        if (!topic) return alert("Enter a topic.");
+        if (!topic) return alert("Vantix Input Error: Topic node required.");
         setIsProcessing(true);
         try {
-            await generateEbook(topic, {
+            console.log("🚀 [FACTORY]: Initiating E-Book Production Cluster...", topic);
+            const res = await generateEbook(topic, {
                 description: desc,
                 chapters,
                 min_words: minWords,
                 theme_color: themeColor,
                 images_toggle: includeImages
             });
-            alert("E-book production enqueued! Check Dashboard.");
-        } catch (e) {
-            alert("Error.");
+            if (res && res.job_id) {
+                console.log("✅ [FACTORY]: E-Book Narrative Stream Active. Job ID:", res.job_id);
+                // 🛰️ [SYNC] Hydrate Global Dashboard Ledger
+                const saved = localStorage.getItem('vantix_queue');
+                const jobs = saved ? JSON.parse(saved) : [];
+                localStorage.setItem('vantix_queue', JSON.stringify([{ 
+                    id: res.job_id, 
+                    status: 'queued', 
+                    type: 'ebook', 
+                    topic: topic, 
+                    timestamp: new Date() 
+                }, ...jobs]));
+                alert("INDUSTRIAL SUCCESS: E-book synthesis enqueued. Return to Dashboard to track progress.");
+            }
+        } catch (error: any) {
+            const status = error instanceof Response ? error.status : (error.response?.status || 0);
+            if (status === 402) {
+                alert("INSUFFICIENT POWER: Node balance depleted. Recharge your industrial balance to continue.");
+            } else if (status === 428) {
+                alert("VAULT LOCKED: Core AI keys missing. Please synchronize your Sovereign Vault.");
+            } else {
+                alert("INDUSTRIAL INTERRUPTION: Infrastructure node unreachable. Check backend status.");
+            }
         } finally {
             setIsProcessing(false);
         }

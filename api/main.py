@@ -512,47 +512,53 @@ async def generate_video(
     if not success:
         raise HTTPException(status_code=402, detail=f"Insufficient Vantix Power. Balance: {balance}")
 
-    job_id = str(uuid.uuid4())
-    db_keys = db_helper.get_user_keys(username)
-    db_defaults = db_helper.get_user_defaults(username).get("video", {})
-    
-    # --- 🧠 ResearchIntelligence Phase ---
-    enriched_topic = request.topic
-    if request.mode == "news":
-        enriched_topic = research_helper.get_news_summary(request.topic)
-        print(f"📰 [RESEARCH] News Summary Enriched: {enriched_topic[:100]}...")
-    elif request.mode == "niche":
-        enriched_topic = research_helper.get_niche_trends(request.niche)
-        print(f"🎯 [RESEARCH] Niche Trend Discovered: {enriched_topic}")
-    
-    user_keys = {
-        "groq": x_groq_key or db_keys.get("groq"),
-        "openrouter": x_openrouter_key or db_keys.get("openrouter"),
-        "pexels": x_pexels_key or db_keys.get("pexels"),
-        "pixabay": x_pixabay_key or db_keys.get("pixabay")
-    }
-    
-    # 🔐 [SENTINEL] Hard-Lock
-    verify_vault_integrity(user_keys, ["groq", "openrouter"])
-    
-    # ⚙️ [DEFAULTS MERGE] Properly merge frontend explicit options with saved defaults
-    req_dict = request.model_dump(exclude_unset=True) if hasattr(request, "model_dump") else request.dict(exclude_unset=True)
-    
-    kwargs = {
-        "forced_topic": enriched_topic,
-        "forced_script": request.script,
-        "mode": request.mode,
-        "niche": request.niche,
-        # If frontend explicitly sent true/false use it, otherwise fallback to database
-        "forced_avatar": req_dict.get("avatar", db_defaults.get("include_avatar", False)),
-        "horizontal": req_dict.get("horizontal", db_defaults.get("horizontal", False)),
-        "voice_id": req_dict.get("voice_id", db_defaults.get("voice_id", "alloy")),
-        "visual_source": req_dict.get("visual_source", db_defaults.get("visual_source", "pexels")),
-        "user_keys": user_keys
-    }
-    
-    await QUEUE_MANAGER.add_job(username, "video", job_id, run_full_vso.run_full_vso, kwargs)
-    return {"job_id": job_id, "message": "Short production stream initiated", "topic": request.topic}
+    try:
+        job_id = str(uuid.uuid4())
+        db_keys = db_helper.get_user_keys(username)
+        db_defaults = db_helper.get_user_defaults(username).get("video", {})
+        
+        # --- 🧠 ResearchIntelligence Phase ---
+        enriched_topic = request.topic
+        if request.mode == "news":
+            enriched_topic = research_helper.get_news_summary(request.topic)
+            print(f"📰 [RESEARCH] News Summary Enriched: {enriched_topic[:100]}...")
+        elif request.mode == "niche":
+            enriched_topic = research_helper.get_niche_trends(request.niche)
+            print(f"🎯 [RESEARCH] Niche Trend Discovered: {enriched_topic}")
+        
+        user_keys = {
+            "groq": x_groq_key or db_keys.get("groq"),
+            "openrouter": x_openrouter_key or db_keys.get("openrouter"),
+            "pexels": x_pexels_key or db_keys.get("pexels"),
+            "pixabay": x_pixabay_key or db_keys.get("pixabay")
+        }
+        
+        # 🔐 [SENTINEL] Hard-Lock
+        verify_vault_integrity(user_keys, ["groq", "openrouter"])
+        
+        # ⚙️ [DEFAULTS MERGE] Properly merge frontend explicit options with saved defaults
+        req_dict = request.model_dump(exclude_unset=True) if hasattr(request, "model_dump") else request.dict(exclude_unset=True)
+        
+        kwargs = {
+            "forced_topic": enriched_topic,
+            "forced_script": request.script,
+            "mode": request.mode,
+            "niche": request.niche,
+            "forced_avatar": req_dict.get("avatar", db_defaults.get("include_avatar", False)),
+            "horizontal": req_dict.get("horizontal", db_defaults.get("horizontal", False)),
+            "voice_id": req_dict.get("voice_id", db_defaults.get("voice_id", "alloy")),
+            "visual_source": req_dict.get("visual_source", db_defaults.get("visual_source", "pexels")),
+            "user_keys": user_keys
+        }
+        
+        await QUEUE_MANAGER.add_job(username, "video", job_id, run_full_vso.run_full_vso, kwargs)
+        return {"job_id": job_id, "message": "Short production stream initiated", "topic": request.topic}
+    except Exception as e:
+        # 🛡️ [REFUND] Immediate credit restoration on node failure
+        db_helper.add_credits(username, 5)
+        log_trace(f"REFUND: User='{username}' | Job='video' | Reason='{str(e)}'")
+        if isinstance(e, HTTPException): raise e
+        raise HTTPException(status_code=500, detail=f"Factory node failure: {str(e)}")
 
 @app.post("/generate-thumbnail")
 async def generate_thumbnail(request: ThumbnailRequest, username: str = Depends(get_current_user)):
@@ -590,29 +596,40 @@ async def generate_ebook(
     # ⚖️ [QUOTA] Industrial Sentinel
     verify_industrial_quota(username)
 
-    job_id = str(uuid.uuid4())
-    db_keys = db_helper.get_user_keys(username)
-    
-    user_keys = {
-        "groq": x_groq_key or db_keys.get("groq"),
-        "openrouter": x_openrouter_key or db_keys.get("openrouter")
-    }
-    
-    # 🔐 [SENTINEL] Hard-Lock
-    verify_vault_integrity(user_keys, ["groq", "openrouter"])
-    
-    kwargs = {
-        "topic": request.topic,
-        "description": request.description,
-        "num_chapters": request.chapters,
-        "min_words": request.min_words,
-        "theme_color": request.theme_color,
-        "images_toggle": request.images_toggle,
-        "user_keys": user_keys
-    }
-    
-    await QUEUE_MANAGER.add_job(username, "ebook", job_id, ebook.automate_ebook_creation, kwargs)
-    return {"job_id": job_id, "message": "E-book queued in research stream", "topic": request.topic}
+    # ⚖️ [TAXATION] E-Book Cost: 10 Credits
+    success, balance = db_helper.deduct_credits(username, 10)
+    if not success:
+        raise HTTPException(status_code=402, detail=f"Insufficient Vantix Power. Balance: {balance}")
+
+    try:
+        job_id = str(uuid.uuid4())
+        db_keys = db_helper.get_user_keys(username)
+        
+        user_keys = {
+            "groq": x_groq_key or db_keys.get("groq"),
+            "openrouter": x_openrouter_key or db_keys.get("openrouter")
+        }
+        
+        # 🔐 [SENTINEL] Hard-Lock
+        verify_vault_integrity(user_keys, ["groq", "openrouter"])
+        
+        kwargs = {
+            "topic": request.topic,
+            "description": request.description,
+            "num_chapters": request.chapters,
+            "min_words": request.min_words,
+            "theme_color": request.theme_color,
+            "images_toggle": request.images_toggle,
+            "user_keys": user_keys
+        }
+        
+        await QUEUE_MANAGER.add_job(username, "ebook", job_id, ebook.automate_ebook_creation, kwargs)
+        return {"job_id": job_id, "message": "E-book queued in research stream", "topic": request.topic}
+    except Exception as e:
+        db_helper.add_credits(username, 10)
+        log_trace(f"REFUND: User='{username}' | Job='ebook' | Reason='{str(e)}'")
+        if isinstance(e, HTTPException): raise e
+        raise HTTPException(status_code=500, detail=f"Factory node failure: {str(e)}")
 
 @app.post("/generate/course")
 async def generate_course(
@@ -630,27 +647,33 @@ async def generate_course(
     if not success:
         raise HTTPException(status_code=402, detail=f"Insufficient Vantix Power. Balance: {balance}")
 
-    job_id = str(uuid.uuid4())
-    db_keys = db_helper.get_user_keys(username)
-    
-    user_keys = {
-        "groq": x_groq_key or db_keys.get("groq"),
-        "openrouter": x_openrouter_key or db_keys.get("openrouter")
-    }
-    
-    # 🔐 [SENTINEL] Hard-Lock
-    verify_vault_integrity(user_keys, ["groq", "openrouter"])
-    
-    import ecourse_factory
-    kwargs = {
-        "topic": request.topic,
-        "horizontal": request.horizontal,
-        "include_avatar": request.include_avatar,
-        "user_keys": user_keys
-    }
-    
-    await QUEUE_MANAGER.add_job(username, "course", job_id, ecourse_factory.run_ecourse_factory, kwargs)
-    return {"job_id": job_id, "message": "E-course queued in educational stream", "topic": request.topic}
+    try:
+        job_id = str(uuid.uuid4())
+        db_keys = db_helper.get_user_keys(username)
+        
+        user_keys = {
+            "groq": x_groq_key or db_keys.get("groq"),
+            "openrouter": x_openrouter_key or db_keys.get("openrouter")
+        }
+        
+        # 🔐 [SENTINEL] Hard-Lock
+        verify_vault_integrity(user_keys, ["groq", "openrouter"])
+        
+        import ecourse_factory
+        kwargs = {
+            "topic": request.topic,
+            "horizontal": request.horizontal,
+            "include_avatar": request.include_avatar,
+            "user_keys": user_keys
+        }
+        
+        await QUEUE_MANAGER.add_job(username, "course", job_id, ecourse_factory.run_ecourse_factory, kwargs)
+        return {"job_id": job_id, "message": "E-course queued in educational stream", "topic": request.topic}
+    except Exception as e:
+        db_helper.add_credits(username, 25)
+        log_trace(f"REFUND: User='{username}' | Job='course' | Reason='{str(e)}'")
+        if isinstance(e, HTTPException): raise e
+        raise HTTPException(status_code=500, detail=f"Factory node failure: {str(e)}")
 
 @app.get("/status/{job_id}")
 async def get_status(job_id: str):

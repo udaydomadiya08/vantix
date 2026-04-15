@@ -11,16 +11,37 @@ export default function CoursesPage() {
     const [isProcessing, setIsProcessing] = useState(false);
 
     const handleLaunch = async () => {
-        if (!topic) return alert("Enter a course subject.");
+        if (!topic) return alert("Vantix Input Error: Course subject required.");
         setIsProcessing(true);
         try {
-            await generateCourse(topic, {
+            console.log("🚀 [FACTORY]: Initiating Autonomous Curriculum Foundry...", topic);
+            const res = await generateCourse(topic, {
                 horizontal,
                 include_avatar: includeAvatar
             });
-            alert("Course Engine Enqueued! Check Dashboard.");
-        } catch (e) {
-            alert("Error connecting to Course Factory.");
+            if (res && res.job_id) {
+                console.log("✅ [FACTORY]: Course Orchestra Stream Active. Job ID:", res.job_id);
+                // 🛰️ [SYNC] Hydrate Global Dashboard Ledger
+                const saved = localStorage.getItem('vantix_queue');
+                const jobs = saved ? JSON.parse(saved) : [];
+                localStorage.setItem('vantix_queue', JSON.stringify([{ 
+                    id: res.job_id, 
+                    status: 'queued', 
+                    type: 'course', 
+                    topic: topic, 
+                    timestamp: new Date() 
+                }, ...jobs]));
+                alert("INDUSTRIAL SUCCESS: Course series enqueued. Return to Dashboard to track progress.");
+            }
+        } catch (error: any) {
+            const status = error instanceof Response ? error.status : (error.response?.status || 0);
+            if (status === 402) {
+                alert("INSUFFICIENT POWER: Node balance depleted. Recharge your industrial balance to continue.");
+            } else if (status === 428) {
+                alert("VAULT LOCKED: Core AI keys missing. Please synchronize your Sovereign Vault.");
+            } else {
+                alert("INDUSTRIAL INTERRUPTION: Infrastructure node unreachable. Check backend status.");
+            }
         } finally {
             setIsProcessing(false);
         }

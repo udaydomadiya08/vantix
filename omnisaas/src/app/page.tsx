@@ -115,26 +115,30 @@ function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {factories.map((factory, i) => (
-              <motion.div 
+              <Link
                 key={factory.title}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                onClick={() => router.push(factory.path)}
-                className="glass-card p-10 rounded-[3rem] border-slate-800 hover:border-emerald-500/50 transition-all flex flex-col space-y-6 group cursor-pointer"
+                href={factory.path}
+                className="block"
               >
-                <div className={`p-4 rounded-2xl bg-${factory.color}-500/10 text-${factory.color}-400 w-fit group-hover:scale-110 transition-transform`}>
-                  <factory.icon size={32} />
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <span className={`text-[10px] font-black text-${factory.color}-500 uppercase tracking-widest block mb-1 underline decoration-2 underline-offset-4`}>{factory.label}</span>
-                    <h3 className="text-2xl font-black italic tracking-tight">{factory.title}</h3>
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="glass-card p-10 rounded-[3rem] border-slate-800 hover:border-emerald-500/50 transition-all flex flex-col h-full space-y-6 group cursor-pointer"
+                >
+                  <div className={`p-4 rounded-2xl bg-${factory.color}-500/10 text-${factory.color}-400 w-fit group-hover:scale-110 transition-transform`}>
+                    <factory.icon size={32} />
                   </div>
-                  <p className="text-slate-500 font-medium text-sm leading-relaxed">{factory.desc}</p>
-                </div>
-              </motion.div>
+                  <div className="space-y-4">
+                    <div>
+                      <span className={`text-[10px] font-black text-${factory.color}-500 uppercase tracking-widest block mb-1 underline decoration-2 underline-offset-4`}>{factory.label}</span>
+                      <h3 className="text-2xl font-black italic tracking-tight">{factory.title}</h3>
+                    </div>
+                    <p className="text-slate-500 font-medium text-sm leading-relaxed">{factory.desc}</p>
+                  </div>
+                </motion.div>
+              </Link>
             ))}
           </div>
         </div>
@@ -263,7 +267,10 @@ function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (isHydrated) localStorage.setItem('vantix_queue', JSON.stringify(queuedJobs));
+    // 🛡️ [SYNC LOCK] Only save to local storage AFTER we have loaded from it
+    if (isHydrated && queuedJobs.length >= 0) {
+       localStorage.setItem('vantix_queue', JSON.stringify(queuedJobs));
+    }
   }, [queuedJobs, isHydrated]);
 
   useEffect(() => {
