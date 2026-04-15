@@ -62,25 +62,18 @@ IS_HF_SPACE = os.getenv("SPACE_ID") is not None
 ALLOWED_ORIGINS = [
     "http://localhost:3000", "http://127.0.0.1:3000",
     "http://localhost:3001", "http://127.0.0.1:3001",
-    "https://vantix-bice.vercel.app", # Vercel Primary Production Node
-    "https://vantix-three.vercel.app", # Vercel Secondary
-    "https://udaydomadiya-vantix-core.hf.space", # Hugging Face Production Node
+    "https://vantix-bice.vercel.app", 
+    "https://vantix-three.vercel.app",
+    "https://udaydomadiya-vantix-core.hf.space",
 ]
 
-# 🧪 [SOVEREIGN OVERRIDE] If in HF Space, widen origins to prevent stubborn CORS blocks
-if IS_HF_SPACE:
-    ALLOWED_ORIGINS = ["*"]
-
-env_origins = os.getenv("ALLOWED_ORIGINS")
-if env_origins:
-    ALLOWED_ORIGINS.extend([o.strip() for o in env_origins.split(",") if o.strip() and o.strip() != "*"])
-
-# 🛡️ [NUCLEAR RESILIENCE] Enable total Vercel & HuggingFace stream matching
+# 🛡️ [SOVEREIGN OVERRIDE] We use regex to cover all Vercel and HF subdomains explicitly
+# This allows 'allow_credentials=True' which is REQUIRED for our Auth Node.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex="https://.*-udays-projects-07023851\.vercel\.app|https://.*\.vercel\.app",
-    allow_credentials=not IS_HF_SPACE, # Credentials forbidden with wildcard origins
+    allow_origin_regex="https://.*-udays-projects-07023851\.vercel\.app|https://.*\.vercel\.app|https://.*\.hf\.space",
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
