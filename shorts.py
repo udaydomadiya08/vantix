@@ -30,14 +30,28 @@ def layer_sfx_on_audio(base_audio_path, sfx_list):
         print(f"❌ SFX Layering failed: {e}")
         return base_audio_path
 
-# === MoviePy & ImageMagick Fix === #
-# Force MoviePy to find ImageMagick on Mac
-os.environ["PATH"] += os.pathsep + "/usr/local/bin" + os.pathsep + "/opt/homebrew/bin"
+# === MoviePy & ImageMagick (INDUSTRIAL STABILIZATION) === #
+def discover_imagemagick():
+    """👑 VANTIX RENDERER: Autonomous ImageMagick Discovery"""
+    candidates = [
+        "/usr/bin/convert",
+        "/usr/bin/magick",
+        "/opt/homebrew/bin/magick",
+        "/usr/local/bin/convert",
+        "convert"
+    ]
+    for path in candidates:
+        if os.path.exists(path) or shutil.which(path):
+            print(f"🎬 [RENDERER] ImageMagick discovered at: {path}")
+            return path
+    print("⚠️ [RENDERER] ImageMagick not found. Subtitles may fail.")
+    return "convert"
+
 try:
     from moviepy.config import change_settings
-    change_settings({"IMAGEMAGICK_BINARY": "/opt/homebrew/bin/magick"})
-except:
-    pass
+    change_settings({"IMAGEMAGICK_BINARY": discover_imagemagick()})
+except Exception as e:
+    print(f"⚠️ [RENDERER] MoviePy configuration failed: {e}")
 
 # === WhisperX / PyTorch Safety Patch === #
 try:
@@ -1321,7 +1335,11 @@ def create_word_by_word_subtitles(word_segments, video_size=None, include_avatar
     """
     from moviepy.editor import TextClip, CompositeVideoClip
     
-    FONT = "Avenir-Black"
+    # 🖋️ [VANTIX TYPOGRAPHY] (v2.0): Standardizing on Anton-Regular.ttf for brand across all nodes
+    FONT = os.path.join(PROJECT_ROOT, "Anton-Regular.ttf")
+    if not os.path.exists(FONT):
+        # Fallback for systems without Anton in project root
+        FONT = "DejaVuSans-Bold" if os.name != 'nt' else "Arial"
     def create_caption_clips(word_segments, video_size, include_avatar=False):
         if not word_segments:
             return []
@@ -2248,8 +2266,15 @@ def create_thumbnail(topic):
     print("📝 Title:", title)
 
     print("📥 Loading and resizing image...")
-    input_img_path = "/Users/uday/Downloads/VIDEOYT/clara explains.png"
-    img = Image.open(input_img_path).convert("RGB")
+    # 🏛️ [VANTIX ASSET REGISTRY]: Use project-relative path or fail gracefully
+    input_img_path = os.path.join(PROJECT_ROOT, "clara explains.png")
+    if not os.path.exists(input_img_path):
+         # Create a placeholder or use the topic image if available
+         print("⚠️ Supplemental asset missing. Using stock backdrop...")
+         img = Image.new("RGB", (1080, 1920), color=(30, 30, 30))
+    else:
+         img = Image.open(input_img_path).convert("RGB")
+    
     img = resize_and_crop_to_1080x1920(img)
 
     print("🎨 Analyzing dominant color...")
@@ -2261,18 +2286,31 @@ def create_thumbnail(topic):
     print("🖋️ Adding title to image...")
     draw = ImageDraw.Draw(img)
     
-    # Ensure font path exists or use a fallback
-    font_path = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+    # 🖋️ [VANTIX TYPOGRAPHY] (v2.0)
+    font_path = os.path.join(PROJECT_ROOT, "Anton-Regular.ttf")
     if not os.path.exists(font_path):
-        raise FileNotFoundError(f"Font not found at {font_path}")
-    font = ImageFont.truetype(font_path, 80)
+        # Industrial Fallback Loop
+        fallbacks = ["/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", "Arial.ttf", "Impact.ttf"]
+        for f in fallbacks:
+            if os.path.exists(f) or shutil.which(f):
+                font_path = f
+                break
+                
+    try:
+        font = ImageFont.truetype(font_path, 80)
+    except:
+        print("⚠️ [RENDERER] Final Font Fallback: Default")
+        font = ImageFont.load_default()
 
     # Calculate text position
     bbox = draw.textbbox((0, 0), title, font=font)
+    # 📐 [ENGINE] Dynamic Vertical Centering (v1.0)
     text_w = bbox[2] - bbox[0]
     text_h = bbox[3] - bbox[1]
-    x = (1920 - text_w) // 2
-    y = 1080 - text_h - 50
+    
+    # Correct for target resolution: 1080 (W) x 1920 (H)
+    x = (1080 - text_w) // 2
+    y = 1920 - text_h - 150 # Shifted up for cinematic balance
 
     # Optional: Semi-transparent background box for better text visibility
     overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
