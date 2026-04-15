@@ -56,23 +56,11 @@ def log_trace(message: str):
     except:
         pass
 
-# 🔒 [SECURITY] Allow Frontend access (Industrial Origin Echo)
-IS_HF_SPACE = os.getenv("SPACE_ID") is not None
-# Expanded to include explicit production nodes for total reachability
-ALLOWED_ORIGINS = [
-    "http://localhost:3000", "http://127.0.0.1:3000",
-    "http://localhost:3001", "http://127.0.0.1:3001",
-    "https://vantix-bice.vercel.app", 
-    "https://vantix-three.vercel.app",
-    "https://udaydomadiya-vantix-core.hf.space",
-]
-
-# 🛡️ [SOVEREIGN OVERRIDE] We use regex to cover all Vercel and HF subdomains explicitly
-# This allows 'allow_credentials=True' which is REQUIRED for our Auth Node.
+# 🛡️ [SOVEREIGN OVERRIDE] Universal CORS Bridge
+# We allow all Vercel and HF subdomains explicitly to resolve 'Sovereign Sync Failure'
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex="https://.*-udays-projects-07023851\.vercel\.app|https://.*\.vercel\.app|https://.*\.hf\.space",
+    allow_origin_regex="https://.*\.vercel\.app|https://.*\.hf\.space|http://localhost:.*|http://127.0.0.1:.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
