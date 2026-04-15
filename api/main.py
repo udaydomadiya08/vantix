@@ -74,12 +74,13 @@ env_origins = os.getenv("ALLOWED_ORIGINS")
 if env_origins:
     ALLOWED_ORIGINS.extend([o.strip() for o in env_origins.split(",") if o.strip() and o.strip() != "*"])
 
-# 🛡️ [NUCLEAR RESILIENCE] Enable total Vercel & HuggingFace stream matching with credentials
+# 🛡️ [NUCLEAR RESILIENCE] Enable total Vercel & HuggingFace stream matching
+# Note: we use allow_credentials=False to allow for wildcard (*) transition on HF
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_origin_regex="https://.*\.vercel\.app|https://.*\.hf\.space",
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
