@@ -110,6 +110,19 @@ export default function ApiVaultPage() {
                     </h1>
                     <p className="text-slate-400 text-lg max-w-xl">AES-256 encrypted production cluster credentials.</p>
                 </div>
+
+                {/* 🛡️ [COALITION LOGIC] Industrial Identity Instructions */}
+                <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-[2rem] space-y-4 backdrop-blur-xl">
+                    <div className="flex items-center gap-3 text-emerald-400 font-bold text-xs uppercase tracking-[0.3em]">
+                        <ShieldCheck size={20} className="accent-glow" />
+                        Flexible Coalition Logic Active
+                    </div>
+                    <p className="text-sm text-slate-300 leading-relaxed font-medium">
+                        VANTIX production streams require only **one active node per category**. 
+                        Choose either <span className="text-emerald-400">Groq</span> or <span className="text-emerald-400">OpenRouter</span> for intelligence, 
+                        and either <span className="text-emerald-400">Pexels</span> or <span className="text-emerald-400">Pixabay</span> for visual synthesis.
+                    </p>
+                </div>
                 
                 <div className="flex items-center gap-4">
                     <div className="px-5 py-2.5 rounded-2xl glass-card bg-emerald-500/10 border-emerald-500/20 flex items-center gap-3">
