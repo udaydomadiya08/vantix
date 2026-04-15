@@ -27,6 +27,7 @@ function LandingPage() {
       label: "Viral Synthesis", 
       icon: Play, 
       color: "emerald",
+      path: "/shorts",
       desc: "Generate high-retention viral content using industrial-grade motion templates and AI narration."
     },
     { 
@@ -34,6 +35,7 @@ function LandingPage() {
       label: "Deep Narrative", 
       icon: Book, 
       color: "cyan",
+      path: "/ebooks",
       desc: "Transform topics into comprehensive, multi-chapter industrial guides with AI-generated art." 
     },
     { 
@@ -41,6 +43,7 @@ function LandingPage() {
       label: "Autonomous Curriculum", 
       icon: GraduationCap, 
       color: "indigo",
+      path: "/courses",
       desc: "Orchestrate entire educational streams with logical structure and high-fidelity layouts." 
     }
   ];
@@ -118,7 +121,8 @@ function LandingPage() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="glass-card p-10 rounded-[3rem] border-slate-800 hover:border-emerald-500/50 transition-all flex flex-col space-y-6 group"
+                onClick={() => router.push(factory.path)}
+                className="glass-card p-10 rounded-[3rem] border-slate-800 hover:border-emerald-500/50 transition-all flex flex-col space-y-6 group cursor-pointer"
               >
                 <div className={`p-4 rounded-2xl bg-${factory.color}-500/10 text-${factory.color}-400 w-fit group-hover:scale-110 transition-transform`}>
                   <factory.icon size={32} />
@@ -292,6 +296,8 @@ function Dashboard() {
 
   const handleLaunch = async (type: 'video' | 'ebook' | 'course' | 'thumbnail') => {
     if (!topic) return alert("Vantix Input Error: Topic required.");
+    setSuccessMessage(`⚙️ Synthesizing ${type.toUpperCase()} node...`);
+    
     try {
       let res;
       if (type === 'video') res = await generateVideo(topic);
@@ -308,18 +314,19 @@ function Dashboard() {
          router.push("/settings/api"); 
       }
     } catch (error: any) {
+      setSuccessMessage("");
       const status = error instanceof Response ? error.status : (error.response?.status || 0);
       
       if (status === 429) {
-          // 🛡️ Quota Exceeded
           setQuotaError(true);
       } else if (status === 402) {
-         alert("Insufficient Industrial Power. Please upgrade your node in the sidebar.");
+         alert("INSUFFICIENT POWER: Your industrial balance is depleted. Please recharge your node to continue synthesis.");
+         router.push("/recharge");
       } else if (status === 428) {
-         alert("VAULT LOCKED: Core AI keys missing. Please synchronize your API Vault.");
+         alert("VAULT LOCKED: Core AI keys (Groq/OpenRouter) missing. Redirecting to your Sovereign Vault...");
          router.push("/settings/api");
       } else {
-         alert("Factory Interruption: Check your Vantix Power / Backend status.");
+         alert("FACTORY INTERRUPTION: Infrastructure unreachable. Check your Vantix Power / Backend status.");
       }
     }
   };

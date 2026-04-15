@@ -74,6 +74,12 @@ export async function syncUserKeys(keys: any) {
     return result;
 }
 
+export async function logout() {
+    localStorage.removeItem("vantix_token");
+    localStorage.removeItem("vantix_user");
+    localStorage.removeItem("vantix_api_keys");
+}
+
 export async function loginUser(credentials: any) {
     const response = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",

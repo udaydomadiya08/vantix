@@ -67,15 +67,24 @@ export default function ShortsPage() {
         setJobStatus(null);
 
         try {
+            console.log("🚀 [FACTORY]: Initiating Short-Video Production...", payload.topic);
             const res = await generateVideo(payload.topic, payload);
             if (res && res.job_id) {
+                console.log("✅ [FACTORY]: Production Stream Active. Job ID:", res.job_id);
                 setActiveJobId(res.job_id);
                 const saved = localStorage.getItem('vantix_queue');
                 const jobs = saved ? JSON.parse(saved) : [];
                 localStorage.setItem('vantix_queue', JSON.stringify([{ id: res.job_id, status: 'queued', type: 'video', topic: payload.topic, timestamp: new Date() }, ...jobs]));
             }
-        } catch (e) {
-            alert("Industrial Interruption: Backend node unreachable.");
+        } catch (error: any) {
+            const status = error instanceof Response ? error.status : (error.response?.status || 0);
+            if (status === 402) {
+                alert("INSUFFICIENT POWER: Industrial balance depleted. Please recharge your node.");
+            } else if (status === 428) {
+                alert("VAULT LOCKED: Groq/OpenRouter keys missing. Synchronize your API Vault to continue.");
+            } else {
+                alert("INDUSTRIAL INTERRUPTION: Infrastructure node unreachable. Check backend status.");
+            }
         } finally {
             setIsProcessing(false);
         }

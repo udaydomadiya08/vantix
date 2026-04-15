@@ -45,7 +45,8 @@ export default function SignupPage() {
                         <ShieldCheck className="text-white" size={24} />
                     </div>
                     <h1 className="text-3xl font-bold text-white">Join Vantix</h1>
-                    <p className="text-slate-400">Initialize your VANTIX Command Center</p>
+                    <p className="text-emerald-400 text-xs font-black uppercase tracking-widest mt-2">[ 50 Free Credits for New Nodes ]</p>
+                    <p className="text-slate-400 mt-2">Initialize your VANTIX Command Center</p>
                 </div>
 
                 <form onSubmit={handleSignup} className="space-y-4">
