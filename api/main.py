@@ -613,6 +613,7 @@ async def generate_thumbnail(request: ThumbnailRequest, username: str = Depends(
         await QUEUE_MANAGER.add_job(username, "thumbnail", job_id, thumbnail_service.create_vantix_thumbnail, kwargs)
         return {"job_id": job_id, "message": "Thumbnail synthesis engine active", "topic": request.topic}
     except Exception as e:
+        # 🛡️ [REFUND] Immediate credit restoration on node failure
         db_helper.add_credits(username, 2)
         log_trace(f"REFUND: User='{username}' | Job='thumbnail' | Reason='{str(e)}'")
         if isinstance(e, HTTPException): raise e
@@ -662,6 +663,7 @@ async def generate_ebook(
         await QUEUE_MANAGER.add_job(username, "ebook", job_id, ebook.automate_ebook_creation, kwargs)
         return {"job_id": job_id, "message": "E-book queued in research stream", "topic": request.topic}
     except Exception as e:
+        # 🛡️ [REFUND] Immediate credit restoration on node failure
         db_helper.add_credits(username, 10)
         log_trace(f"REFUND: User='{username}' | Job='ebook' | Reason='{str(e)}'")
         if isinstance(e, HTTPException): raise e
@@ -709,6 +711,7 @@ async def generate_course(
         await QUEUE_MANAGER.add_job(username, "course", job_id, ecourse_factory.run_ecourse_factory, kwargs)
         return {"job_id": job_id, "message": "E-course queued in educational stream", "topic": request.topic}
     except Exception as e:
+        # 🛡️ [REFUND] Immediate credit restoration on node failure
         db_helper.add_credits(username, 25)
         log_trace(f"REFUND: User='{username}' | Job='course' | Reason='{str(e)}'")
         if isinstance(e, HTTPException): raise e

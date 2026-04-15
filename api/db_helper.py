@@ -265,6 +265,8 @@ def deduct_credits(username, amount):
         users[username]["balance"] = current - amount
         with open(DB_PATH, "w") as f:
             json.dump(users, f, indent=4)
+            f.flush()
+            os.fsync(f.fileno())
         return True, users[username]["balance"]
     return False, 0
 
@@ -296,6 +298,8 @@ def add_credits(username, amount):
         
         with open(DB_PATH, "w") as f:
             json.dump(users, f, indent=4)
+            f.flush()
+            os.fsync(f.fileno())
         return True, users[username]["balance"]
     return False, 0
 
