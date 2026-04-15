@@ -26,9 +26,33 @@ export default function ApiVaultPage() {
         async function load() {
             try {
                 const data = await getUserKeys();
-                if (data) setKeys(prev => ({ ...prev, ...data }));
+                console.log("🧬 [VAULT_LOAD]: Server response received.", !!data);
+                
+                let finalKeys = { ...keys };
+                
+                // 🛡️ [HYDRATION] Fallback to Local Vault if Server is empty
+                if (!data || Object.values(data).every(v => !v)) {
+                   const stored = localStorage.getItem("vantix_api_keys");
+                   if (stored) {
+                       console.warn("⚠️ [VAULT_RECOVERY]: Server returned empty. Restoring from Local Vault...");
+                       const localData = JSON.parse(stored);
+                       // Only restore if localData has actual content
+                       if (Object.values(localData).some(v => !!v)) {
+                           finalKeys = { ...finalKeys, ...localData };
+                           // Silent Re-Sync (Heal the backend node)
+                           syncUserKeys(localData).catch(err => console.error("❌ [RE-SYNC_FAIL]:", err));
+                       }
+                   }
+                } else {
+                   finalKeys = { ...finalKeys, ...data };
+                }
+
+                setKeys(finalKeys);
             } catch (e) {
-                console.error("Failed to load user keys from backend");
+                console.error("🚨 [VAULT_CRITICAL]: Loading failed.", e);
+                // Last ditch recovery on network failure
+                const stored = localStorage.getItem("vantix_api_keys");
+                if (stored) setKeys(prev => ({ ...prev, ...JSON.parse(stored) }));
             }
         }
         load();

@@ -41,8 +41,19 @@ import research_helper
 
 app = FastAPI(title="Vantix Core Engine (v1.0)")
 security = HTTPBearer()
-SECRET_KEY = "VANTIX_ULTRA_SECRET_2026"
+SECRET_KEY = os.getenv("JWT_SECRET", "VANTIX_ULTRA_SECRET_2026")
 ALGORITHM = "HS256"
+
+# 📜 [TRACER] Industrial Audit Ledger
+TRACE_LOG = os.path.join(os.path.dirname(__file__), "trace.log")
+
+def log_trace(message: str):
+    import datetime
+    try:
+        with open(TRACE_LOG, "a") as f:
+            f.write(f"[{datetime.datetime.now().isoformat()}] {message}\n")
+    except:
+        pass
 
 # 🔒 [SECURITY] Allow Frontend access (Industrial Origin Echo)
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,*").split(",")
@@ -347,15 +358,21 @@ def login(user: UserAuth):
 
 @app.get("/user/keys")
 def get_user_keys(username: str = Depends(get_current_user)):
-    return db_helper.get_user_keys(username)
+    keys = db_helper.get_user_keys(username)
+    log_trace(f"GET_KEYS: User='{username}' | Found={bool(keys)}")
+    return keys
 
 @app.post("/user/keys")
 def update_user_keys(keys: APIKeys, username: str = Depends(get_current_user)):
+    log_trace(f"POST_KEYS: User='{username}' | Payload={list(keys.dict(exclude_unset=True).keys())}")
     success = db_helper.update_user_keys(username, keys.dict(exclude_unset=True))
     if not success:
+        log_trace(f"POST_KEYS_FAIL: User='{username}' | Identity mismatch.")
         raise HTTPException(status_code=404, detail="Industrial node: Identity mismatch. Vault synchronization failed.")
-    # Return the current set of keys as confirmation
-    return db_helper.get_user_keys(username)
+    
+    current_keys = db_helper.get_user_keys(username)
+    log_trace(f"POST_KEYS_SUCCESS: User='{username}' | Vault Updated.")
+    return current_keys
 
 @app.get("/user/defaults")
 def get_user_defaults(username: str = Depends(get_current_user)):

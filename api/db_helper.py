@@ -69,6 +69,8 @@ def create_user(username, password):
     
     with open(DB_PATH, "w") as f:
         json.dump(users, f, indent=4)
+        f.flush()
+        os.fsync(f.fileno())
     return True
 
 def get_user_keys(username):
@@ -92,6 +94,8 @@ def update_user_keys(username, keys):
         users[username]["api_keys"].update(encrypted_keys)
         with open(DB_PATH, "w") as f:
             json.dump(users, f, indent=4)
+            f.flush()
+            os.fsync(f.fileno())
         return True
     return False
 
@@ -110,6 +114,8 @@ def update_user_defaults(username, factory_type, defaults):
         users[username]["defaults"][factory_type].update(defaults)
         with open(DB_PATH, "w") as f:
             json.dump(users, f, indent=4)
+            f.flush()
+            os.fsync(f.fileno())
         return True
     return False
 
