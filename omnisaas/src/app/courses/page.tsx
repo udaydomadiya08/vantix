@@ -39,6 +39,8 @@ export default function CoursesPage() {
                 alert("INSUFFICIENT POWER: Node balance depleted. Recharge your industrial balance to continue.");
             } else if (status === 428) {
                 alert("VAULT LOCKED: Core AI keys missing. Please synchronize your Sovereign Vault.");
+            } else if (status === 422) {
+                alert("UNPROCESSABLE IDENTITY: The server rejected this curriculum cluster. Parameter mismatch detected.");
             } else {
                 alert("INDUSTRIAL INTERRUPTION: Infrastructure node unreachable. Check backend status.");
             }

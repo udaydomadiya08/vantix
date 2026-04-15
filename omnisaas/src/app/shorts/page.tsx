@@ -51,7 +51,7 @@ export default function ShortsPage() {
         const payload: any = { 
             mode, 
             horizontal, 
-            avatar: withAvatar ? "true" : "false"
+            avatar: withAvatar
         };
 
         if (mode === 'topic' && !topic) return alert("Vantix Error: Narrative concept required.");
@@ -82,6 +82,8 @@ export default function ShortsPage() {
                 alert("INSUFFICIENT POWER: Industrial balance depleted. Please recharge your node.");
             } else if (status === 428) {
                 alert("VAULT LOCKED: Groq/OpenRouter keys missing. Synchronize your API Vault to continue.");
+            } else if (status === 422) {
+                alert(`UNPROCESSABLE IDENTITY: The server rejected this production cluster. ${error.detail?.message || "Check your parameters."}`);
             } else {
                 alert("INDUSTRIAL INTERRUPTION: Infrastructure node unreachable. Check backend status.");
             }
