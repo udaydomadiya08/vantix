@@ -610,7 +610,7 @@ def identify_narrative_sfx(sentence, user_keys=None):
         print(f"⚠️ SFX Marker Fallback: {e}")
     return []
 
-@retry_infinite(delay=15)
+# ⚡ [ENGINE] Discovery Node: Pexels API (v1.1: Fail-Fast for Hybrid)
 def search_pexels_videos(query, per_page=15, max_results=8, horizontal=False, user_keys=None, **kwargs):
     """👑 Discovery Node: Pexels API"""
     api_key = (user_keys or {}).get("pexels") or os.environ.get("PEXELS_API_KEY")
@@ -624,8 +624,8 @@ def search_pexels_videos(query, per_page=15, max_results=8, horizontal=False, us
     try:
         response = requests.get(url, headers=headers, timeout=15)
         if response.status_code == 429:
-             print("🚦 [PEXELS THROTTLE] Rate limit reached. Backing off...")
-             response.raise_for_status()
+             print("🚦 [PEXELS THROTTLE] Rate limit reached. Returning empty for failover...")
+             return []
              
         response.raise_for_status()
         videos = response.json().get('videos', [])
@@ -645,8 +645,7 @@ def search_pexels_videos(query, per_page=15, max_results=8, horizontal=False, us
         print(f"⚠️ [PEXELS] Discovery Error: {e}")
         raise e
 
-@retry_infinite(delay=5)
-@retry_infinite(delay=15)
+# ⚡ [ENGINE] Discovery Node: Pixabay API (v1.1: Fail-Fast for Hybrid)
 def search_pixabay_videos(query, per_page=20, max_results=8, horizontal=False, user_keys=None, **kwargs):
     """👑 Discovery Node: Pixabay API"""
     api_key = (user_keys or {}).get("pixabay") or os.environ.get("PIXABAY_API_KEY")
@@ -661,8 +660,8 @@ def search_pixabay_videos(query, per_page=20, max_results=8, horizontal=False, u
     try:
         response = requests.get(url, params=params, timeout=15)
         if response.status_code == 429:
-             print("🚦 [PIXABAY THROTTLE] Rate limit reached. Backing off...")
-             response.raise_for_status()
+             print("🚦 [PIXABAY THROTTLE] Rate limit reached. Returning empty for failover...")
+             return []
              
         response.raise_for_status()
         hits = response.json().get('hits', [])
