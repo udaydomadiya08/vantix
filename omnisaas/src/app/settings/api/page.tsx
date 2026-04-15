@@ -37,11 +37,15 @@ export default function ApiVaultPage() {
     const handleSave = async () => {
         setIsSyncing(true);
         try {
-            await syncUserKeys(keys);
+            const res = await syncUserKeys(keys);
+            if (res.detail && res.detail.includes("Identity mismatch")) {
+                 alert("Vault Error: Your session identity doesn't match the database logic. Please log in again.");
+                 return;
+            }
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);
         } catch (e) {
-            alert("Sovereign Sync Failure: Node unreachable.");
+            alert("Sovereign Sync Failure: Node unreachable or identity mismatched.");
         } finally {
             setIsSyncing(false);
         }
@@ -129,7 +133,10 @@ export default function ApiVaultPage() {
                                 <input
                                     type={visible[field.id] ? "text" : "password"}
                                     value={keys[field.id as keyof typeof keys] || ""}
-                                    onChange={(e) => setKeys(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                    onChange={(e) => {
+                                        setKeys(prev => ({ ...prev, [field.id]: e.target.value }));
+                                        setSaved(false); // Reset saved status on edit
+                                    }}
                                     placeholder={`[${field.provider.toUpperCase()} NODE] Click to Add/Edit Key...`}
                                     className="w-full monochrome-input rounded-2xl px-8 py-5 text-white focus:outline-none transition-all font-mono text-sm tracking-widest bg-slate-950/20"
                                 />
@@ -141,6 +148,11 @@ export default function ApiVaultPage() {
                                 </button>
                                 <div className="absolute left-0 bottom-0 h-0.5 w-0 bg-emerald-500/50 group-focus-within/input:w-full transition-all duration-500" />
                             </div>
+                            {keys[field.id as keyof typeof keys] === "" && (
+                                <p className="text-[9px] text-rose-500/60 font-medium italic animate-pulse">
+                                    Node Cleared. Synchronize to permanently delete from vault.
+                                </p>
+                            )}
                         </div>
                     ))}
                 </div>

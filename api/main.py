@@ -351,7 +351,9 @@ def get_user_keys(username: str = Depends(get_current_user)):
 
 @app.post("/user/keys")
 def update_user_keys(keys: APIKeys, username: str = Depends(get_current_user)):
-    db_helper.update_user_keys(username, keys.dict(exclude_unset=True))
+    success = db_helper.update_user_keys(username, keys.dict(exclude_unset=True))
+    if not success:
+        raise HTTPException(status_code=404, detail="Industrial node: Identity mismatch. Vault synchronization failed.")
     return {"message": "Keys updated successfully"}
 
 @app.get("/user/defaults")

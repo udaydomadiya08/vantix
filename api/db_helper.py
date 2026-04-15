@@ -21,6 +21,7 @@ def hash_password(password):
 
 def get_user(username):
     initialize_db()
+    username = username.lower().strip()
     with open(DB_PATH, "r") as f:
         users = json.load(f)
     return users.get(username)
@@ -46,6 +47,7 @@ DEFAULT_STRUCTURE = {
 
 def create_user(username, password):
     initialize_db()
+    username = username.lower().strip()
     with open(DB_PATH, "r") as f:
         users = json.load(f)
     
@@ -70,6 +72,7 @@ def create_user(username, password):
     return True
 
 def get_user_keys(username):
+    username = username.lower().strip()
     user = get_user(username)
     if user:
         keys = user.get("api_keys", {})
@@ -79,6 +82,7 @@ def get_user_keys(username):
 
 def update_user_keys(username, keys):
     initialize_db()
+    username = username.lower().strip()
     with open(DB_PATH, "r") as f:
         users = json.load(f)
     
@@ -93,6 +97,7 @@ def update_user_keys(username, keys):
 
 def update_user_defaults(username, factory_type, defaults):
     initialize_db()
+    username = username.lower().strip()
     with open(DB_PATH, "r") as f:
         users = json.load(f)
     
@@ -109,6 +114,7 @@ def update_user_defaults(username, factory_type, defaults):
     return False
 
 def get_user_defaults(username):
+    username = username.lower().strip()
     user = get_user(username)
     if user:
         user_defaults = user.get("defaults", {})
@@ -125,6 +131,7 @@ def get_user_defaults(username):
 
 def save_to_history(username, job_id, job_data):
     """🏛️ Archive Job Metadata to Industrial Ledger (Completed Only)"""
+    username = username.lower().strip()
     # 🗑️ [CLEAN LEDGER] Only persist completed jobs that have an asset
     if job_data.get("status") != "completed" or not job_data.get("result_url"):
         return False
@@ -164,6 +171,7 @@ def _normalize_result_url(url):
 
 def get_user_history(username):
     """📜 Retrieve Production Ledger"""
+    username = username.lower().strip()
     if not os.path.exists(HISTORY_PATH):
         return []
     
@@ -183,6 +191,7 @@ def get_user_history(username):
 def log_job_initiation(username, job_id):
     """⚔️ [LOG] Record the start of a synthesis job for quota tracking."""
     import time
+    username = username.lower().strip()
     if not os.path.exists(QUOTAS_PATH):
         with open(QUOTAS_PATH, "w") as f: json.dump([], f)
     
@@ -205,6 +214,7 @@ def log_job_initiation(username, job_id):
 def get_recent_job_count(username, minutes=60):
     """⚖️ [QUOTA] Calculate how many jobs a node initiated in the last window."""
     import time
+    username = username.lower().strip()
     if not os.path.exists(QUOTAS_PATH):
         return 0
     
@@ -217,12 +227,14 @@ def get_recent_job_count(username, minutes=60):
 
 def get_user_balance(username):
     """💎 Retrieve current Vantix power level"""
+    username = username.lower().strip()
     user = get_user(username)
     return user.get("balance", 0) if user else 0
 
 def deduct_credits(username, amount):
     """⚖️ Process Synthesis Taxation"""
     initialize_db()
+    username = username.lower().strip()
     with open(DB_PATH, "r") as f:
         users = json.load(f)
     
@@ -240,6 +252,7 @@ def deduct_credits(username, amount):
 def add_credits(username, amount):
     """💳 Reload Production Node"""
     initialize_db()
+    username = username.lower().strip()
     with open(DB_PATH, "r") as f:
         users = json.load(f)
     

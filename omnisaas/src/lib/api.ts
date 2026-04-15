@@ -64,7 +64,13 @@ export async function syncUserKeys(keys: any) {
         headers: getHeaders(),
         body: JSON.stringify(keys),
     });
-    return response.json();
+    
+    const result = await response.json();
+    if (response.ok) {
+        // 🔒 [SYNC] Harmonize backend vault with local cluster session
+        localStorage.setItem("vantix_api_keys", JSON.stringify(keys));
+    }
+    return result;
 }
 
 export async function loginUser(credentials: any) {
