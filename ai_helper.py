@@ -16,16 +16,15 @@ class APIHealth:
         self.provider_priority = ["groq", "openrouter"]
         self.model_priority = {
             "groq": [
-                "llama3-70b-8192",
                 "llama-3.3-70b-versatile",
-                "llama-3.1-70b-versatile",
-                "mixtral-8x7b-32768"
+                "llama-3.1-8b-instant",
+                "gemma2-9b-it"
             ],
             "openrouter": [
                 "meta-llama/llama-3.3-70b-instruct", 
                 "qwen/qwen-2.5-72b-instruct",
-                "mistralai/mistral-large-2411",
-                "google/gemma-2-27b-it:free"
+                "google/gemini-2.0-flash-001",
+                "google/gemma-2-9b-it:free"
             ],
             "image": [
                 "stabilityai/stable-diffusion-xl-base-1.0",
@@ -78,6 +77,8 @@ class AIResponse:
 # === Groq Backend === #
 def call_groq(prompt, user_keys=None):
     api_key = (user_keys or {}).get("groq") or os.environ.get("GROQ_API_KEY")
+    if not api_key: raise ValueError("Groq API Key missing.")
+    
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     
@@ -92,8 +93,7 @@ def call_groq(prompt, user_keys=None):
                 print(f"✅ Groq ({model}) success.")
                 return AIResponse(response.json()["choices"][0]["message"]["content"].strip())
             else:
-                # 🛠️ DIAGNOSTIC HUD: Print exact error message
-                print(f"⚠️ Groq Error {response.status_code}: {response.text[:200]}")
+                print(f"⚠️ Groq Error {response.status_code}: {response.text[:250]}")
                 HEALTH_TRACKER.report_failure("groq", model)
         except Exception as e:
             print(f"❌ Groq Exception: {e}")
@@ -104,11 +104,14 @@ def call_groq(prompt, user_keys=None):
 # === OpenRouter Backend === #
 def call_openrouter(prompt, user_keys=None):
     api_key = (user_keys or {}).get("openrouter") or os.environ.get("OPENROUTER_API_KEY")
+    if not api_key: raise ValueError("OpenRouter API Key missing.")
+    
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://github.com/udaydomadiya08/VIDEOYT"
+        "HTTP-Referer": "https://github.com/udaydomadiya08/VIDEOYT",
+        "X-Title": "Vantix Video Platform"
     }
     
     models = HEALTH_TRACKER.get_models("openrouter")
@@ -122,9 +125,9 @@ def call_openrouter(prompt, user_keys=None):
                 print(f"✅ OpenRouter ({model}) success.")
                 return AIResponse(response.json()["choices"][0]["message"]["content"].strip())
             else:
-                # 🛠️ DIAGNOSTIC HUD: Print exact error message
-                print(f"⚠️ OpenRouter Error {response.status_code}: {response.text[:200]}")
+                print(f"⚠️ OpenRouter Error {response.status_code}: {response.text[:250]}")
                 HEALTH_TRACKER.report_failure("openrouter", model)
+                if response.status_code == 401: break # No point retrying invalid keys
         except Exception as e:
             print(f"❌ OpenRouter Exception: {e}")
             HEALTH_TRACKER.report_failure("openrouter", model)
@@ -133,22 +136,27 @@ def call_openrouter(prompt, user_keys=None):
 
 # === Main Synthesis Entry === #
 def generate_ai_response(prompt, user_keys=None):
-    while True:
+    retry_count = 0
+    while retry_count < 3:
         providers = HEALTH_TRACKER.get_providers()
         for provider in providers:
             try:
                 if provider == "groq": return call_groq(prompt, user_keys=user_keys)
                 if provider == "openrouter": return call_openrouter(prompt, user_keys=user_keys)
             except Exception as e:
-                HEALTH_TRACKER.report_failure(provider)
-                time.sleep(2) # Micro-cooldown between providers
+                print(f"ℹ️ {provider.upper()} level failure: {e}")
+                time.sleep(1) 
         
-        print(f"🚨 Global API Exhaustion. Pausing 30s to replenish rate limits...")
-        time.sleep(30)
+        retry_count += 1
+        print(f"🚨 Global API Exhaustion ({retry_count}/3). Pausing 20s...")
+        time.sleep(20)
+    
+    raise RuntimeError("Critical: Permanent AI Infrastructure failure.")
 
 # === Image & Other Helpers === #
 def generate_image_asset(prompt, user_keys=None):
     api_key = (user_keys or {}).get("openrouter") or os.environ.get("OPENROUTER_API_KEY")
+    if not api_key: return None
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     for model in HEALTH_TRACKER.get_models("image"):

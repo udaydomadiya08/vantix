@@ -648,7 +648,7 @@ def search_pexels_videos(query, per_page=15, max_results=8, horizontal=False, ap
         return videos[:max_results]
     except Exception as e:
         print(f"⚠️ [PEXELS] Error: {e}")
-        return []
+        raise e # 💥 RERAISE to trigger @retry_infinite
 
 @retry_infinite(delay=5)
 def search_pixabay_videos(query, per_page=20, max_results=8, horizontal=False, api_key=None, **kwargs):
@@ -678,7 +678,7 @@ def search_pixabay_videos(query, per_page=20, max_results=8, horizontal=False, a
         return suitable[:max_results]
     except Exception as e:
         print(f"⚠️ [PIXABAY] Error: {e}")
-        return []
+        raise e # 💥 RERAISE to trigger @retry_infinite
 
 @retry_infinite(delay=5)
 def discover_global_sfx(query):
