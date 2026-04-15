@@ -77,7 +77,7 @@ export default function ShortsPage() {
                 localStorage.setItem('vantix_queue', JSON.stringify([{ id: res.job_id, status: 'queued', type: 'video', topic: payload.topic, timestamp: new Date() }, ...jobs]));
             }
         } catch (error: any) {
-            const status = error instanceof Response ? error.status : (error.response?.status || 0);
+            const status = error.status || (error instanceof Response ? error.status : (error.response?.status || 0));
             if (status === 402) {
                 alert("INSUFFICIENT POWER: Industrial balance depleted. Please recharge your node.");
             } else if (status === 428) {

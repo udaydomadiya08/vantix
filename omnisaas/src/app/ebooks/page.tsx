@@ -42,7 +42,7 @@ export default function EbooksPage() {
                 alert("INDUSTRIAL SUCCESS: E-book synthesis enqueued. Return to Dashboard to track progress.");
             }
         } catch (error: any) {
-            const status = error instanceof Response ? error.status : (error.response?.status || 0);
+            const status = error.status || (error instanceof Response ? error.status : (error.response?.status || 0));
             if (status === 402) {
                 alert("INSUFFICIENT POWER: Node balance depleted. Recharge your industrial balance to continue.");
             } else if (status === 428) {
