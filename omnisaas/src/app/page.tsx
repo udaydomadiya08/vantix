@@ -302,8 +302,10 @@ function Dashboard() {
   }, [queuedJobs]);
 
   const handleLaunch = async (type: 'video' | 'ebook' | 'course' | 'thumbnail') => {
+    if (isProcessing) return; // 🛡️ [GUARD] Prevent Industrial Double-Fire
     if (!topic) return alert("Vantix Input Error: Topic required.");
     setSuccessMessage(`⚙️ Synthesizing ${type.toUpperCase()} node...`);
+    setIsProcessing(true);
     
     try {
       let res;

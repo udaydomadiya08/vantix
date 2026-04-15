@@ -57,6 +57,7 @@ export default function ShortsPage() {
             niche: mode === 'niche' ? niche : null
         };
 
+        if (isProcessing) return; // 🛡️ [GUARD] Prevent Double-Fire
         setIsProcessing(true);
         setActiveJobId(null);
         setJobStatus(null);
@@ -64,14 +65,29 @@ export default function ShortsPage() {
         try {
             console.log("🚀 [FACTORY]: Initiating Short-Video Production...", finalTopic);
             const res = await generateVideo(finalTopic, config);
+            
             if (res && res.job_id) {
                 console.log("✅ [FACTORY]: Production Stream Active. Job ID:", res.job_id);
                 setActiveJobId(res.job_id);
                 const saved = localStorage.getItem('vantix_queue');
                 const jobs = saved ? JSON.parse(saved) : [];
-                localStorage.setItem('vantix_queue', JSON.stringify([{ id: res.job_id, status: 'queued', type: 'video', topic: payload.topic, timestamp: new Date() }, ...jobs]));
+                localStorage.setItem('vantix_queue', JSON.stringify([{ id: res.job_id, status: 'queued', type: 'video', topic: finalTopic, timestamp: new Date() }, ...jobs]));
+                setSuccessMessage("🚀 Production stream initiated successfully!");
+                setTimeout(() => setSuccessMessage(""), 5000);
+
+                // 🎨 [OPTIONAL] High-CTR Thumbnail Synthesis (Sovereign Node)
+                try {
+                    await generateThumbnail(finalTopic);
+                } catch (tErr) {
+                    console.warn("🎨 [THUMBNAIL]: Independent node interruption.", tErr);
+                }
             }
         } catch (error: any) {
+            // 🛡️ [FILTER] If a job has already started, ignore secondary network noise
+            if (activeJobId) {
+                console.log("📡 [INFRASTRUCTURE]: Secondary network noise filtered.");
+                return;
+            }
             const status = error.status || (error instanceof Response ? error.status : (error.response?.status || 0));
             if (status === 402) {
                 alert("INSUFFICIENT POWER: Industrial balance depleted. Please recharge your node.");

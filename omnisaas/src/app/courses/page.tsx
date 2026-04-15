@@ -12,6 +12,8 @@ export default function CoursesPage() {
 
     const handleLaunch = async () => {
         if (!topic) return alert("Vantix Input Error: Course subject required.");
+        if (isProcessing) return; // 🛡️ [GUARD] Prevent Industrial Double-Fire
+        
         setIsProcessing(true);
         try {
             console.log("🚀 [FACTORY]: Initiating Autonomous Curriculum Foundry...", topic);
