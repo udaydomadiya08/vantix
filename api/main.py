@@ -398,16 +398,21 @@ def get_balance(username: str = Depends(get_current_user)):
     return {"balance": db_helper.get_user_balance(username)}
 
 # --- 🔐 [SECURITY] Vault Sentinel ---
-def verify_vault_integrity(keys: dict, mandatory: list):
-    """🛡️ Sentinel: Hard-Enforce BYOK presence"""
-    missing = [k for k in mandatory if not keys.get(k)]
-    if missing:
+def verify_vault_integrity(keys: dict, groups: list):
+    """🛡️ Sentinel: Enforce presence of required industrial nodes (OR-Logic supported)"""
+    missing_groups = []
+    for group in groups:
+        # If any key in the group exists, the group is satisfied
+        if not any(keys.get(k) for k in group):
+            missing_groups.append(group)
+            
+    if missing_groups:
         raise HTTPException(
             status_code=428, 
             detail={
                 "error": "vault_locked", 
-                "message": "Industrial Keys Missing from Vault.",
-                "required": missing
+                "message": "Industrial Keys Missing. At least one node from each required group must be active.",
+                "missing_requirements": missing_groups
             }
         )
     return True
@@ -543,8 +548,8 @@ async def generate_video(
             "pixabay": x_pixabay_key or db_keys.get("pixabay")
         }
         
-        # 🔐 [SENTINEL] Hard-Lock
-        verify_vault_integrity(user_keys, ["groq", "openrouter"])
+        # 🔐 [SENTINEL] Hard-Lock: Requires (Groq OR OpenRouter) AND (Pexels OR Pixabay)
+        verify_vault_integrity(user_keys, [["groq", "openrouter"], ["pexels", "pixabay"]])
         
         # ⚙️ [DEFAULTS MERGE] Properly merge frontend explicit options with saved defaults
         req_dict = request.model_dump(exclude_unset=True) if hasattr(request, "model_dump") else request.dict(exclude_unset=True)
@@ -584,8 +589,8 @@ async def generate_thumbnail(request: ThumbnailRequest, username: str = Depends(
     try:
         job_id = str(uuid.uuid4())
         user_keys = db_helper.get_user_keys(username)
-        # 🔐 [SENTINEL] Hard-Lock
-        verify_vault_integrity(user_keys, ["groq", "openrouter"])
+        # 🔐 [SENTINEL] Hard-Lock: Requires (Groq OR OpenRouter)
+        verify_vault_integrity(user_keys, [["groq", "openrouter"]])
         
         kwargs = {
             "topic": request.topic,
@@ -625,8 +630,8 @@ async def generate_ebook(
             "openrouter": x_openrouter_key or db_keys.get("openrouter")
         }
         
-        # 🔐 [SENTINEL] Hard-Lock
-        verify_vault_integrity(user_keys, ["groq", "openrouter"])
+        # 🔐 [SENTINEL] Hard-Lock: Requires (Groq OR OpenRouter)
+        verify_vault_integrity(user_keys, [["groq", "openrouter"]])
         
         db_defaults = db_helper.get_user_defaults(username).get("ebook", {})
         req_dict = request.model_dump(exclude_unset=True) if hasattr(request, "model_dump") else request.dict(exclude_unset=True)
@@ -674,8 +679,8 @@ async def generate_course(
             "openrouter": x_openrouter_key or db_keys.get("openrouter")
         }
         
-        # 🔐 [SENTINEL] Hard-Lock
-        verify_vault_integrity(user_keys, ["groq", "openrouter"])
+        # 🔐 [SENTINEL] Hard-Lock: Requires (Groq OR OpenRouter)
+        verify_vault_integrity(user_keys, [["groq", "openrouter"]])
         
         db_defaults = db_helper.get_user_defaults(username).get("course", {})
         req_dict = request.model_dump(exclude_unset=True) if hasattr(request, "model_dump") else request.dict(exclude_unset=True)
