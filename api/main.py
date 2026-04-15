@@ -307,9 +307,9 @@ class APIKeys(BaseModel):
 
 class VideoRequest(BaseModel):
     topic: str = ""
-    script: str = None
+    script: Optional[str] = None
     mode: str = "topic"
-    niche: str = None
+    niche: Optional[str] = None
     avatar: Any = None 
     horizontal: Any = None
     voice_id: str = "alloy"
@@ -319,7 +319,7 @@ class VideoRequest(BaseModel):
 
 class EbookRequest(BaseModel):
     topic: str = ""
-    description: str = ""
+    description: Optional[str] = ""
     chapters: int = 3
     min_words: int = 150
     theme_color: str = "#1e293b"
