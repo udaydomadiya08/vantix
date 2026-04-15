@@ -242,47 +242,56 @@ generate_gemini_response = generate_groq_response
 
 def get_word_level_transcription(audio_path, user_keys=None):
     """
-    ⚡ UNIVERSAL TRANSCRIPTION ENGINE (v48.2):
-    Cloud-First Groq Turbo fallback to Local WhisperX.
+    ⚡ UNIVERSAL TRANSCRIPTION ENGINE (v48.3):
+    Cloud-First Groq Turbo (Direct REST) fallback to Local WhisperX.
     """
-    word_segments = []
+    import requests
     WHISPER_MODELS = ["whisper-large-v3-turbo", "whisper-large-v3"]
-    
-    # 💥 VANTIX CLIENT INITIALIZATION (v1.0)
     groq_api_key = (user_keys or {}).get("groq") or os.environ.get("GROQ_API_KEY")
-    if not groq_api_key:
-        print("⚠️ [GROQ] No API Key provided for transcription. Skipping to local fallback.")
-    else:
-        try:
-            # Local fail-safe for environment-injected proxies
-            def safe_groq(*args, **kwargs):
-                kwargs.pop("proxies", None)
-                return Groq(*args, **kwargs)
-            groq_client = safe_groq(api_key=groq_api_key)
-            for model in WHISPER_MODELS:
-                try:
-                    print(f"⚡ [Groq Cloud] Transcribing: {model}...")
-                    with open(audio_path, "rb") as file:
-                        transcription = groq_client.audio.transcriptions.create(
-                            file=(audio_path, file),
-                            model=model,
-                            response_format="verbose_json",
-                            timestamp_granularities=["word"]
-                        )
-                        if hasattr(transcription, 'words'):
-                            for w in transcription.words:
+
+    if groq_api_key:
+        for model in WHISPER_MODELS:
+            try:
+                print(f"⚡ [Groq REST] Transcribing with {model}...")
+                url = "https://api.groq.com/openai/v1/audio/transcriptions"
+                headers = {"Authorization": f"Bearer {groq_api_key}"}
+                files = {
+                    "file": (os.path.basename(audio_path), open(audio_path, "rb"), "audio/mpeg"),
+                    "model": (None, model),
+                    "response_format": (None, "verbose_json"),
+                    "timestamp_granularities[]": (None, "word")
+                }
+                response = requests.post(url, headers=headers, files=files, timeout=60)
+                response.raise_for_status()
+                data = response.json()
+                
+                word_segments = []
+                # Case 1: Word-level timestamps supported (verbose_json)
+                if "words" in data:
+                    for w in data["words"]:
+                        word_segments.append({
+                            "word": w["word"],
+                            "start": w["start"],
+                            "end": w["end"]
+                        })
+                # Case 2: Segment-level only fallback
+                elif "segments" in data:
+                    for seg in data["segments"]:
+                        words = seg.get("text", "").split()
+                        if words:
+                            per_word = (seg["end"] - seg["start"]) / len(words)
+                            for i, word in enumerate(words):
                                 word_segments.append({
-                                    "word": w.get("word") if isinstance(w, dict) else getattr(w, "word", ""),
-                                    "start": w.get("start") if isinstance(w, dict) else getattr(w, "start", 0),
-                                    "end": w.get("end") if isinstance(w, dict) else getattr(w, "end", 0.1),
-                                    "score": 1.0
+                                    "word": word,
+                                    "start": seg["start"] + (i * per_word),
+                                    "end": seg["start"] + ((i+1) * per_word)
                                 })
-                        if word_segments: return word_segments
-                except Exception as e:
-                    print(f"⚠️ Groq ({model}) failed: {e}")
-                    continue
-        except Exception as e:
-            print(f"⚠️ Groq Client Initialization failed: {e}")
+                
+                if word_segments:
+                    print(f"✅ [Groq REST] Success: {len(word_segments)} words captured.")
+                    return word_segments
+            except Exception as e:
+                print(f"⚠️ Groq REST ({model}) failed: {e}")
 
     print(f"🚨 Cloud Exhausted. Engaging Local CPU Whisper Fail-Safe...")
     try:
