@@ -438,12 +438,6 @@ async def stream_logs(request: Request, payload: dict = Depends(get_current_user
                     yield f"data: {line}\n\n"
 
     return StreamingResponse(hf_generator(), media_type="text/event-stream")
-        log_trace(f"POST_KEYS_FAIL: User='{username}' | Identity mismatch.")
-        raise HTTPException(status_code=404, detail="Industrial node: Identity mismatch. Vault synchronization failed.")
-    
-    current_keys = db_helper.get_user_keys(username)
-    log_trace(f"POST_KEYS_SUCCESS: User='{username}' | Vault Updated.")
-    return current_keys
 
 @app.get("/user/defaults")
 def get_user_defaults(username: str = Depends(get_current_user)):
