@@ -675,11 +675,17 @@ def generate_visual_search_queries(sentence, user_topic, user_keys=None):
                   queries = json.loads(clean_json)
              except: pass
         
-        if not queries:
-             # Fallback to line-based parsing if JSON fails
-             queries = [q.strip() for q in text_resp.split("\n") if q.strip() and not q.startswith(("Sure", "Here", "1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9.", "10."))]
-        
-        return queries[:10] if queries else [f"{sentence}"]
+        # 💥 TYPE HARDENING (v109.1): Flatten and stringify queries
+        final_queries = []
+        if isinstance(queries, list):
+            for q in queries:
+                if isinstance(q, list): final_queries.extend([str(item) for item in q])
+                elif isinstance(q, dict): final_queries.append(str(q.get("query") or q.get("text") or str(q)))
+                else: final_queries.append(str(q))
+        else:
+            final_queries = [str(queries)]
+            
+        return [q.strip() for q in final_queries if q.strip()][:10] if final_queries else [f"{sentence}"]
     except Exception as e:
         print(f"⚠️ Query Gen Fallback: {e}")
         return [f"{sentence}"]
@@ -1010,9 +1016,14 @@ def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=1, hor
     print(f"🔍 [DISCOVERY] Initiating Hybrid Search for: '{sentence}'")
     
     precise_queries = generate_visual_search_queries(sentence, user_topic, user_keys=user_keys)
+    
+    # 💥 TYPE HARDENING (v109.1): Ensure all queries are strings before comparison
+    precise_queries = [str(q) for q in precise_queries if q]
     semantic_keyword = extract_visual_keywords(sentence)
-    if semantic_keyword not in [q.lower() for q in precise_queries]:
-        precise_queries.append(semantic_keyword)
+    
+    if semantic_keyword:
+        if str(semantic_keyword).lower() not in [q.lower() for q in precise_queries]:
+            precise_queries.append(str(semantic_keyword))
 
     def get_relevance_score(clip_text, sentence):
         if not clip_text: return 0.2
@@ -1600,40 +1611,51 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             video_url = None
             tmp_path = f"video_creation/ms_{idx}_{i}.mp4"
             
-            # --- 📽️ INDUSTRIAL STOCK DISCOVERY (v104.5: Relentless Mode) ---
-            # Tier 1: Prime Milestone Query
+            # --- 📽️ INDUSTRIAL STOCK DISCOVERY (v110.0: Relentless Tiered Mode) ---
+            # Tier 1: [PRECISE] Milestone Narrative Query
             pool = find_one_video_clips(ms["query"], used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
             
-            # Tier 2: Query Deconstruction (Simplex Search)
+            # Tier 2: [SIMPLEX] Subject Deconstruction (Fast Subject Extraction)
             if not pool:
-                words = ms["query"].split()
-                if len(words) > 2:
-                    simplex_query = " ".join(words[:2]) # Grab core subjects
-                    print(f"📡 [RELENTLESS]: Milestone '{ms['query']}' failed. Trying Simplex: '{simplex_query}'")
-                    pool = find_one_video_clips(simplex_query, used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
+                simplex_query = extract_visual_keywords(ms["query"])
+                print(f"📡 [RELENTLESS]: Milestone '{ms['query']}' failed. Trying Simplex: '{simplex_query}'")
+                pool = find_one_video_clips(simplex_query, used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
             
-            # Tier 3: Universal Topic Fallback (Aggressive)
+            # Tier 3: [PILLAR] Narrative Heritage (The overarching topic)
             if not pool:
                 print(f"📡 [RELENTLESS]: Simplex failed. Falling back to Topic Pillar: '{user_topic}'")
                 pool = find_one_video_clips(user_topic, used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
-                
-            # Tier 4: Global Cinematic Safe-Bet
+            
+            # Tier 4: [AESTHETIC] Dynamic Visual Harmony (Context-Aware Fallback)
             if not pool:
-                cinematic_fallback = "cinematic outer space" if "space" in user_topic.lower() else "cinematic atmospheric drone"
-                print(f"📡 [RELENTLESS]: Topic Pillar failed. Engaging Global Fallback: '{cinematic_fallback}'")
-                pool = find_one_video_clips(cinematic_fallback, used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
+                aesthetic_queries = ["cinematic abstract textures", "dynamic light trails", "atmospheric motion graphics", "elegant cinematic b-roll"]
+                if "tech" in user_topic.lower() or "future" in user_topic.lower():
+                    aesthetic_queries = ["high tech digital motion", "cybernetic data stream", "futuristic neural network"]
+                elif "space" in user_topic.lower() or "universe" in user_topic.lower():
+                    aesthetic_queries = ["cinematic cosmic nebula", "starfield motion galactic", "planet aerial cinematic"]
                 
+                fallback_query = random.choice(aesthetic_queries)
+                print(f"📡 [RELENTLESS]: Engaging Dynamic Aesthetic: '{fallback_query}'")
+                pool = find_one_video_clips(fallback_query, used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
+                
+            # Tier 5: [ABSOLUTE] Generic High-Retention Visual (Failure is not an option)
+            if not pool:
+                emergency_safe = "cinematic nature 4k"
+                print(f"📡 [RELENTLESS]: All tiers exhausted. Triggering Tier 5 Absolute: '{emergency_safe}'")
+                pool = find_one_video_clips(emergency_safe, used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
+
             if not pool: 
-                 print(f"❌ [DATABASE EXHAUSTION]: No visuals found for Milestone {i} in any tier.")
-                 return None
+                 # 💥 [VANTIX CRITICAL]: This should now be impossible, but we provide a Solid Color as a last resort
+                 print(f"❌ [ULTIMATE EXHAUSTION]: No visuals found for Milestone {i}. Generating high-contrast placeholder.")
+                 return {"is_placeholder": True, "dur": target_dur}
+
             video_url = pool[0]["video_files"][0]["link"]
             try:
                 download_video(video_url, tmp_path)
-                # 💥 [VANTIX STABILITY]: Return only DATA, not the CLIP object
-                return {"tmp_path": tmp_path, "url": video_url, "dur": target_dur}
+                return {"tmp_path": tmp_path, "url": video_url, "dur": target_dur, "is_placeholder": False}
             except Exception as e:
-                print(f"❌ Milestone {i} Failed: {e}")
-                return None
+                print(f"❌ Milestone {i} Download Failed: {e}")
+                return {"is_placeholder": True, "dur": target_dur}
 
         # Execute Parallel Discovery
         orch = ParallelOrchestrator(max_workers=2)
@@ -1643,12 +1665,9 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         for res in parallel_results:
             target_dur = res["dur"] if (res and "dur" in res) else milestones[parallel_results.index(res)]["end"] - milestones[parallel_results.index(res)]["start"]
             
-            if res and isinstance(res, dict) and os.path.exists(res.get("tmp_path", "")):
+            if res and not res.get("is_placeholder", False) and os.path.exists(res.get("tmp_path", "")):
                 try:
-                    # 🚀 [MAIN PROCESS LOAD]: Instantiate clips here to ensure stability
-                    tmp_path = res["tmp_path"]
-                    
-                    raw_clip = VideoFileClip(tmp_path).without_audio()
+                    raw_clip = VideoFileClip(res["tmp_path"]).without_audio()
                     # 💥 PRE-FLIGHT CHECK (v105.1): Verify milestone load
                     _ = raw_clip.get_frame(0)
                     
@@ -1659,7 +1678,7 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                     # Force duration to match milestone exactly
                     clip = clip.set_duration(target_dur).set_start(total_collected)
                     
-                    # 💥 FINAL VERIFICATION: Ensure the processed clip is still healthy
+                    # 💥 FINAL VERIFICATION
                     _ = clip.get_frame(0)
                     
                     collected_clips.append(clip)
@@ -1668,24 +1687,16 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                     print(f"✅ Milestone Loaded: {res['url']} ({target_dur:.2f}s)")
                 except Exception as e:
                     print(f"⚠️ Failed to load or verify captured asset {res.get('tmp_path', 'unknown')}: {e}")
-                    # 💥 [VANTIX CONTINUITY]: If current clip fails, stretch the PREVIOUS clip to cover the gap
-                    if collected_clips:
-                        prev_clip = collected_clips[-1]
-                        extended_dur = prev_clip.duration + target_dur
-                        collected_clips[-1] = prev_clip.set_duration(extended_dur)
-                        total_collected += target_dur
-                        print(f"🔄 [CONTINUITY]: Stretched previous clip to cover {target_dur:.2f}s gap.")
-            else:
-                # 💥 [VANTIX CONTINUITY]: If milestone discovery failed, stretch previous or leave for fallback loop
-                if collected_clips:
-                    prev_clip = collected_clips[-1]
-                    extended_dur = prev_clip.duration + target_dur
-                    collected_clips[-1] = prev_clip.set_duration(extended_dur)
+                    # 💥 [EMERGENCY PLACEHOLDER]: Instead of stretching, use a high-contrast cinematic color clip
+                    emergency_clip = ColorClip(size=(1080, 1920), color=(10, 10, 10), duration=target_dur).set_fps(30)
+                    collected_clips.append(emergency_clip)
                     total_collected += target_dur
-                    print(f"🔄 [CONTINUITY]: Discovery failed. Stretched previous clip by {target_dur:.2f}s.")
-                else:
-                    # If it's the very first clip, we can't stretch. We'll let the fallback loop handle it or log it.
-                    print(f"⚠️ [CONTINUITY]: No previous clip to stretch for initial milestone {milestones[parallel_results.index(res)]['query']}")
+            else:
+                # 💥 [EMERGENCY PLACEHOLDER]: Instead of stretching, use a high-contrast cinematic color clip
+                print(f"🔄 [RELENTLESS]: Using emergency visual placeholder for milestone {parallel_results.index(res)}.")
+                emergency_clip = ColorClip(size=(1080, 1920), color=(10, 10, 10), duration=target_dur).set_fps(30)
+                collected_clips.append(emergency_clip)
+                total_collected += target_dur
     
     # --- PHASE 4: INDESTRUCTIBLE ASSEMBLY (v106.1) ---
     final_output = f"video_creation/scene_{idx}_final.mp4"
@@ -1759,23 +1770,40 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                 # Re-stabilize to background only
                 scene_comp = concatenate_videoclips(res_clips, method="chain")
 
-        # 🛡️ [STEP 5]: Final High-Speed Rendering
+        # 🛡️ [STEP 5]: Final Immortal Rendering
         print(f"🏎️ [RENDER] Starting Industrial Pass for Scene {idx}...")
-        with VANTIX_RENDER_LOCK: # 🔐 Sovereign Render Lock (No dual-FFmpeg collisions)
-            scene_comp.write_videofile(
-                final_output,
-                codec="libx264",
-                audio_codec="aac",
-                fps=30,
-                preset="ultrafast",
-                threads=2,
-                logger=None
-            )
+        with VANTIX_RENDER_LOCK: # 🔐 Sovereign Render Lock
+            try:
+                scene_comp.write_videofile(
+                    final_output,
+                    codec="libx264",
+                    audio_codec="aac",
+                    fps=30,
+                    preset="ultrafast",
+                    threads=2,
+                    logger=None
+                )
+            except Exception as re:
+                if "'NoneType' object has no attribute 'get_frame'" in str(re):
+                    print(f"🚨 [EMERGENCY RECONSTITUTION] Scene {idx} detected corrupted layers. Purging overlays...")
+                    # ☢️ PANIC MODE: Strip captions and complex effects, render base visuals only
+                    stable_backup = concatenate_videoclips([c.without_mask() for c in res_clips], method="chain").set_audio(audio_clip)
+                    stable_backup.write_videofile(
+                        final_output,
+                        codec="libx264",
+                        audio_codec="aac",
+                        fps=30,
+                        preset="ultrafast",
+                        threads=2,
+                        logger=None
+                    )
+                else:
+                    raise re
         
         # Immediate cleanup of memory handles
         scene_comp.close()
         for c in res_clips: c.close()
-        for c in valid_captions: c.close()
+        for c in pure_captions: c.close()
         
         return final_output, new_used_urls
         
