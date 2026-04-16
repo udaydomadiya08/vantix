@@ -95,8 +95,30 @@ except ImportError:
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 
-from collections import Counter
-import numpy as np
+import shutil
+
+def perform_industrial_cleanup():
+    """🧹 [SANITIZER]: Purge all temporary artifacts from previous production cycles."""
+    temp_folders = ["video_creation", "audio", "pexels_images", "__pycache__"]
+    for folder in temp_folders:
+        path = os.path.join(PROJECT_ROOT, folder)
+        if os.path.exists(path):
+            print(f"🧹 [CLEANUP]: Purging {folder}...")
+            shutil.rmtree(path, ignore_errors=True)
+        # Ensure it exists and is clean
+        os.makedirs(os.path.join(PROJECT_ROOT, folder), exist_ok=True)
+    
+    # 💥 [ORPHAN PURGE]: Delete older video fragments (not the main outputs)
+    print("🧹 [CLEANUP]: Flushing orphan .mp4 / .mp3 fragments...")
+    for root, dirs, files in os.walk(PROJECT_ROOT):
+        if "video_created" in root: continue # Preserve final outputs
+        for f in files:
+            if f.endswith((".mp3", ".mp4", ".wav")):
+                try: os.remove(os.path.join(root, f))
+                except: pass
+
+# Execute Sanitization on Startup
+perform_industrial_cleanup()
 
 import socket
 socket.setdefaulttimeout(6000)
