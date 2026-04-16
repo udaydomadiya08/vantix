@@ -1878,18 +1878,23 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
     try:
         from moviepy.editor import CompositeVideoClip
         
-        # 🛡️ [STEP 1]: Background Stabilization (Nuclear Purification v108.0)
+        # 🛡️ [STEP 1]: Background Stabilization (Nuclear Purification v123.0)
         res_clips = []
         for c in collected_clips:
             if c is not None and hasattr(c, "get_frame"):
                 try:
-                    # Verify frame producer and mask integrity
+                    # Verified Extremity Pass: First & Last frame checks for truncation
                     _ = c.get_frame(0)
+                    if c.duration > 0.1:
+                        _ = c.get_frame(c.duration - 0.05)
+                    
                     if hasattr(c, 'mask') and c.mask is not None:
                         _ = c.mask.get_frame(0)
+                    
+                    # Force normalization to target resolution
                     res_clips.append(c.resize((1080, 1920)).set_fps(30))
                 except Exception as e:
-                    print(f"⚠️ [STABILITY] Removing corrupted background clip: {e}")
+                    print(f"⚠️ [STABILITY] Purging corrupted/truncated asset: {e}")
 
         if not res_clips:
             raise ValueError("VANTIX CRITICAL: All background clips failed verification. Visual stream is empty.")
@@ -1952,8 +1957,8 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                     threads=2,
                     logger=None
                 )
-            except Exception as re:
-                print(f"❌ [RENDER FAILURE] Scene {idx}: {re}. Retrying with simplified lock...")
+            except Exception as render_error:
+                print(f"❌ [RENDER FAILURE] Scene {idx}: {render_error}. Retrying with simplified lock...")
                 # 🛡️ [RETRY NODE]: If the first pass fails, we attempt one final stable render
                 try:
                     scene_comp.write_videofile(
