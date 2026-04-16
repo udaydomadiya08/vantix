@@ -319,16 +319,43 @@ def get_recent_job_count(username, minutes=60):
     cutoff = time.time() - (minutes * 60)
     return len([q for q in quotas if q["username"] == username and q["timestamp"] > cutoff])
 
+def get_user_momentum(username):
+    """👑 [VANTIX ORACLE]: Calculate the Fairness Penalty (Momentum) for a production node."""
+    username = username.lower().strip()
+    
+    # 🏛️ [SOVEREIGN PRIORITY]: Admin node always has 0 momentum penalty
+    if username == "uday":
+        return 0.0
+
+    # ⚖️ [USAGE FACTOR]: Jobs in last 60 mins (Momentum)
+    recent_jobs = get_recent_job_count(username, minutes=60)
+    
+    # 💎 [FINANCIAL WEIGHT]: Current Balance (Power Level)
+    balance = get_user_balance(username)
+    
+    # 📈 [FORMULA]: (Usage Momentum * Constant) / (Balance Resilience)
+    # Higher score = More "Pushed Back" in queue.
+    # We use a base balance of 10 to avoid division by zero and normalize small accounts.
+    momentum = (recent_jobs * 50) / (max(10, balance) / 10)
+    
+    print(f"📊 [FAIRNESS] User '{username}': Jobs={recent_jobs}, Balance={balance} -> Momentum={momentum:.2f}")
+    return momentum
+
 def get_user_balance(username):
     """💎 Retrieve current Vantix power level"""
     username = username.lower().strip()
     user = get_user(username)
     return user.get("balance", 0) if user else 0
 
-def deduct_credits(username, amount):
+def deduct_credits(username: str, amount: int):
     """⚖️ Process Synthesis Taxation"""
     initialize_db()
     username = username.lower().strip()
+    
+    # 🏛️ [SOVEREIGN IMMORTALITY]: Admin node has Infinite Industrial Credits
+    if username == "uday":
+        return True, 999999
+    
     users = _load_json_secure(DB_PATH)
     
     if username in users:

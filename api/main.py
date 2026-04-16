@@ -113,16 +113,23 @@ EXECUTOR = ThreadPoolExecutor(max_workers=5) # Global pool for heavy compute
 
 class StreamQueueManager:
     def __init__(self):
-        self.queues = {} # {(username, stream_type): asyncio.Queue()}
-        self.active_workers = set()
+        # 👑 [VANTIX CORE] Global Priority Queue: (priority_score, timestamp, job_id, func, kwargs)
+        self.queue = asyncio.PriorityQueue()
+        self.active_jobs = {} # {username: count}
+        self.is_worker_running = False
+        self.MAX_GLOBAL_CONCURRENCY = 5 # Matches EXECUTOR max_workers
 
     async def add_job(self, username, stream_type, job_id, func, kwargs):
-        key = (username, stream_type)
-        if key not in self.queues:
-            self.queues[key] = asyncio.Queue()
+        username = username.lower().strip()
         
-        await self.queues[key].put((job_id, func, kwargs))
-        # 📝 [IDENTITY] Save topic so Library can display meaningful titles
+        # ⚖️ [FAIRNESS] Calculate starting priority based on momentum
+        momentum = db_helper.get_user_momentum(username)
+        # Use timestamp as secondary key for Round Robin within same priority bracket
+        timestamp = time.time()
+        
+        await self.queue.put((momentum, timestamp, username, job_id, func, kwargs))
+        
+        # 📝 [IDENTITY] Initial Status Entry
         topic = kwargs.get("topic", stream_type)
         job_data = {
             "status": "queued", 
@@ -136,113 +143,115 @@ class StreamQueueManager:
         
         # 🛡️ [QUOTA] Log initiation for the hourly ledger
         db_helper.log_job_initiation(username, job_id)
-        
-        # 🏛️ [PERSISTENCE] Initial Entry
         db_helper.save_to_history(username, job_id, job_data)
         
-        if key not in self.active_workers:
-            asyncio.create_task(self.worker(username, stream_type))
-
-    async def worker(self, username, stream_type):
-        key = (username, stream_type)
-        self.active_workers.add(key)
-        queue = self.queues[key]
+        print(f"📥 [QUEUED] Job {job_id} for {username}. Priority Weight: {momentum:.2f}")
         
-        while not queue.empty():
-            job_id, func, kwargs = await queue.get()
+        if not self.is_worker_running:
+            asyncio.create_task(self.global_worker())
+
+    async def global_worker(self):
+        """🏛️ [ORACLE] The Central Infinite Orchestrator Loop"""
+        self.is_worker_running = True
+        print("🚀 [VANTIX SCHEDULER] Oracle Node Online. Beginning Fair-Share Rotation.")
+        
+        while not self.queue.empty():
+            # To respect EXECUTOR capacity, we only pull if slots are available
+            # However, since run_in_executor uses the ThreadPoolExecutor which already limits concurrency,
+            # we can pull and submit. The OS-level FIFO in the executor will handle the physical slots,
+            # but OUR PriorityQueue handles the ORDER of submission.
             
-            # 🕹️ [CANCEL CHECK] Skip if job was killed while in queue
+            momentum, ts, username, job_id, func, kwargs = await self.queue.get()
+            
+            # 🕹️ [CANCEL CHECK]
             if job_id in CANCELLED_JOBS:
-                print(f"🛑 [WORKER] Skipping Cancelled Job: {job_id}")
+                print(f"🛑 [SCHEDULER] Skipping Cancelled Job: {job_id}")
                 JOB_STATUS[job_id]["status"] = "cancelled"
                 db_helper.save_to_history(username, job_id, JOB_STATUS[job_id])
-                queue.task_done()
+                self.queue.task_done()
                 continue
 
-            print(f"⚙️ [WORKER] Processing {stream_type} Job: {job_id}")
-            JOB_STATUS[job_id]["status"] = "processing"
-            JOB_STATUS[job_id]["start"] = datetime.now().isoformat()
+            # 🛠️ [EXECUTION] Fire-and-forget the processing task to allow next queue pull
+            asyncio.create_task(self.process_job(username, job_id, func, kwargs))
             
-            try:
-                # Wrap long-running synchronous code in run_in_executor with partial for kwargs
-                loop = asyncio.get_event_loop()
-                result_path = await loop.run_in_executor(EXECUTOR, functools.partial(func, **kwargs))
-                
-                JOB_STATUS[job_id]["status"] = "completed"
-                
-                # 🛰️ [VANTIX URL] Map Absolute Path to Industrial Download Route
-                if result_path and isinstance(result_path, str):
-                    try:
-                        # Extract the path relative to project root
-                        rel_path = os.path.relpath(result_path, parent_dir).replace("\\", "/")
-                        # Final Web URL construction via 127.0.0.1 (Industrial Recovery)
-                        JOB_STATUS[job_id]["result_url"] = f"http://127.0.0.1:8000/download?path={rel_path}"
-                    except Exception as path_err:
-                        print(f"⚠️ URL Mapping Error: {path_err}")
-                        JOB_STATUS[job_id]["result_url"] = None
+            # Small stagger to prevent race conditions on DB files
+            await asyncio.sleep(0.5)
 
-                print(f"✅ [WORKER] Completed {stream_type} Job: {job_id} -> {JOB_STATUS[job_id].get('result_url')}")
-            except Exception as e:
-                print(f"❌ [WORKER] Factor Synthesis Failed: {e}")
-                JOB_STATUS[job_id]["status"] = "failed"
-                JOB_STATUS[job_id]["error"] = str(e)
-            finally:
-                # 🏛️ [PERSISTENCE] Terminal State Sync
-                db_helper.save_to_history(username, job_id, JOB_STATUS[job_id])
-                queue.task_done()
+        self.is_worker_running = False
+        print("🏁 [VANTIX SCHEDULER] Oracle Node Idle.")
+
+    async def process_job(self, username, job_id, func, kwargs):
+        """⚡ [NODE] Individual Job Execution Lifecycle"""
+        stream_type = JOB_STATUS[job_id]["stream"]
+        print(f"⚙️ [SCHEDULER] Dispatching {stream_type} for {username} (ID: {job_id})")
         
-        print(f"🏁 [WORKER] Stream {stream_type} for {username} idle.")
-        self.active_workers.remove(key)
+        JOB_STATUS[job_id]["status"] = "processing"
+        JOB_STATUS[job_id]["start"] = datetime.now().isoformat()
+        db_helper.save_to_history(username, job_id, JOB_STATUS[job_id])
+        
+        try:
+            loop = asyncio.get_event_loop()
+            result_path = await loop.run_in_executor(EXECUTOR, functools.partial(func, **kwargs))
+            
+            JOB_STATUS[job_id]["status"] = "completed"
+            if result_path and isinstance(result_path, str):
+                rel_path = os.path.relpath(result_path, parent_dir).replace("\\", "/")
+                JOB_STATUS[job_id]["result_url"] = f"http://127.0.0.1:8000/download?path={rel_path}"
+                
+            print(f"✅ [SUCCESS] {stream_type} Completed for {username}")
+        except Exception as e:
+            print(f"❌ [FAILURE] {stream_type} Failed for {username}: {e}")
+            JOB_STATUS[job_id]["status"] = "failed"
+            JOB_STATUS[job_id]["error"] = str(e)
+        finally:
+            db_helper.save_to_history(username, job_id, JOB_STATUS[job_id])
+            self.queue.task_done()
 
     def get_queue_info(self, username, stream_type, job_id):
-        """🕵️ [ORACLE] Locate a job's position and estimate wait time."""
-        key = (username, stream_type)
-        if key not in self.queues:
-            return 0, 0
+        """🕵️ [ORACLE] Locate position and calculate Estimated Wait Time."""
+        # Peek into PriorityQueue
+        q_list = sorted(list(self.queue._queue))
         
-        # 📸 [SNAPSHOT] We peek at the queue's internal state
-        q_list = list(self.queues[key]._queue)
         try:
             position = 1
-            for jid, _, _ in q_list:
+            for momentum, ts, user, jid, _, _ in q_list:
                 if jid == job_id: break
                 position += 1
             else:
-                return 0, 0 # Not in queue
+                return 0, 0
             
-            # ⏱️ [ESTIMATION] Industrial Synthesis Durations (in seconds)
-            DURATIONS = {"video": 150, "ebook": 300, "course": 600, "thumbnail": 45}
-            avg_time = DURATIONS.get(stream_type, 60)
+            # ⏱️ [ESTIMATION] Based on industrial averages and current queue depth
+            # Video: 150s, Ebook: 300s, Course: 600s
+            DURATIONS = {"video": 120, "ebook": 240, "course": 480, "thumbnail": 30}
+            base_time = DURATIONS.get(stream_type, 60)
             
-            # Calculation: (Position * Avg Time) / Concurrent Slots
-            # Since workers are per-user-stream, it's just Position * Avg Time
-            return position, position * avg_time
+            # Simple Fair-Share Projection: (Position * BaseTime) / AvailableSlots
+            # We assume a 20% concurrency overlap
+            est_wait = (position * base_time) / 2
+            
+            # Hard limit for readability
+            return position, round(est_wait)
         except Exception:
             return 0, 0
 
     def get_global_stats(self):
-        """🏛️ [ORACLE] Aggregate ecosystem-wide live metrics."""
-        total_queued = 0
+        """🏛️ [ORACLE] Ecosystem Telemetry."""
+        total_queued = self.queue.qsize()
         live_jobs = []
-        for (user, s_type), queue in self.queues.items():
-            total_queued += queue.qsize()
-            # 📸 Snapshot of this specific user-stream queue
-            q_list = list(queue._queue)
-            for jid, _, _ in q_list:
-                status = JOB_STATUS.get(jid, {})
-                live_jobs.append({
-                    "id": jid,
-                    "user": user,
-                    "type": s_type,
-                    "topic": status.get("topic", "Unknown"),
-                    "submitted": status.get("submitted")
-                })
+        q_list = list(self.queue._queue)
+        
+        for momentum, ts, user, jid, _, _ in q_list:
+            status = JOB_STATUS.get(jid, {})
+            live_jobs.append({
+                "id": jid, "user": user, "type": status.get("stream"),
+                "topic": status.get("topic"), "submitted": status.get("submitted"),
+                "priority": round(momentum, 2)
+            })
         
         return {
             "live_queue_count": total_queued,
             "live_jobs": sorted(live_jobs, key=lambda x: x.get("submitted", ""), reverse=True),
-            "active_workers": len(self.active_workers),
-            "load_percentage": min(round((len(self.active_workers) / 5) * 100), 100)
+            "load_percentage": min(round((total_queued / 10) * 100), 100)
         }
 
 QUEUE_MANAGER = StreamQueueManager()
@@ -514,16 +523,22 @@ def verify_vault_integrity(keys: dict, groups: list):
     return True
 
 def verify_industrial_quota(username: str):
-    """⚖️ [SENTINEL] Hard-Enforce 3 jobs per hour limit"""
-    recent_jobs = db_helper.get_recent_job_count(username, minutes=60)
-    if recent_jobs >= 3:
+    """⚖️ [SENTINEL] Dynamic Industrial Admission Controller (v103.8)"""
+    # 🏛️ [SOVEREIGN IMMORTALITY]: Admin node is immune to momentum throttles
+    if username.lower() == "uday":
+        return True
+
+    momentum = db_helper.get_user_momentum(username)
+    
+    # 💥 [VANTIX GOVERNANCE]: Only hard-block if the node pressure is critical (Momentum > 1000)
+    # This prevents the 'Infrastructure Unreachable' crash on underpowered CPU nodes.
+    if momentum > 1000:
         raise HTTPException(
             status_code=429, 
             detail={
-                "error": "quota_exceeded", 
-                "message": "Industrial Quota Reached. Your node is cooling down.",
-                "limit": 3,
-                "current": recent_jobs
+                "error": "node_pressure_high", 
+                "message": "Vantix Node Pressure High. Your jobs are queued, but new requests are restricted until cooling.",
+                "momentum": round(momentum)
             }
         )
     return True

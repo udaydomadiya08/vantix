@@ -1054,11 +1054,28 @@ def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=1, hor
                 continue # Try next engine or query
                 
     return collected
-def download_video(url, filename):
-    response = requests.get(url, stream=True)
-    with open(filename, "wb") as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            f.write(chunk)
+def download_video(url, filename, retries=3):
+    """📥 [VANTIX STABILITY]: Download and verify asset integrity."""
+    for attempt in range(retries):
+        try:
+            print(f"📥 [DOWNLOADING]: {url} -> {filename} (Attempt {attempt+1})")
+            response = requests.get(url, stream=True, timeout=30)
+            response.raise_for_status()
+            
+            with open(filename, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            
+            # 💥 INTEGRITY CHECK (v103.6): Ensure file was actually written and has size
+            if os.path.exists(filename) and os.path.getsize(filename) > 0:
+                print(f"✅ [DOWNLOADED]: {filename} ({os.path.getsize(filename)} bytes)")
+                return filename
+            else:
+                print(f"⚠️ [INTEGRITY ERROR]: {filename} is empty. Retrying...")
+        except Exception as e:
+            print(f"❌ [DOWNLOAD FAILED]: {e}")
+            if attempt == retries - 1: raise e
+            time.sleep(2)
     return filename
 
 
@@ -1588,8 +1605,14 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             tmp_path = f"video_creation/ms_{idx}_{i}.mp4"
             
             # --- 📽️ INDUSTRIAL STOCK DISCOVERY (v103.1) ---
-            # Standard Stock Pool Only (Purged AI Visual Node)
+            # Try specific milestone query
             pool = find_one_video_clips(ms["query"], used_video_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
+            
+            # 💥 [VANTIX RECOVERY] (v103.5): Semantic Fallback if specific search fails
+            if not pool:
+                print(f"⚠️ [RECOVERY] No assets for '{ms['query']}'. Falling back to user topic: '{user_topic}'")
+                pool = find_one_video_clips(user_topic, used_video_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
+                
             if not pool: return None
             video_url = pool[0]["video_files"][0]["link"]
             try:

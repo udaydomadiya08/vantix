@@ -160,8 +160,8 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
             print(f"⚠️ Scene {i+1} Failed: {e}")
             return None
 
-    # Execute Parallel Scene Production (Max workers 3 to respect Resource Boundaries)
-    orch = ParallelOrchestrator(max_workers=3)
+    # Execute Parallel Scene Production (Max workers 2 to respect Resource Boundaries)
+    orch = ParallelOrchestrator(max_workers=2)
     parallel_results = orch.parallel_map_indexed(process_scene, sentences, task_name="Scene")
     
     # Assemble in Sequence
@@ -208,13 +208,13 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
         except Exception as e:
             print(f"⚠️ Wav2Lip Bridge error: {e}")
             include_avatar = False
-
+ 
     # 3. Assemble and Finalize
     if not final_clips:
         print("\n❌ ERROR: No scenes were successfully processed. Visual engine failed to produce content.")
         print("💡 Suggestion: Check terminal logs for API or resource failures.")
         return
-
+ 
     # method='chain' is much more stable in MoviePy 1.0.3 for sequential scene joining
     final_video = concatenate_videoclips(final_clips, method="chain")
     
@@ -225,7 +225,7 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
     
     # Export the main video first
     print("\n🎬 [PHASE 4/4] Starting Final Master Render...")
-    # ⚡ LIGHTNING ASSEMBLY (v57/v58): 8-Thread Hardware Optimization
+    # ⚡ LIGHTNING ASSEMBLY (v57/v58): 2-Thread Hardware Stabilization
     final_video.write_videofile(
         output_temp, 
         fps=30, 
@@ -233,7 +233,7 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
         audio_codec="aac", 
         temp_audiofile=os.path.join(PROJECT_ROOT, "temp_audio.m4a"), 
         remove_temp=True,
-        threads=8,
+        threads=2,
         preset="ultrafast",
         logger=None
     )
