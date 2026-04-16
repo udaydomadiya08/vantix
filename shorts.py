@@ -1416,35 +1416,8 @@ def create_word_by_word_subtitles(word_segments, video_size=None, include_avatar
     if not os.path.exists(FONT):
         # Fallback for systems without Anton in project root
         FONT = "DejaVuSans-Bold" if os.name != 'nt' else "Arial"
-    def create_caption_clips(word_segments, video_size, include_avatar=False):
-        if not word_segments:
-            return []
-            
-        # 🛡️ [ENGINE] Transcription Jitter Filter (v101.17): Enforce Strict Sequentialism
-        # Prevents overlapping "Active" states by clamping end times to next word start.
-        for j in range(len(word_segments) - 1):
-            if word_segments[j]["end"] > word_segments[j+1]["start"]:
-                word_segments[j]["end"] = word_segments[j+1]["start"]
-            
-        # 📐 [ENGINE] Dynamic Layout Calibration for Horizontal/Vertical (v70.0)
-        W_VAL, H_VAL = video_size
-        IS_LANDSCAPE = W_VAL > H_VAL
-        
-        if IS_LANDSCAPE: # 📽️ Landscape Mode
-            # Exact parity with vertical video logic (no full width)
-            FONT_SCALE = 1.0 
-            BASE_FONT_SIZE = 105
-            LINE_HEIGHT = 130
-            # Lift up so 2 lines don't overflow the 1080 height
-            Y_START_BASE = H_VAL * 0.70 
-        else: # 📱 Portrait Mode
-            FONT_SCALE = W_VAL / 1080.0
-            BASE_FONT_SIZE = int(105 * FONT_SCALE)
-            LINE_HEIGHT = int(130 * FONT_SCALE)
-            Y_START_BASE = H_VAL * 0.82 
-            
-        # 📐 [ENGINE] Strict 1080 Column Pacing to mirror vertical look
-        MAX_WIDTH = 1080 * 0.85 if IS_LANDSCAPE else W_VAL * 0.85
+    # 🛡️ [RECURSION FIX]: Use the stable global caption engine
+    from moviepy.editor import TextClip, CompositeVideoClip
     return create_caption_clips(word_segments, video_size, include_avatar)
 
 def resize_crop(clip):
@@ -1680,8 +1653,10 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         
         # 🖼️ [CAPTIONS]: Burned-in during parallel pass
         caption_clips = create_caption_clips(word_segments, (1080, 1920), include_avatar=include_avatar)
-        if caption_clips:
-            scene_comp = CompositeVideoClip([scene_comp] + caption_clips)
+        # 🛡️ [VANTIX STABILITY]: Ensure NO NoneType objects ever reach the renderer
+        valid_captions = [c for c in (caption_clips or []) if c is not None]
+        if valid_captions:
+            scene_comp = CompositeVideoClip([scene_comp] + valid_captions)
         
         print(f"🏎️ [RENDER] Starting Parallel Pass for Scene {idx}...")
         scene_comp.write_videofile(
