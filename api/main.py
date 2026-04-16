@@ -27,6 +27,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import functools
 import stripe
+import time
 
 # 💳 [FINANCIALS] Stripe Industrial Protocol
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -127,6 +128,8 @@ class StreamQueueManager:
         # Use timestamp as secondary key for Round Robin within same priority bracket
         timestamp = time.time()
         
+        # 🛡️ [QUEUE SAFETY] Wrap in Priority Item to prevent non-comparable crashes
+        # (momentum, timestamp, username, job_id) is sufficient for a unique sort key
         await self.queue.put((momentum, timestamp, username, job_id, func, kwargs))
         
         # 📝 [IDENTITY] Initial Status Entry
