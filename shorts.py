@@ -1611,19 +1611,35 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         
         # Assemble in Sequence
         for res in parallel_results:
-            if res:
+            if res and isinstance(res, dict) and res.get("clip") is not None:
                 collected_clips.append(res["clip"])
                 new_used_urls.add(res["url"])
                 GLOBAL_USED_URLS.add(res["url"])
                 total_collected += res["dur"]
     
     # --- PHASE 4: ATOMIC PARALLEL RENDERING (v103.4: Hyperscale Speed) ---
+    if not collected_clips:
+        print(f"⚠️ [RENDER FAILURE] No valid clips for Scene {idx}. Creating emergency placeholder.")
+        from moviepy.editor import ColorClip
+        placeholder = ColorClip(size=(1080, 1920), color=(0,0,0), duration=max(1.0, audio_duration)).set_fps(30)
+        collected_clips.append(placeholder)
+
     final_output = f"video_creation/scene_{idx}_final.mp4"
     try:
         from moviepy.editor import CompositeVideoClip
         
-        # 📐 [STABILIZATION]: Strictly conform to Vertical HD
-        res_clips = [c.resize((1080, 1920)).set_fps(30) for c in collected_clips]
+        # 📐 [STABILIZATION]: Strictly conform to Vertical HD & Purge Nones
+        res_clips = []
+        for c in collected_clips:
+            if c is not None:
+                try:
+                    res_clips.append(c.resize((1080, 1920)).set_fps(30))
+                except Exception as e:
+                    print(f"⚠️ Skipping corrupted clip during assembly: {e}")
+
+        if not res_clips:
+             raise ValueError("Final clip list is empty after stabilization.")
+
         scene_comp = CompositeVideoClip(res_clips)
         
         # 🎙️ [AUDIO]: Final Scene Match
