@@ -113,7 +113,7 @@ def prep_milestone_ffmpeg(input_path, output_path, duration, width=1080, height=
         cmd = [
             "ffmpeg", "-y", "-i", input_path,
             "-vf", f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1",
-            "-t", str(duration),
+            "-t", str(duration + 0.3), # 🏎️ [HEADROOM]: Add 0.3s buffer to silence MoviePy EOF warnings
             "-r", "30",
             "-pix_fmt", "yuv420p",
             "-an", # Strip audio to prevent MoviePy muxing collisions
@@ -1714,8 +1714,8 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             raw_tmp_path = f"video_creation/raw_ms_{idx}_{i}.mp4"
             prepped_tmp_path = f"video_creation/ms_{idx}_{i}.mp4"
             
-            # 🏎️ [WARP-Discovery]: Fetch pre-calculated queries
-            pre_queries = batch_queries.get(str(i))
+            # 🏎️ [WARP-Discovery]: Fetch pre-calculated queries with fallback indexing
+            pre_queries = batch_queries.get(str(i)) or batch_queries.get(i) or batch_queries.get(int(i))
             
             # --- 📽️ INDUSTRIAL STOCK DISCOVERY (v110.0: Relentless Tiered Mode) ---
             # Tier 1: [PRECISE] Milestone Narrative Query
