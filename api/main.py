@@ -219,8 +219,10 @@ class StreamQueueManager:
                 # 🌐 [VANTIX SYNC] Dynamic Host Injection
                 # Using relative paths for absolute frontend reach
                 JOB_STATUS[job_id]["result_url"] = f"/download?path={rel_path}"
+                JOB_STATUS[job_id]["status"] = "completed"
                 
             print(f"✅ [SUCCESS] {stream_type} Completed for {username}")
+
         except Exception as e:
             print(f"❌ [FAILURE] {stream_type} Failed for {username}: {e}")
             JOB_STATUS[job_id]["status"] = "failed"
