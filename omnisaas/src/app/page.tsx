@@ -242,9 +242,6 @@ function Dashboard() {
   const [isHydrated, setIsHydrated] = useState(false);
   const router = useRouter();
 
-  const [isHydrated, setIsHydrated] = useState(false);
-  const router = useRouter();
-
   useEffect(() => {
     const saved = localStorage.getItem('vantix_queue');
     if (saved) {
