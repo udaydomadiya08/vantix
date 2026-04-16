@@ -1,7 +1,48 @@
 import os
+import time
+import random
+import json
+import subprocess
+import re
+import requests
+import shutil
+import hashlib
+import socket
+import pickle
+import threading
+import numpy as np
+import colorsys
+import asyncio
+from datetime import datetime
+from functools import wraps
+from io import BytesIO
+from collections import Counter
+from pathlib import Path
+
+import torch
+import torch.serialization
+import nltk
+import spacy
+import ffmpeg
+from gtts import gTTS
+from pydub import AudioSegment
+from PIL import Image, ImageDraw, ImageFont, ImageOps
+from nltk.tokenize import sent_tokenize
+from serpapi import GoogleSearch
+
+# MoviePy Core
+import moviepy.editor as mpe
+from moviepy.editor import (
+    VideoFileClip, concatenate_videoclips, AudioFileClip, 
+    ColorClip, TextClip, CompositeVideoClip, ImageClip, 
+    VideoClip, vfx
+)
+from moviepy.config import change_settings
+
+# Parallelism
 from parallel_helper import ParallelOrchestrator
 
-# 🏛️ PROJECT ROOT SYNCHRONIZATION (v1.0)
+# 🏛️ PROJECT ROOT SYNCHRONIZATION (v111.0)
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 def layer_sfx_on_audio(base_audio_path, sfx_list):
@@ -48,54 +89,9 @@ def discover_imagemagick():
     return "convert"
 
 try:
-    from moviepy.config import change_settings
     change_settings({"IMAGEMAGICK_BINARY": discover_imagemagick()})
 except Exception as e:
     print(f"⚠️ [RENDERER] MoviePy configuration failed: {e}")
-
-# === WhisperX / PyTorch Safety Patch === #
-try:
-    import torch
-    import torch.serialization
-    _old_torch_load = torch.load
-    def _new_torch_load(*args, **kwargs):
-        kwargs["weights_only"] = False
-        return _old_torch_load(*args, **kwargs)
-    torch.load = _new_torch_load
-    torch.serialization.load = _new_torch_load
-except:
-    pass
-
-import requests
-import nltk
-import spacy
-from gtts import gTTS
-from datetime import datetime
-from nltk.tokenize import sent_tokenize
-from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip, ColorClip
-import google.generativeai as genai
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google_auth_oauthlib.flow import InstalledAppFlow
-import ffmpeg
-import subprocess
-from pydub import AudioSegment
-import time
-from functools import wraps
-import json
-import moviepy.editor
-from moviepy.editor import VideoFileClip, concatenate_videoclips, vfx
-try:
-    from proglog import TqdmProgressBarLogger
-    moviepy_logger = TqdmProgressBarLogger(print_messages=False)
-except ImportError:
-    moviepy_logger = 'bar'
-
-
-from PIL import Image, ImageDraw, ImageFont
-from io import BytesIO
-
-import shutil
 
 def perform_industrial_cleanup():
     """🧹 [SANITIZER]: Purge all temporary artifacts from previous production cycles."""
@@ -1171,20 +1167,29 @@ def create_word_gradient_clip(word, duration, font, fontsize, video_size):
     if sentiment_color:
         left_color = np.array(list(int(sentiment_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)))
         right_color = left_color
-    else:
-        left_color = random_bright_color()
-        right_color = random_bright_color()
+    left_color = random_bright_color() if sentiment_color is None else np.array(list(int(sentiment_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)))
+    right_color = left_color if sentiment_color else random_bright_color()
     direction = random.choice(["diagonal_tl_br", "diagonal_br_tl"])
 
+    # 🛡️ [VANTIX FIX]: Create local text_mask to avoid Scope Errors
+    text_mask = TextClip(
+        word,
+        font=font,
+        fontsize=fontsize,
+        color="white",
+        method="label",
+        size=video_size
+    ).set_duration(duration)
+
     def make_frame(t):
-        progress = (t / duration) % 1
+        progress = (t / duration) % 1 if duration > 0 else 0
         offset = progress
-        gradient = create_gradient_frame(w, h, offset, direction, left_color, right_color)
+        gradient = create_gradient_frame(video_size[0], video_size[1], offset, direction, left_color, right_color)
         mask_frame = text_mask.get_frame(t)
         colored_frame = (gradient * mask_frame[:, :, None]).astype(np.uint8)
         return colored_frame
 
-    return VideoClip(make_frame, duration=duration).set_position("center").set_mask(text_mask)
+    return VideoClip(make_frame, duration=duration).set_position("center").set_mask(text_mask.mask)
 
 
 def create_word_by_word_subtitles(
@@ -1415,6 +1420,7 @@ def apply_vantix_pacing(clip, is_hook=False, intent="SUSTAINED", intensity=None)
     return clip
 
 def apply_ken_burns(clip, duration, zoom_step=0.04):
+    if duration <= 0: return clip
     def zoom(t):
         return 1 + zoom_step * (t / duration)
     return clip.resize(zoom)
@@ -1455,6 +1461,7 @@ def create_word_by_word_subtitles(word_segments, video_size=None, include_avatar
     return create_caption_clips(word_segments, video_size, include_avatar)
 
 def resize_crop(clip):
+    if clip is None: return None
     # 📐 [ENGINE] Target Resolution is now dynamic (v59.1)
     t_w, t_h = TARGET_RES
     target_aspect = t_w / t_h
@@ -3290,10 +3297,9 @@ if __name__ == "__main__":
         # else:
         #     print("❌ Invalid choice. Please run the program again and select 1, 2, or 3.")
 
-        # 3. Assemble and Finalize
-        # method='chain' is much faster and more reliable than 'compose' for sequential scene joining
-        final_video = concatenate_videoclips([clip.set_start(0) for clip in final_clips], method="chain")
-        output_temp = os.path.join(PROJECT_ROOT, "static/videos/temp_master.mp4")
+        # 🛡️ [REDUNDANCY CLEANUP]: Neutralizing dangling NameErrors
+        # final_video = concatenate_videoclips([clip.set_start(0) for clip in final_clips], method="chain")
+        # output_temp = os.path.join(PROJECT_ROOT, "static/videos/temp_master.mp4")
         output_path = os.path.join(PROJECT_ROOT, "static/videos", f"vantix_{int(datetime.now().timestamp())}.mp4")
 
         # # Get a list of MP3 files in the folder
