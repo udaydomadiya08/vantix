@@ -12,7 +12,24 @@ import ai_helper
 # Gemini image_service dependency purged. (v103.2)
 
 THUMBNAIL_SIZE = (1280, 720) # YouTube Standard
-FONT_PATH = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+
+# 🏛️ [VANTIX TYPOGRAPHY] Industrial Font Discovery (v112.0)
+def discover_font():
+    candidates = [
+        "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "Arial.ttf",
+        "Impact.ttf"
+    ]
+    for c in candidates:
+        if os.path.exists(c): return c
+    # Check current directory
+    local_anton = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Anton-Regular.ttf")
+    if os.path.exists(local_anton): return local_anton
+    return None
+
+FONT_PATH = discover_font()
 
 def get_readable_color(rgb_color):
     """Determine if black or white will be more readable on the given background color."""
@@ -146,9 +163,11 @@ def create_vantix_thumbnail(topic, user_keys=None, output_path=None):
         current_y += line_h + 20
 
     if not output_path:
-        os.makedirs("static/thumbnails", exist_ok=True)
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        thumb_dir = os.path.join(root_dir, "static/thumbnails")
+        os.makedirs(thumb_dir, exist_ok=True)
         import time
-        output_path = f"static/thumbnails/thumb_{int(time.time())}.jpg"
+        output_path = os.path.join(thumb_dir, f"thumb_{int(time.time())}.jpg")
         
     img.save(output_path, quality=95)
     print(f"✅ [THUMBNAIL] Graduation Certified: {output_path}")

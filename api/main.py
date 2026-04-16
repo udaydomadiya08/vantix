@@ -196,10 +196,11 @@ class StreamQueueManager:
             loop = asyncio.get_event_loop()
             result_path = await loop.run_in_executor(EXECUTOR, functools.partial(func, **kwargs))
             
-            JOB_STATUS[job_id]["status"] = "completed"
             if result_path and isinstance(result_path, str):
                 rel_path = os.path.relpath(result_path, parent_dir).replace("\\", "/")
-                JOB_STATUS[job_id]["result_url"] = f"http://127.0.0.1:8000/download?path={rel_path}"
+                # 🌐 [VANTIX SYNC] Dynamic Host Injection
+                # Using relative paths for absolute frontend reach
+                JOB_STATUS[job_id]["result_url"] = f"/download?path={rel_path}"
                 
             print(f"✅ [SUCCESS] {stream_type} Completed for {username}")
         except Exception as e:

@@ -267,17 +267,19 @@ def save_to_history(username, job_id, job_data):
     return _save_json_atomic(HISTORY_PATH, history)
 
 def _normalize_result_url(url):
-    """🏛️ [SANITIZER] Normalize any broken result_url to the correct download endpoint."""
+    """🏛️ [SANITIZER] Normalize any broken result_url to a host-agnostic relative path."""
     if not url:
         return url
-    # If already a proper download endpoint, return it
-    if url.startswith("http://127.0.0.1:8000/download?path="):
-        return url
+    
+    # 🌐 [VANTIX SYNC] Remove any hardcoded host prefixes (Industrial Portability)
+    if "/download?path=" in url:
+        return "/download?path=" + url.split("/download?path=")[-1]
+        
     # Extract the relative path (static/..., courses/..., final_video/...)
     import re
     match = re.search(r'(static/[^\s]+|courses/[^\s]+|final_video/[^\s]+)', url)
     if match:
-        return f"http://127.0.0.1:8000/download?path={match.group(1)}"
+        return f"/download?path={match.group(1)}"
     return url
 
 def get_user_history(username):
