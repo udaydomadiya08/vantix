@@ -1916,31 +1916,13 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         if not res_clips:
             raise ValueError("VANTIX CRITICAL: All background clips failed verification. Visual stream is empty.")
 
-        # 🛡️ [STEP 2]: Initial Composite (Stable Chain Method)
-        from moviepy.video.compositing.concatenate import concatenate_videoclips
-        try:
-            # 🔗 Use 'chain' method to avoid complex composition maps that leak memory
-            scene_comp = concatenate_videoclips(res_clips, method="chain")
-            _ = scene_comp.get_frame(0) 
-        except Exception as e:
-            print(f"❌ Composite Stage 1 failed: {e}. Falling back to composition mode.")
-            scene_comp = CompositeVideoClip(res_clips)
-
-        # 🛡️ [STEP 3]: Audio-Visual Fusion, Structural Hardening & Precision Trim
-        try:
-            from moviepy.video.VideoClip import ColorClip
-            # 🏢 [VANTIX SAFETY FLOOR]: Permanent structural baseline to prevent IndexError gaps
-            safety_floor = ColorClip(size=(1080, 1920), color=(0,0,0)).set_duration(audio_duration).set_fps(30)
-            
-            if audio_clip is not None:
-                scene_comp = scene_comp.set_audio(audio_clip)
-            
-            # 🛡️ [PRECISION GUARD]: Trim 0.01s to prevent terminal IndexError
-            scene_comp = scene_comp.set_duration(audio_duration - 0.01)
-        except Exception as e:
-            print(f"⚠️ Audio Fusion Warning: {e}")
-            scene_comp = scene_comp.set_duration(max(0.1, audio_duration - 0.05))
-            safety_floor = ColorClip(size=(1080, 1920), color=(0,0,0)).set_duration(scene_comp.duration).set_fps(30)
+        # 🛡️ [STEP 2]: Manual Sovereign Orchestration (Bypass Concatenation)
+        # Avoids MoviePy's internal indexing bugs by placing clips manually.
+        current_time = 0.0
+        positioned_clips = []
+        for c in res_clips:
+            positioned_clips.append(c.set_start(current_time))
+            current_time += c.duration
 
         # 🛡️ [STEP 4]: Caption Augmentation & Purification
         caption_clips = create_caption_clips(word_segments, (1080, 1920), include_avatar=include_avatar)
@@ -1956,16 +1938,25 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                     pure_captions.append(cap)
                 except:
                     continue # Purge corrupted caption object
+
+        # 🏗️ [VANTIX STACK]: Final Single-Pass Structural Hardening (v124.3)
+        # 🏢 [VANTIX SAFETY FLOOR]: Permanent structural baseline to prevent IndexError gaps
+        from moviepy.video.VideoClip import ColorClip
+        safety_floor = ColorClip(size=(1080, 1920), color=(0,0,0)).set_duration(audio_duration).set_fps(30)
         
-        # 🏗️ [VANTIX STACK]: Final Structural Hardening Pass
         try:
-            # We use the safety_floor as the bottom layer to kill IndexErrors across all production nodes
-            scene_comp = CompositeVideoClip([safety_floor, scene_comp] + pure_captions)
-            # Re-verify final composite duration integrity
-            scene_comp = scene_comp.set_duration(safety_floor.duration)
+            # Layer everything in one structural pass for O(1) indexing lookup
+            scene_comp = CompositeVideoClip([safety_floor] + positioned_clips + pure_captions)
+            
+            if audio_clip is not None:
+                scene_comp = scene_comp.set_audio(audio_clip)
+            
+            # Precision Lockdown
+            scene_comp = scene_comp.set_duration(audio_duration - 0.01)
+            print(f"✅ [COMPOSITION] Single-Pass Structural Stack Synchronized: {scene_comp.duration:.2f}s")
         except Exception as stack_error:
-            print(f"⚠️ [STACK] Final merge failed, falling back to background: {stack_error}")
-            scene_comp = scene_comp.set_duration(audio_duration)
+            print(f"⚠️ [STACK] Single-pass merge failed: {stack_error}")
+            scene_comp = CompositeVideoClip([safety_floor] + positioned_clips).set_duration(audio_duration)
 
         # 🛡️ [STEP 5]: Final Immortal Rendering
         print(f"🏎️ [RENDER] Starting Industrial Pass for Scene {idx}...")
