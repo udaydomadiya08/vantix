@@ -9,7 +9,7 @@ from datetime import datetime
 from functools import wraps
 import threading
 
-# === Global API & Model Health Tracker === #
+# === Global API & Model Health Tracker (v110.2) === #
 class APIHealth:
     def __init__(self):
         self.lock = threading.Lock()
@@ -18,36 +18,35 @@ class APIHealth:
             "groq": [
                 "llama-3.3-70b-versatile",
                 "llama-3.1-8b-instant",
-                "gemma2-9b-it"
+                "llama-3.2-3b-preview"
             ],
             "openrouter": [
-                "meta-llama/llama-3.3-70b-instruct", 
-                "qwen/qwen-2.5-72b-instruct",
                 "google/gemini-2.0-flash-001",
-                "google/gemma-2-9b-it:free"
+                "google/gemini-2.0-flash-lite-preview-0102",
+                "meta-llama/llama-3.3-70b-instruct", 
+                "qwen/qwen-2.5-72b-instruct"
             ],
             "image": [
-                "stabilityai/stable-diffusion-xl-base-1.0",
+                "stabilityai/sdxl",
                 "openai/dall-e-3"
             ]
         }
-        self.last_failure = {}
+        self.cooldowns = {} # {provider:model: timestamp}
 
     def report_success(self, provider, model=None):
         with self.lock:
+            key = f"{provider}:{model}" if model else provider
+            if key in self.cooldowns: del self.cooldowns[key]
+            
             if provider in self.provider_priority:
                 self.provider_priority.remove(provider)
                 self.provider_priority.insert(0, provider)
-            
-            if model and provider in self.model_priority:
-                models = self.model_priority[provider]
-                if model in models:
-                    models.remove(model)
-                    models.insert(0, model)
 
     def report_failure(self, provider, model=None):
         with self.lock:
-            self.last_failure[provider if not model else f"{provider}:{model}"] = time.time()
+            key = f"{provider}:{model}" if model else provider
+            self.cooldowns[key] = time.time() + 300 # 5 Minute Cool-down
+            
             if not model and provider in self.provider_priority:
                 self.provider_priority.remove(provider)
                 self.provider_priority.append(provider)
@@ -57,15 +56,25 @@ class APIHealth:
                 if model in models:
                     models.remove(model)
                     models.append(model)
-            print(f"📉 [HEALTH] {provider.upper()}{':' + model if model else ''} deprioritized.")
+            print(f"📉 [HEALTH] {provider.upper()}{':' + model if model else ''} cooled-down.")
+
+    def is_healthy(self, provider, model=None):
+        with self.lock:
+            key = f"{provider}:{model}" if model else provider
+            if key in self.cooldowns:
+                if time.time() > self.cooldowns[key]:
+                    del self.cooldowns[key]
+                    return True
+                return False
+            return True
 
     def get_providers(self):
         with self.lock:
-            return list(self.provider_priority)
+            return [p for p in self.provider_priority if self.is_healthy(p)]
 
     def get_models(self, provider):
         with self.lock:
-            return list(self.model_priority.get(provider, []))
+            return [m for m in self.model_priority.get(provider, []) if self.is_healthy(provider, m)]
 
 HEALTH_TRACKER = APIHealth()
 
@@ -93,8 +102,10 @@ def call_groq(prompt, user_keys=None):
                 print(f"✅ Groq ({model}) success.")
                 return AIResponse(response.json()["choices"][0]["message"]["content"].strip())
             else:
-                print(f"⚠️ Groq Error {response.status_code}: {response.text[:250]}")
-                HEALTH_TRACKER.report_failure("groq", model)
+                print(f"⚠️ Groq Error {response.status_code}: {response.text[:150]}")
+                # If rate limit, cooldown the model
+                if response.status_code == 429:
+                    HEALTH_TRACKER.report_failure("groq", model)
         except Exception as e:
             print(f"❌ Groq Exception: {e}")
             HEALTH_TRACKER.report_failure("groq", model)
@@ -125,9 +136,10 @@ def call_openrouter(prompt, user_keys=None):
                 print(f"✅ OpenRouter ({model}) success.")
                 return AIResponse(response.json()["choices"][0]["message"]["content"].strip())
             else:
-                print(f"⚠️ OpenRouter Error {response.status_code}: {response.text[:250]}")
-                HEALTH_TRACKER.report_failure("openrouter", model)
-                if response.status_code == 401: break # No point retrying invalid keys
+                print(f"⚠️ OpenRouter Error {response.status_code}: {response.text[:150]}")
+                if response.status_code in [429, 402]: # Rate limit or Out of credits (cooling down)
+                    HEALTH_TRACKER.report_failure("openrouter", model)
+                if response.status_code == 401: break # Kill key
         except Exception as e:
             print(f"❌ OpenRouter Exception: {e}")
             HEALTH_TRACKER.report_failure("openrouter", model)
@@ -137,19 +149,18 @@ def call_openrouter(prompt, user_keys=None):
 # === Main Synthesis Entry === #
 def generate_ai_response(prompt, user_keys=None):
     retry_count = 0
-    while retry_count < 3:
+    while retry_count < 2: # Optimized for speed
         providers = HEALTH_TRACKER.get_providers()
         for provider in providers:
             try:
                 if provider == "groq": return call_groq(prompt, user_keys=user_keys)
                 if provider == "openrouter": return call_openrouter(prompt, user_keys=user_keys)
-            except Exception as e:
-                print(f"ℹ️ {provider.upper()} level failure: {e}")
-                time.sleep(1) 
+            except:
+                continue # Rapid switch
         
         retry_count += 1
-        print(f"🚨 Global API Exhaustion ({retry_count}/3). Pausing 20s...")
-        time.sleep(20)
+        print(f"🚨 Global API Exhaustion ({retry_count}/2). Rapid Recovery Cycle...")
+        time.sleep(5) # Reduced from 20s
     
     raise RuntimeError("Critical: Permanent AI Infrastructure failure.")
 
