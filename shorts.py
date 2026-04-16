@@ -1786,8 +1786,16 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             except Exception as re:
                 if "'NoneType' object has no attribute 'get_frame'" in str(re):
                     print(f"🚨 [EMERGENCY RECONSTITUTION] Scene {idx} detected corrupted layers. Purging overlays...")
-                    # ☢️ PANIC MODE: Strip captions and complex effects, render base visuals only
-                    stable_backup = concatenate_videoclips([c.without_mask() for c in res_clips], method="chain").set_audio(audio_clip)
+                    # ☢️ PANIC MODE: Strip masks and complex effects, render base visuals only
+                    purified_clips = []
+                    for c in res_clips:
+                        try:
+                            # 🛡️ Force-strip any mask attributes to prevent recursive NoneType errors
+                            c.mask = None
+                            purified_clips.append(c)
+                        except: purified_clips.append(c) # Fallback to original if mask nullification fails
+                        
+                    stable_backup = concatenate_videoclips(purified_clips, method="chain").set_audio(audio_clip)
                     stable_backup.write_videofile(
                         final_output,
                         codec="libx264",
