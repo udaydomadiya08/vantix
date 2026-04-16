@@ -1400,6 +1400,9 @@ def generate_tts_audio(text, filename="output.mp3", voice_name="alloy", speaking
         
         async def run_edge_tts():
             communicate = edge_tts.Communicate(text, voice_name)
+            import random
+            import time
+            time.sleep(random.uniform(0.5, 1.5)) # 🛡️ [ANTI-BLOCK]: Randomized jitter
             await communicate.save(filename)
             
         asyncio.run(run_edge_tts())
