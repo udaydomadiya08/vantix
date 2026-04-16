@@ -116,6 +116,11 @@ def perform_industrial_cleanup():
             if f.endswith((".mp3", ".mp4", ".wav")):
                 try: os.remove(os.path.join(root, f))
                 except: pass
+
+# --- GLOBAL STABILITY REGISTRY ---
+import threading
+VANTIX_RENDER_LOCK = threading.Lock()
+
 def create_caption_clips(word_segments, resolution, include_avatar=True):
     """🖼️ [VANTIX CAPTIONS]: Generate high-retention cinematic text overlays."""
     from moviepy.editor import TextClip
@@ -142,19 +147,23 @@ def create_caption_clips(word_segments, resolution, include_avatar=True):
             txt = None
             for font_name in font_priorities:
                 try:
-                    txt = TextClip(
-                        word,
-                        font=font_name,
-                        fontsize=font_pt,
-                        color=color,
-                        stroke_color=stroke_color,
-                        stroke_width=stroke_width,
-                        method="label",
-                        size=(width * 0.8, None)
-                    ).set_start(segment["start"]).set_duration(duration)
+                    with VANTIX_RENDER_LOCK: # 🔐 Prevent ImageMagick collision
+                        txt = TextClip(
+                            word,
+                            font=font_name,
+                            fontsize=font_pt,
+                            color=color,
+                            stroke_color=stroke_color,
+                            stroke_width=stroke_width,
+                            method="label",
+                            size=(width * 0.8, None)
+                        ).set_start(segment["start"]).set_duration(duration)
                     
-                    # 💥 PRE-FLIGHT CHECK (v105.1): Verify the font actually rendered
+                    # 💥 PRE-FLIGHT CHECK (v107.0): Verify frame AND mask integrity
                     _ = txt.get_frame(0)
+                    if hasattr(txt, 'mask') and txt.mask is not None:
+                        _ = txt.mask.get_frame(0)
+                    
                     break # Success!
                 except:
                     continue # Try next font
@@ -1735,15 +1744,16 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
 
         # 🛡️ [STEP 5]: Final High-Speed Rendering
         print(f"🏎️ [RENDER] Starting Industrial Pass for Scene {idx}...")
-        scene_comp.write_videofile(
-            final_output,
-            codec="libx264",
-            audio_codec="aac",
-            fps=30,
-            preset="ultrafast",
-            threads=2,
-            logger=None
-        )
+        with VANTIX_RENDER_LOCK: # 🔐 Sovereign Render Lock (No dual-FFmpeg collisions)
+            scene_comp.write_videofile(
+                final_output,
+                codec="libx264",
+                audio_codec="aac",
+                fps=30,
+                preset="ultrafast",
+                threads=2,
+                logger=None
+            )
         
         # Immediate cleanup of memory handles
         scene_comp.close()
