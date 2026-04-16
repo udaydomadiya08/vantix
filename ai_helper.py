@@ -147,13 +147,15 @@ def call_openrouter(prompt, user_keys=None):
     raise RuntimeError("All OpenRouter models failed.")
 
 # === Main Synthesis Entry === #
-def generate_ai_response(prompt, user_keys=None):
+def generate_ai_response(prompt, user_keys=None, job_id=None):
+    import api.telemetry as telemetry
     retry_count = 0
     
     while retry_count < 3:
         providers = HEALTH_TRACKER.get_providers()
         for provider in providers:
             try:
+                if job_id: telemetry.update_progress(job_id, f"AI {provider.upper()} Thinking...")
                 if provider == "groq": return call_groq(prompt, user_keys=user_keys)
                 if provider == "openrouter": return call_openrouter(prompt, user_keys=user_keys)
             except:
@@ -161,7 +163,9 @@ def generate_ai_response(prompt, user_keys=None):
         
         retry_count += 1
         # 📈 [BACKOFF] Accelerated Recovery Jitter (v120.7)
-        sleep_time = (10 * retry_count) + random.uniform(1, 5)
+        sleep_time = (5 * retry_count) + random.uniform(1, 3)
+        msg = f"AI Retrying ({retry_count}/3)..."
+        if job_id: telemetry.update_progress(job_id, msg)
         print(f"🚨 Global API Exhaustion ({retry_count}/3). Pausing {sleep_time:.1f}s...")
         time.sleep(sleep_time)
     

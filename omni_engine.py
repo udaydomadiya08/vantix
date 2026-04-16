@@ -441,7 +441,7 @@ def generate_vantix_script(topic, user_keys=None, job_id=None):
     NO introductory text, NO scene labels, NO [Hook] tags, NO stage directions, NO headers. 
     Just start with the first word of the script.
     """
-    draft_obj = generate_ai_response(draft_prompt, user_keys=user_keys)
+    draft_obj = generate_ai_response(draft_prompt, user_keys=user_keys, job_id=job_id)
     draft = draft_obj.text if hasattr(draft_obj, 'text') else str(draft_obj)
     draft = clean_script_noise(draft)
     
@@ -449,6 +449,7 @@ def generate_vantix_script(topic, user_keys=None, job_id=None):
     msg = "🧠 [VIRAL CRITIC] Pass 2/3: Analyzing Dopamine Pacing..."
     print(msg)
     if job_id: telemetry.update_progress(job_id, "Critiquing (2/3)")
+    print(f"📡 [VANTIX] Passing to Thinking Node: {topic} (Pass 2/3)")
     critique_prompt = f"""
     You are the 'Viral Critic'. Analyze this script for:
     1. Hook Strength: Is it shocking enough in the first 3 seconds?
@@ -461,13 +462,14 @@ def generate_vantix_script(topic, user_keys=None, job_id=None):
     STRICT REQUIREMENT: Return ONLY the improved version of the spoken script as a pure, continuous paragraph.
     Absolutely NO feedback, NO analysis, NO [tags], NO headers, NO conversational filler.
     """
-    critique_obj = generate_ai_response(critique_prompt, user_keys=user_keys)
+    critique_obj = generate_ai_response(critique_prompt, user_keys=user_keys, job_id=job_id)
     critique = critique_obj.text if hasattr(critique_obj, 'text') else str(critique_obj)
     
     # Pass 3: Final Infinity Edition
     msg = "🧠 [VIRAL CRITIC] Pass 3/3: Finalizing Narrative..."
     print(msg)
     if job_id: telemetry.update_progress(job_id, "Finalizing (3/3)")
+    print(f"📡 [VANTIX] Finalizing Narrative Synthesis... (Pass 3/3)")
     final_prompt = f"""
     Rewrite the original script incorporating the Viral Critic's improvements.
     Ensure every sentence is punchy, high-stakes, and impossible to click away from.
@@ -484,7 +486,7 @@ def generate_vantix_script(topic, user_keys=None, job_id=None):
     NO [labels], NO "Narrator:", NO intros, NO outros, NO meta-text.
     STRICTLY ONLY the words that will be spoken on camera.
     """
-    final_obj = generate_ai_response(final_prompt, user_keys=user_keys)
+    final_obj = generate_ai_response(final_prompt, user_keys=user_keys, job_id=job_id)
     final_text = final_obj.text if hasattr(final_obj, 'text') else str(final_obj)
     return clean_script_noise(final_text)
 

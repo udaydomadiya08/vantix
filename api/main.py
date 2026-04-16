@@ -127,7 +127,7 @@ async def download_file(path: str):
 # 📊 [STATE] Industrial Queue Management System
 JOB_STATUS = {}
 CANCELLED_JOBS = set() # 🕹️ Vantix Kills
-EXECUTOR = ThreadPoolExecutor(max_workers=5) # Global pool for heavy compute
+EXECUTOR = ThreadPoolExecutor(max_workers=1) # ⚖️ [VANTIX STABILITY]: Serialized for 2vCPU Space Sovereignty
 
 class StreamQueueManager:
     def __init__(self):
@@ -135,7 +135,7 @@ class StreamQueueManager:
         self.queue = asyncio.PriorityQueue()
         self.active_jobs = {} # {username: count}
         self.is_worker_running = False
-        self.MAX_GLOBAL_CONCURRENCY = 5 # Matches EXECUTOR max_workers
+        self.MAX_GLOBAL_CONCURRENCY = 1 # ⚖️ [VANTIX STABILITY]: Locked to 1 for 2vCPU Node Sovereignty
 
     async def add_job(self, username, stream_type, job_id, func, kwargs):
         username = username.lower().strip()
@@ -192,8 +192,8 @@ class StreamQueueManager:
                 self.queue.task_done()
                 continue
 
-            # 🛠️ [EXECUTION] Fire-and-forget the processing task to allow next queue pull
-            asyncio.create_task(self.process_job(username, job_id, func, kwargs))
+            # 🛠️ [EXECUTION] Sequential Lockstep (v122.19)
+            await self.process_job(username, job_id, func, kwargs)
             
             # Small stagger to prevent race conditions on DB files
             await asyncio.sleep(0.5)
