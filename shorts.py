@@ -1698,27 +1698,31 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
     try:
         from moviepy.editor import CompositeVideoClip
         
-        # 🛡️ [STEP 1]: Background Stabilization
+        # 🛡️ [STEP 1]: Background Stabilization (Nuclear Purification v108.0)
         res_clips = []
         for c in collected_clips:
             if c is not None and hasattr(c, "get_frame"):
                 try:
-                    # Verify frame producer before processing
+                    # Verify frame producer and mask integrity
                     _ = c.get_frame(0)
+                    if hasattr(c, 'mask') and c.mask is not None:
+                        _ = c.mask.get_frame(0)
                     res_clips.append(c.resize((1080, 1920)).set_fps(30))
                 except Exception as e:
-                    print(f"⚠️ Removing non-renderable clip: {e}")
+                    print(f"⚠️ [STABILITY] Removing corrupted background clip: {e}")
 
         if not res_clips:
-            raise ValueError("All background clips failed pre-flight verification.")
+            raise ValueError("VANTIX CRITICAL: All background clips failed verification. Visual stream is empty.")
 
-        # 🛡️ [STEP 2]: Initial Composite
+        # 🛡️ [STEP 2]: Initial Composite (Stable Chain Method)
+        from moviepy.video.compositing.concatenate import concatenate_videoclips
         try:
-            scene_comp = CompositeVideoClip(res_clips)
-            _ = scene_comp.get_frame(0) # Verify composite integrity
+            # 🔗 Use 'chain' method to avoid complex composition maps that leak memory
+            scene_comp = concatenate_videoclips(res_clips, method="chain")
+            _ = scene_comp.get_frame(0) 
         except Exception as e:
-            print(f"❌ Composite Stage 1 failed: {e}. Falling back to single-clip anchor.")
-            scene_comp = res_clips[0]
+            print(f"❌ Composite Stage 1 failed: {e}. Falling back to composition mode.")
+            scene_comp = CompositeVideoClip(res_clips)
 
         # 🛡️ [STEP 3]: Audio-Visual Fusion
         try:
@@ -1729,18 +1733,31 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             print(f"⚠️ Audio Fusion Warning: {e}")
             scene_comp = scene_comp.set_duration(audio_duration)
 
-        # 🛡️ [STEP 4]: Caption Augmentation
+        # 🛡️ [STEP 4]: Caption Augmentation & Purification
         caption_clips = create_caption_clips(word_segments, (1080, 1920), include_avatar=include_avatar)
-        valid_captions = [c for c in (caption_clips or []) if c is not None and hasattr(c, "get_frame")]
         
-        if valid_captions:
+        # Final pass filter to catch internal MoviePy memory leaks
+        pure_captions = []
+        for cap in (caption_clips or []):
+            if cap is not None and hasattr(cap, "get_frame"):
+                try:
+                    _ = cap.get_frame(0)
+                    if hasattr(cap, 'mask') and cap.mask is not None:
+                        _ = cap.mask.get_frame(0)
+                    pure_captions.append(cap)
+                except:
+                    continue # Purge corrupted caption object
+        
+        if pure_captions:
             try:
                 # Re-verify scene_comp before final merge
                 _ = scene_comp.get_frame(0)
-                scene_comp = CompositeVideoClip([scene_comp] + valid_captions)
+                scene_comp = CompositeVideoClip([scene_comp] + pure_captions)
                 _ = scene_comp.get_frame(0)
             except Exception as e:
-                print(f"⚠️ Caption Merge failed (likely ImageMagick collision): {e}. Proceeding without captions.")
+                print(f"⚠️ Caption Merge failed (likely mask collision): {e}. Proceeding without captions.")
+                # Re-stabilize to background only
+                scene_comp = concatenate_videoclips(res_clips, method="chain")
 
         # 🛡️ [STEP 5]: Final High-Speed Rendering
         print(f"🏎️ [RENDER] Starting Industrial Pass for Scene {idx}...")
