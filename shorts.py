@@ -1466,7 +1466,7 @@ def create_word_by_word_subtitles(word_segments, video_size=None, include_avatar
         safe_width = min(int(width * 0.85), 1080)
         max_lines = 2
         
-    kerning_buffer = 25 # 💥 GOLDILOCKS CALIBRATION (v124.23)
+    kerning_buffer = 40 # 💥 GOLDILOCKS CALIBRATION (v124.31)
     
     font_path = os.path.join(PROJECT_ROOT, "Anton-Regular.ttf")
     if not os.path.exists(font_path): font_path = "Arial-Bold"
