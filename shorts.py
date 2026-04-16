@@ -1550,9 +1550,16 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                   audio_path = layer_sfx_on_audio(audio_path, layering_list)
                   print(f"🎵 [SFX FUSION] Multi-dimensional audio mastered (WAV): {audio_path}")
         
-        audio_clip = AudioFileClip(audio_path)
-        audio_duration = audio_clip.duration
-        audio_clip.close()
+        # 🛡️ [SOVEREIGN VERIFICATION]: Verify Audio Integrity before composing
+        try:
+            audio_clip = AudioFileClip(audio_path)
+            audio_duration = audio_clip.duration
+            # Burn-test: probe first 0.1s
+            _ = audio_clip.get_frame(0)
+        except Exception as ae:
+            print(f"⚠️ [STABILITY] Narration node corrupted for Scene {idx}: {ae}. Using silence.")
+            audio_clip = None
+            audio_duration = 3.0
     except Exception as e:
         print(f"⚠️ Master Audio/SFX Error: {e}")
         # Final safety fallback for duration
@@ -1676,8 +1683,8 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                 print(f"❌ Milestone {i} Download Failed: {e}")
                 return {"is_placeholder": True, "dur": target_dur}
 
-        # Execute Parallel Discovery
-        orch = ParallelOrchestrator(max_workers=2)
+        # Execute [Sovereign] Sequential Discovery (v122.21)
+        orch = ParallelOrchestrator(max_workers=1)
         parallel_results = orch.parallel_map_indexed(process_milestone, milestones, task_name="Milestone")
         
         # Assemble in Sequence
@@ -1756,7 +1763,7 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
 
         # 🛡️ [STEP 3]: Audio-Visual Fusion
         try:
-            if 'audio_clip' in locals() and audio_clip is not None:
+            if audio_clip is not None:
                 scene_comp = scene_comp.set_audio(audio_clip)
             scene_comp = scene_comp.set_duration(audio_duration)
         except Exception as e:
@@ -1805,17 +1812,21 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             except Exception as re:
                 if "'NoneType' object has no attribute 'get_frame'" in str(re):
                     print(f"🚨 [EMERGENCY RECONSTITUTION] Scene {idx} detected corrupted layers. Purging overlays...")
-                    # ☢️ PANIC MODE: Strip masks and complex effects, render base visuals only
+                    # ☢️ NUCLEAR FALLBACK (v122.21): Render Base Visuals Only, Strip Audio if necessary
                     purified_clips = []
                     for c in res_clips:
                         try:
-                            # 🛡️ Force-strip any mask attributes to prevent recursive NoneType errors
                             c.mask = None
+                            _ = c.get_frame(0)
                             purified_clips.append(c)
-                        except: purified_clips.append(c) # Fallback to original if mask nullification fails
+                        except: pass
                         
-                    stable_backup = concatenate_videoclips(purified_clips, method="chain").set_audio(audio_clip)
-                    stable_backup.write_videofile(
+                    stable_backup = concatenate_videoclips(purified_clips, method="chain")
+                    if audio_clip:
+                        try: stable_backup = stable_backup.set_audio(audio_clip)
+                        except: pass
+                    
+                    stable_backup.set_duration(audio_duration).write_videofile(
                         final_output,
                         codec="libx264",
                         audio_codec="aac",
