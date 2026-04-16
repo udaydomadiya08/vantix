@@ -100,9 +100,9 @@ app.add_middleware(
 try:
     os.makedirs(os.path.join(parent_dir, "static/videos"), exist_ok=True)
     os.makedirs(os.path.join(parent_dir, "static/ebooks"), exist_ok=True)
+    os.makedirs(os.path.join(parent_dir, "static/courses"), exist_ok=True)
     os.makedirs(os.path.join(parent_dir, "static/thumbnails"), exist_ok=True)
     os.makedirs(os.path.join(parent_dir, "final_video"), exist_ok=True)
-    os.makedirs(os.path.join(parent_dir, "courses"), exist_ok=True)
 except Exception:
     # Fail gracefully if filesystem is read-only (Serverless Persistence)
     pass
