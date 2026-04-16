@@ -1592,30 +1592,40 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             pool = find_one_video_clips(ms["query"], used_video_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
             if not pool: return None
             video_url = pool[0]["video_files"][0]["link"]
-            download_video(video_url, tmp_path)
-            raw_clip = VideoFileClip(tmp_path).without_audio()
-            
             try:
-                clip = resize_crop(raw_clip).set_fps(30)
-                clip = apply_pattern_interrupt(apply_ken_burns(clip, target_dur))
-                clip = apply_vantix_pacing(clip, is_hook=(i==0), intensity=intensity) # 💥 NEURAL PACING
-                clip = clip.set_duration(target_dur).set_start(ms["start"])
-                return {"clip": clip, "url": video_url, "dur": target_dur, "tmp_path": tmp_path}
+                download_video(video_url, tmp_path)
+                # 💥 [VANTIX STABILITY]: Return only DATA, not the CLIP object
+                return {"tmp_path": tmp_path, "url": video_url, "dur": target_dur}
             except Exception as e:
                 print(f"❌ Milestone {i} Failed: {e}")
                 return None
 
-        # Execute Parallel Discovery & Processing
+        # Execute Parallel Discovery
         orch = ParallelOrchestrator(max_workers=2)
         parallel_results = orch.parallel_map_indexed(process_milestone, milestones, task_name="Milestone")
         
         # Assemble in Sequence
         for res in parallel_results:
-            if res and isinstance(res, dict) and res.get("clip") is not None:
-                collected_clips.append(res["clip"])
-                new_used_urls.add(res["url"])
-                GLOBAL_USED_URLS.add(res["url"])
-                total_collected += res["dur"]
+            if res and isinstance(res, dict) and os.path.exists(res.get("tmp_path", "")):
+                try:
+                    # 🚀 [MAIN PROCESS LOAD]: Instantiate clips here to ensure stability
+                    tmp_path = res["tmp_path"]
+                    target_dur = res["dur"]
+                    
+                    raw_clip = VideoFileClip(tmp_path).without_audio()
+                    clip = resize_crop(raw_clip).set_fps(30)
+                    clip = apply_pattern_interrupt(apply_ken_burns(clip, target_dur))
+                    clip = apply_vantix_pacing(clip, is_hook=(len(collected_clips)==0), intensity=intensity)
+                    # Use accurate global start times from the original milestones
+                    # Or at least keep them in order
+                    clip = clip.set_duration(target_dur).set_start(total_collected)
+                    
+                    collected_clips.append(clip)
+                    new_used_urls.add(res["url"])
+                    total_collected += res["dur"]
+                    print(f"✅ Milestone Loaded: {res['url']}")
+                except Exception as e:
+                    print(f"⚠️ Failed to load captured asset {res.get('tmp_path')}: {e}")
     
     # --- PHASE 4: ATOMIC PARALLEL RENDERING (v103.4: Hyperscale Speed) ---
     if not collected_clips:
