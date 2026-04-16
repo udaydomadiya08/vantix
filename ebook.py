@@ -148,8 +148,6 @@ class MyPDF(FPDF):
         content = sanitize_unicode(content)
         self.add_page()
         
-        self.add_page()
-        
         # 🎨 STABILIZED Y-BUFFERING
         start_y = 35
         if self.layout_mode == "Minimalist":
@@ -203,7 +201,11 @@ class MyPDF(FPDF):
                 self.set_text_color(40)
                 self.ln(5)
             else:
-                self.multi_cell(0, body_lh, line, align=self.alignment)
+                # 🛡️ [LAYOUT STABILITY]: Multi-worker horizontal space sanity check
+                if self.w - self.l_margin - self.r_margin > 0:
+                    self.multi_cell(0, body_lh, line, align=self.alignment)
+                else:
+                    self.ln(body_lh) # Fallback to vertical break if layout is corrupted
 
 def save_ebook_pdf(title, description, chapters_content, chapters_list, subsections_dict, output_file, theme, cover_image=None, chapter_arts=None):
     pdf = MyPDF(theme)
@@ -307,11 +309,11 @@ def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150
         cover_image_path = None
 
     from parallel_helper import ParallelOrchestrator
-    orch = ParallelOrchestrator(max_workers=3)
+    orch = ParallelOrchestrator(max_workers=2) # 🛡️ [THROTTLING] Reduced from 3 to 2 for Stability (v124.44)
     
     def process_chapter(i, chapter_title):
-        # 🛡️ [REDUCE PRESSURE] Industrial Jitter to mitigate Groq RPM limits (v124.43)
-        time.sleep(1.5 * i)
+        # 🛡️ [REDUCE PRESSURE] Industrial Jitter to mitigate Groq RPM limits (v124.44)
+        time.sleep(2.5 * i)
         print(f"📝 [SYNTHESIS] Mastering Chapter {i+1}: {chapter_title}")
         art_temp_name = f"art_chap_{i+1}_{safe_topic}.png"
         art_path = os.path.join(output_dir, art_temp_name) if output_dir else art_temp_name

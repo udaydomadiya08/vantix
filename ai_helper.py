@@ -21,7 +21,7 @@ class APIHealth:
             ],
             "openrouter": [
                 "google/gemini-2.0-flash-001",
-                "google/gemini-2.0-pro-exp-02-05:free",
+                "google/gemini-2.0-flash-lite-001",
                 "meta-llama/llama-3.3-70b-instruct", 
                 "qwen/qwen-2.5-72b-instruct"
             ],
@@ -133,23 +133,50 @@ def call_openrouter(prompt, user_keys=None):
             "temperature": 0.7,
             "max_tokens": 2048
         }
-        try:
-            print(f"📡 Requesting {model}...")
-            response = requests.post(url, headers=headers, json=payload, timeout=70)
-            if response.status_code == 200:
-                HEALTH_TRACKER.report_success("openrouter", model)
-                print(f"✅ OpenRouter ({model}) success.")
-                return AIResponse(response.json()["choices"][0]["message"]["content"].strip())
-            else:
-                print(f"⚠️ [API ERROR] OpenRouter {response.status_code}: {response.text[:150]}")
-                if response.status_code in [429, 402]: # Rate limit or Out of credits (cooling down)
+        
+        def attempt_request(current_payload):
+            try:
+                print(f"📡 Requesting {model}...")
+                response = requests.post(url, headers=headers, json=current_payload, timeout=70)
+                if response.status_code == 200:
+                    HEALTH_TRACKER.report_success("openrouter", model)
+                    print(f"✅ OpenRouter ({model}) success.")
+                    return AIResponse(response.json()["choices"][0]["message"]["content"].strip())
+                
+                # 🛡️ [ADAPTIVE TOKEN SCALING]: Credit-Sensing Fallback (v124.44)
+                if response.status_code == 402:
+                    error_msg = response.text
+                    print(f"⚠️ [CREDIT ALERT] OpenRouter 402: {error_msg[:100]}")
+                    match = re.search(r"only afford (\d+)", error_msg)
+                    if match:
+                        afforded = int(match.group(1))
+                        # Retry ONCE with the afforded limit - 50 buffer
+                        retry_tokens = max(150, afforded - 50)
+                        print(f"📉 [ADAPTIVE] Scaling down to {retry_tokens} tokens to certify authorization...")
+                        current_payload["max_tokens"] = retry_tokens
+                        # Recursive single retry
+                        retry_resp = requests.post(url, headers=headers, json=current_payload, timeout=70)
+                        if retry_resp.status_code == 200:
+                            HEALTH_TRACKER.report_success("openrouter", model)
+                            print(f"✅ [ADAPTIVE SUCCESS] Scale-down authorized.")
+                            return AIResponse(retry_resp.json()["choices"][0]["message"]["content"].strip())
+                    
                     HEALTH_TRACKER.report_failure("openrouter", model)
-                if response.status_code == 401: 
+                elif response.status_code == 429:
+                    HEALTH_TRACKER.report_failure("openrouter", model)
+                elif response.status_code == 401: 
                     print("🚫 [SECURITY] OpenRouter API Key INVALID/EXPIRED.")
-                    break # Kill key
-        except Exception as e:
-            print(f"❌ [EXCEPTION] OpenRouter: {e}")
-            HEALTH_TRACKER.report_failure("openrouter", model)
+                    return "SKIP_KEY"
+                else:
+                    print(f"⚠️ [API ERROR] OpenRouter {response.status_code}: {response.text[:150]}")
+            except Exception as e:
+                print(f"❌ [EXCEPTION] OpenRouter: {e}")
+                HEALTH_TRACKER.report_failure("openrouter", model)
+            return None
+
+        res = attempt_request(payload)
+        if res == "SKIP_KEY": break
+        if res: return res
             
     raise RuntimeError("OpenRouter Cycle Exhausted.")
 
