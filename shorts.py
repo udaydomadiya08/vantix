@@ -1810,33 +1810,20 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                     logger=None
                 )
             except Exception as re:
-                if "'NoneType' object has no attribute 'get_frame'" in str(re):
-                    print(f"🚨 [EMERGENCY RECONSTITUTION] Scene {idx} detected corrupted layers. Purging overlays...")
-                    # ☢️ NUCLEAR FALLBACK (v122.21): Render Base Visuals Only, Strip Audio if necessary
-                    purified_clips = []
-                    for c in res_clips:
-                        try:
-                            c.mask = None
-                            _ = c.get_frame(0)
-                            purified_clips.append(c)
-                        except: pass
-                        
-                    stable_backup = concatenate_videoclips(purified_clips, method="chain")
-                    if audio_clip:
-                        try: stable_backup = stable_backup.set_audio(audio_clip)
-                        except: pass
-                    
-                    stable_backup.set_duration(audio_duration).write_videofile(
+                print(f"❌ [RENDER FAILURE] Scene {idx}: {re}. Retrying with simplified lock...")
+                # 🛡️ [RETRY NODE]: If the first pass fails, we attempt one final stable render
+                try:
+                    scene_comp.write_videofile(
                         final_output,
                         codec="libx264",
                         audio_codec="aac",
                         fps=30,
                         preset="ultrafast",
-                        threads=2,
+                        threads=1, # Single thread for maximum OS-level safety
                         logger=None
                     )
-                else:
-                    raise re
+                except Exception as final_e:
+                    raise final_e
         
         # Immediate cleanup of memory handles
         scene_comp.close()

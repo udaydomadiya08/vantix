@@ -1007,88 +1007,76 @@ def create_video_from_script(script, user_topic, include_disclaimer=True):
     elif include_disclaimer:
         print(f"⚠️ Disclaimer video not found at: {disclaimer_path}. Skipping disclaimer.")
 
-    # After disclaimer, add the 5-second fast cut video from Pexels images
-    cache_folder = get_cache_folder_for_topic(user_topic)
-    images = load_images_from_cache(cache_folder, NUM_IMAGES)
+    # --- SOVEREIGN ASSEMBLY (v122.22): Sequential Scene Rendering ---
+    rendered_scene_files = []
+    # Include disclaimer if exists
+    if include_disclaimer and os.path.exists(disclaimer_path):
+        rendered_scene_files.append(disclaimer_path)
+    
+    # Render Fast-Cut Intro if exists
+    fast_cut_path = os.path.join(output_dir, "intro_fast_cut.mp4")
+    fast_cut_clip.write_videofile(fast_cut_path, fps=30, logger=None)
+    rendered_scene_files.append(fast_cut_path)
 
-    if not images:
-        print("No sufficient cached images, fetching from Pexels...")
-        clear_temp_folder(cache_folder)
-        urls = fetch_pexels_images(user_topic, 21)
-        images = prepare_images(urls, cache_folder, RESOLUTION)
-
-    fast_cut_clip = create_fast_cut_clip_from_images(images, total_duration=5, resolution=RESOLUTION)
-    scene_clips.append(fast_cut_clip)
-
-    # Process scripted sentences into clips
+    # Process scripted sentences into standalone scene files
     all_used_urls = set()
     for idx, sentence in enumerate(sentences):
         scene_clip, scene_urls = create_scene(sentence, idx, used_video_urls, user_topic)
         if scene_clip is not None:
-            scene_clips.append(scene_clip)
+            scene_file = os.path.join(output_dir, f"scene_{idx}_final.mp4")
+            scene_clip.write_videofile(scene_file, fps=30, codec="libx264", audio_codec="aac", logger=None)
+            rendered_scene_files.append(scene_file)
+            scene_clip.close()
         all_used_urls.update(scene_urls)
 
-    print("All used URLs:", all_used_urls)
-
-    if not scene_clips:
+    if not rendered_scene_files:
         print("❌ No scenes could be created. Cannot generate final video.")
         return None, None
 
-    # Check for valid clips
-    for i, clip in enumerate(scene_clips):
-        if not hasattr(clip, 'duration'):
-            print(f"❌ Invalid clip at index {i}: {clip}")
-            return None, None
-
-    # Concatenate all video clips
-    final_clip = concatenate_videoclips(scene_clips, method="compose")
-
-    # Background music
-    bg_music_raw = AudioFileClip("/Users/uday/Downloads/VIDEOYT/Cybernetic Dreams.mp3").volumex(0.03)
-    bg_music_looped = audio_loop(bg_music_raw, duration=final_clip.duration).set_start(5)
-
-    # Mix with existing audio
-    if final_clip.audio:
-        final_audio = CompositeAudioClip([final_clip.audio.set_duration(final_clip.duration), bg_music_looped])
-    else:
-        final_audio = bg_music_looped
-
-    final_clip = final_clip.set_audio(final_audio)
-
-    # Temporary paths
-    temp_video_path = os.path.join(output_dir, f"temp_video_{uuid.uuid4()}.mp4")
-    temp_audio_path = os.path.join(output_dir, f"temp_audio_{uuid.uuid4()}.mp3")
+    # --- FINAL FFmpeg STITCH (Warp Speed) ---
     output_path = os.path.join(output_dir, "final_video_01.mp4")
+    concat_list_path = os.path.join(output_dir, "concat_list.txt")
+    
+    with open(concat_list_path, "w") as f:
+        for file in rendered_scene_files:
+            # Escape path for ffmpeg
+            abs_path = os.path.abspath(file)
+            f.write(f"file '{abs_path}'\n")
 
-    # Export video without audio
-    final_clip.without_audio().write_videofile(
-        temp_video_path,
-        codec="libx264",
-        fps=30,
-        preset="ultrafast",
-        threads=8,
-        audio=False
-    )
-
-    # Export audio
-    final_audio.write_audiofile(temp_audio_path, fps=44100)
-
-    # Combine video and audio using FFmpeg
+    print("🔧 [SOVEREIGN] Running FFmpeg Warp-Stitch...")
     ffmpeg_cmd = [
-        "ffmpeg",
-        "-y",
-        "-i", temp_video_path,
-        "-i", temp_audio_path,
-        "-c:v", "copy",
-        "-c:a", "libmp3lame",
-        "-b:a", "192k",
-        "-shortest",
+        "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+        "-i", concat_list_path,
+        "-c", "copy", # Instant merge, zero quality loss
         output_path
     ]
-
-    print("🔧 Running FFmpeg to mux video and audio...")
     subprocess.run(ffmpeg_cmd, check=True)
-    print(f"✅ Final video created at: {output_path}")
+
+    # --- FINAL MASTERING (v122.22): FFmpeg Audio Fusion ---
+    bg_music_path = "/Users/uday/Downloads/VIDEOYT/Cybernetic Dreams.mp3"
+    final_mastered_path = os.path.join(output_dir, "video_final_mastered.mp4")
+    
+    print("🔧 [SOVEREIGN] Mastering Final Audio Fusion with FFmpeg...")
+    # FFmpeg Filter: Loop BG music, mix with video audio (amix), and maintain 3% BG volume
+    # [1:a]aloop=loop=-1:size=2e9,volume=0.03[bg]; [0:a][bg]amix=inputs=2:duration=first[outa]
+    master_cmd = [
+        "ffmpeg", "-y",
+        "-i", output_path, # The stitched video (contains scene audio)
+        "-stream_loop", "-1", "-i", bg_music_path, # Loop BG music infinitely
+        "-filter_complex", "[1:a]volume=0.03[bg];[0:a][bg]amix=inputs=2:duration=first:dropout_transition=2[outa]",
+        "-map", "0:v", "-map", "[outa]",
+        "-c:v", "copy", # No video re-render, keep full quality
+        "-c:a", "aac", "-b:a", "192k",
+        "-shortest",
+        final_mastered_path
+    ]
+    subprocess.run(master_cmd, check=True)
+
+    # Move to final destination
+    os.replace(final_mastered_path, output_path)
+    print(f"✅ [SOVEREIGN] Cinematic Production Complete: {output_path}")
+
+    return output_path, all_used_urls
 
     # Optionally cleanup temp files
     os.remove(temp_video_path)
