@@ -383,6 +383,17 @@ class CheckoutRequest(BaseModel):
     plan_id: str # starter, core, grid
 
 # --- Auth Utilities ---
+def get_real_ip(request: Request):
+    """🛡️ [IP NORMALIZATION]: Extract real client IP behind load balancers (v122.1)"""
+    ff = request.headers.get("x-forwarded-for")
+    if ff:
+        # X-Forwarded-For can contain a list: 'client, proxy1, proxy2'
+        return ff.split(",")[0].strip()
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip
+    return request.client.host
+
 def create_token(username: str, ip: str):
     # 🏛️ [SAAS PROTOCOL] 30-Day Industrial Session Window
     # 🛡️ [IP PINNING] Binding token to originating node
@@ -396,10 +407,13 @@ def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials
         origin_ip = payload.get("ip")
         
         # 🛡️ [SOVEREIGN GUARD]: Verify IP Pinning
-        current_ip = request.client.host
+        current_ip = get_real_ip(request)
         if current_ip != origin_ip:
-            log_trace(f"SECURITY_BREACH: IP Mismatch for User='{username}' | Origin='{origin_ip}' | Probing_IP='{current_ip}'")
-            raise HTTPException(status_code=401, detail="Sovereign Identity Violation: Session bound to another IP node.")
+            # 🏛️ [SUBNET RESILIENCE]: If both are internal 10.16.x.x, allow as HF rotation
+            is_internal = current_ip.startswith("10.16.") and origin_ip.startswith("10.16.")
+            if not is_internal:
+                log_trace(f"SECURITY_BREACH: IP Mismatch for User='{username}' | Origin='{origin_ip}' | Probing_IP='{current_ip}'")
+                raise HTTPException(status_code=401, detail="Sovereign Identity Violation: Session bound to another IP node.")
 
         if username is None:
             raise HTTPException(status_code=401, detail="Invalid token")
@@ -414,7 +428,7 @@ def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials
 def signup(request: Request, user: UserAuth):
     username = user.username.lower().strip()
     if db_helper.create_user(username, user.password):
-        return {"message": "User created successfully", "token": create_token(username, request.client.host)}
+        return {"message": "User created successfully", "token": create_token(username, get_real_ip(request))}
     raise HTTPException(status_code=400, detail="User already exists")
 
 @app.post("/auth/login")
@@ -442,7 +456,7 @@ def login(request: Request, user: UserAuth):
     if existing:
         if existing["password"] == db_helper.hash_password(user.password):
             log_trace(f"LOGIN_SUCCESS: User='{username}' | Status=Authenticated")
-            return {"token": create_token(username, request.client.host), "username": username}
+            return {"token": create_token(username, get_real_ip(request)), "username": username}
         else:
             log_trace(f"LOGIN_FAIL: User='{username}' | Reason='Invalid Password'")
     else:
