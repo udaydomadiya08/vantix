@@ -45,7 +45,7 @@ class APIHealth:
     def report_failure(self, provider, model=None):
         with self.lock:
             key = f"{provider}:{model}" if model else provider
-            self.cooldowns[key] = time.time() + 300 # 5 Minute Cool-down
+            self.cooldowns[key] = time.time() + 60 # 60 Second Cool-down (Reduced from 300)
             
             if not model and provider in self.provider_priority:
                 self.provider_priority.remove(provider)
@@ -149,7 +149,7 @@ def call_openrouter(prompt, user_keys=None):
 # === Main Synthesis Entry === #
 def generate_ai_response(prompt, user_keys=None):
     retry_count = 0
-    while retry_count < 2: # Optimized for speed
+    while retry_count < 3: # Back to 3 retries
         providers = HEALTH_TRACKER.get_providers()
         for provider in providers:
             try:
@@ -159,8 +159,8 @@ def generate_ai_response(prompt, user_keys=None):
                 continue # Rapid switch
         
         retry_count += 1
-        print(f"🚨 Global API Exhaustion ({retry_count}/2). Rapid Recovery Cycle...")
-        time.sleep(5) # Reduced from 20s
+        print(f"🚨 Global API Exhaustion ({retry_count}/3). Pausing 20s...")
+        time.sleep(20) # Back to 20s
     
     raise RuntimeError("Critical: Permanent AI Infrastructure failure.")
 
