@@ -149,7 +149,8 @@ def call_openrouter(prompt, user_keys=None):
 # === Main Synthesis Entry === #
 def generate_ai_response(prompt, user_keys=None):
     retry_count = 0
-    while retry_count < 3: # Back to 3 retries
+    
+    while retry_count < 3:
         providers = HEALTH_TRACKER.get_providers()
         for provider in providers:
             try:
@@ -159,8 +160,10 @@ def generate_ai_response(prompt, user_keys=None):
                 continue # Rapid switch
         
         retry_count += 1
-        print(f"🚨 Global API Exhaustion ({retry_count}/3). Pausing 20s...")
-        time.sleep(20) # Back to 20s
+        # 📈 [BACKOFF] Exponential Random Jitter
+        sleep_time = (20 * retry_count) + random.uniform(1, 10)
+        print(f"🚨 Global API Exhaustion ({retry_count}/3). Pausing {sleep_time:.1f}s...")
+        time.sleep(sleep_time)
     
     raise RuntimeError("Critical: Permanent AI Infrastructure failure.")
 

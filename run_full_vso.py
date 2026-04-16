@@ -10,8 +10,7 @@ import subprocess
 from datetime import datetime
 from moviepy.editor import concatenate_videoclips
 
-# Use Ollama locally for absolute sovereignty
-os.environ["USE_OLLAMA_FIRST"] = "true"
+# 🏛️ [VANTIX CLOUD] Cloud-Only Orchestration
 def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, horizontal=False, user_keys=None, intensity=None, **kwargs):
     """👑 VANTIX BATCH FACTORY (v1.0): Integrated VSO Orchestrator"""
     print("🚀 INITIALIZING FULL VANTIX PRODUCTION...")

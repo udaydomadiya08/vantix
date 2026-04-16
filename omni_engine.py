@@ -1,11 +1,9 @@
 from ai_helper import generate_ai_response
 
 import socket
-socket.setdefaulttimeout(6000)
+socket.setdefaulttimeout(30) # 🏛️ [VANTIX SYNC] Normalized from 6000s to 30s to prevent deadlocks
 
 # === Imports === #
-import os
-os.environ["USE_OLLAMA_FIRST"] = "true"
 import requests
 import nltk
 import spacy
@@ -427,6 +425,7 @@ def clean_script_noise(text):
 
 def generate_vantix_script(topic, user_keys=None):
     # Pass 1: Initial Viral Draft
+    print(f"🧠 [VIRAL CRITIC] Pass 1/3: Generating Initial Draft for '{topic}'...")
     draft_prompt = f"""
     Write a high-intensity, viral YouTube script for: "{topic}".
     Use a shocking hook, curiosity gaps, and a fast-paced narrative arc.
@@ -443,6 +442,7 @@ def generate_vantix_script(topic, user_keys=None):
     draft = clean_script_noise(draft)
     
     # Pass 2: The Viral Critic (Self-Correction)
+    print("🧠 [VIRAL CRITIC] Pass 2/3: Analyzing Dopamine Pacing & Retention...")
     critique_prompt = f"""
     You are the 'Viral Critic'. Analyze this script for:
     1. Hook Strength: Is it shocking enough in the first 3 seconds?
@@ -459,6 +459,7 @@ def generate_vantix_script(topic, user_keys=None):
     critique = critique_obj.text if hasattr(critique_obj, 'text') else str(critique_obj)
     
     # Pass 3: Final Infinity Edition
+    print("🧠 [VIRAL CRITIC] Pass 3/3: Integrating Improvements for Final 60s Narrative...")
     final_prompt = f"""
     Rewrite the original script incorporating the Viral Critic's improvements.
     Ensure every sentence is punchy, high-stakes, and impossible to click away from.
@@ -546,55 +547,30 @@ Return ONLY 3 queries, one per line, no numbering, no quotes, no extra text."""
 PIXABAY_API_KEY = os.environ.get("PIXABAY_API_KEY", "")
 
 @retry_infinite(delay=5)
-def identify_visual_beats_ollama(sentence, user_topic):
+def identify_visual_beats(sentence, user_topic, user_keys=None):
     """
-    Identify essential visual transitions in a sentence using local Ollama.
+    Identify essential visual transitions using Cloud AI.
     STRICTLY NEEDS-BASED: Only identify a new beat if the subject matter changes.
-    Returns: List of dicts [{"text": "...", "queries": [...]}]
     """
-    url = "http://localhost:11434/api/generate"
-    prompt = f"""Analyze this script segment and identify every single semantic transition point to keep the video FAST-PACED and ENGAGING.
-
+    prompt = f"""Analyze this script segment and identify every single semantic transition point.
 Topic: {user_topic}
 Segment: {sentence}
 
 STRICT GUIDELINES:
 1. Identify a new visual beat EVERY TIME a new key term, entity, or distinct action is mentioned.
-2. Aim for a high cut frequency: ideally one cut every 2-4 seconds of speech.
-3. Each beat must have a specific 'text' part and highly relevant search 'queries'.
-4. Together, the segment texts must EXACTLY equal the full segment: "{sentence}"
-5. If the segment is long, you MUST provide at least 3-6 distinct beats.
-
-Return ONLY valid JSON:
+2. Aim for a high cut frequency: ideally one cut every 2.5 seconds.
+3. Return ONLY valid JSON:
 [
   {{"text": "sub-phrase 1", "queries": ["query A", "query B"]}},
   ...
 ]"""
-    
-    payload = {
-        "model": "llama3.1:8b",
-        "prompt": prompt,
-        "stream": False,
-        "format": "json",
-        "options": {
-            "temperature": 0.7  # Higher temperature for more creative/frequent segmentation
-        }
-    }
-    
     try:
-        response = requests.post(url, json=payload, timeout=30)
-        if response.status_code == 200:
-            result = response.json()
-            segments = json.loads(result['response'])
-            if isinstance(segments, list) and len(segments) > 0:
-                # No more hardcoded middle-splitting. Trusting the semantic prompt.
-                for seg in segments:
-                    if 'text' not in seg: seg['text'] = sentence
-                    if 'queries' not in seg: seg['queries'] = [user_topic]
-                return segments
-    except Exception as e:
-        print(f"⚠️ Ollama beat identification failed: {e}")
-    
+        response = generate_ai_response(prompt, user_keys=user_keys)
+        import json
+        match = re.search(r"\[.*\]", response.text, re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
+    except: pass
     return [{"text": sentence, "queries": [user_topic]}]
 
 @retry_infinite(delay=5)

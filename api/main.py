@@ -136,6 +136,7 @@ class StreamQueueManager:
         topic = kwargs.get("topic", stream_type)
         job_data = {
             "status": "queued", 
+            "username": username, # 🏛️ [IDENTITY] Bind Job to Node
             "stream": stream_type, 
             "topic": topic, 
             "submitted": datetime.now().isoformat(),
@@ -828,6 +829,11 @@ async def get_status(job_id: str, username: str = Depends(get_current_user)):
     # 🏛 [VANTIX PERSISTENCE] Peak In-Memory status first
     if job_id in JOB_STATUS:
         job = JOB_STATUS[job_id]
+        
+        # 🔐 [OWNERSHIP SENTINEL]: Verify Job belongs to current node
+        if job.get("username") != username:
+            raise HTTPException(status_code=403, detail="Sovereign Access Denied: This job identity belongs to another production node.")
+            
         if job["status"] == "queued":
             # 🕵️ Calculate live position and wait time using the Oracle Peaking node
             pos, est = QUEUE_MANAGER.get_queue_info(username, job["stream"], job_id)
@@ -847,6 +853,10 @@ async def get_status(job_id: str, username: str = Depends(get_current_user)):
 @app.delete("/status/{job_id}")
 def cancel_job(job_id: str, username: str = Depends(get_current_user)):
     """🗑️ Vantix Signal: Cancel and Purge Active Job"""
+    # 🔐 [OWNERSHIP SENTINEL]
+    if job_id in JOB_STATUS and JOB_STATUS[job_id].get("username") != username:
+        raise HTTPException(status_code=403, detail="Sovereign Access Denied: Cannot cancel another node's job.")
+
     CANCELLED_JOBS.add(job_id)
     
     # Remove from in-memory state
