@@ -10,7 +10,6 @@ from crypto_helper import encrypt_key, decrypt_key
 DB_LOCK = threading.Lock()
 
 # 🏛️ [AUTHORITY] Dynamic Project Paths (Industrial Synchrony)
-# Prioritize /data for HuggingFace Persistent Storage, then environment var, then local fallback
 if os.path.exists("/data"):
     DATA_DIR = "/data/vantix"
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -25,23 +24,73 @@ HISTORY_PATH = os.path.join(DATA_DIR, "history.json")
 TRANSACTIONS_PATH = os.path.join(DATA_DIR, "transactions.json")
 QUOTAS_PATH = os.path.join(DATA_DIR, "quotas.json")
 
+# 🏛️ [CLOUD AUTHORITY]: MongoDB Bridging for Multi-Tenant Immortality
+import pymongo
+from pymongo import MongoClient
+
+MONGO_URI = os.getenv("MONGO_URI") or os.getenv("DATABASE_URL")
+if MONGO_URI and "mongodb" in MONGO_URI:
+    try:
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        db = client.get_database("vantix_prod")
+        MONGODB_ACTIVE = True
+        print("🏛️ [DATABASE]: Connected to Cloud Sovereign MongoDB Atlas.")
+    except Exception as e:
+        print(f"⚠️ [DATABASE]: Cloud Handshake Failed. Falling back to local JSON. Error: {e}")
+        MONGODB_ACTIVE = False
+else:
+    MONGODB_ACTIVE = False
+    print("🏠 [DATABASE]: Running in Local JSON Mode (Ephemeral).")
+
 def _load_json_secure(path, default_factory=dict):
-    """🛡️ [SELF-HEAL] Safely load JSON, handling empty or corrupt files."""
+    """🛡️ [REDIRECTOR] Retrieve data from Cloud (Mongo) or Local (JSON)."""
+    if MONGODB_ACTIVE:
+        # Map internal JSON paths to Mongo Collections
+        coll_name = os.path.basename(path).replace(".json", "")
+        cursor = db[coll_name].find({}, {"_id": 0})
+        
+        if coll_name == "users":
+             return {doc["username"]: doc for doc in cursor}
+        elif coll_name == "history":
+             return {doc["username"]: doc.get("jobs", {}) for doc in cursor} # Flattened schema
+        return list(cursor) if default_factory == list else {doc.get("id", doc.get("username")): doc for doc in cursor}
+
+    # Standard JSON Fallback
     with DB_LOCK:
         if not os.path.exists(path):
             return default_factory()
         try:
             with open(path, "r") as f:
                 content = f.read().strip()
-                if not content:
-                    return default_factory()
+                if not content: return default_factory()
                 return json.loads(content)
         except Exception as e:
-            print(f"⚠️ [DATABASE] Self-Healing corrupt file: {path} | Error: {e}")
+            print(f"⚠️ [DATABASE] Local corruption check: {e}")
             return default_factory()
 
 def _save_json_atomic(path, data):
-    """💾 [ATOMIC] Secure write pattern using unique temporary file swap."""
+    """💾 [REDIRECTOR] Commit state to Cloud (Mongo) or Local (JSON)."""
+    if MONGODB_ACTIVE:
+        coll_name = os.path.basename(path).replace(".json", "")
+        # Atomic upsert pattern for multi-user consistency
+        if coll_name == "users":
+            for username, u_data in data.items():
+                db.users.update_one({"username": username}, {"$set": u_data}, upsert=True)
+            return True
+        elif coll_name == "history":
+            for username, h_data in data.items():
+                db.history.update_one({"username": username}, {"$set": {"jobs": h_data}}, upsert=True)
+            return True
+        
+        # Generic collection mapping for quotas/transactions
+        db[coll_name].delete_many({}) # Clear and rebuild for non-user-keyed lists
+        if isinstance(data, list) and data:
+            db[coll_name].insert_many(data)
+        elif isinstance(data, dict) and data:
+             db[coll_name].insert_many(list(data.values()))
+        return True
+
+    # Standard JSON Fallback
     import uuid
     temp_path = f"{path}.{uuid.uuid4().hex}.tmp"
     with DB_LOCK:
@@ -49,25 +98,12 @@ def _save_json_atomic(path, data):
             with open(temp_path, "w") as f:
                 json.dump(data, f, indent=4)
                 f.flush()
-                # Use a safer sync for cloud environments
-                try: os.fsync(f.fileno())
-                except: pass
-            os.replace(temp_path, path) # Atomic swap
+            os.replace(temp_path, path)
             return True
-        except Exception as e:
-            print(f"❌ [DATABASE] Atomic Write Failure: {path} | Error: {e}")
-            # Clean up orphan temp file if it exists
-            if os.path.exists(temp_path):
-                try: os.remove(temp_path)
-                except: pass
-            # Total Fallback: Standard Write
-            try:
-                with open(path, "w") as f: json.dump(data, f, indent=4)
-                return True
-            except: return False
+        except: return False
 
 def initialize_db():
-    if not os.path.exists(DB_PATH):
+    if not MONGODB_ACTIVE and not os.path.exists(DB_PATH):
         _save_json_atomic(DB_PATH, {})
 
 def hash_password(password):
