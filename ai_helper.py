@@ -238,7 +238,7 @@ def generate_image_asset(prompt, user_keys=None):
     return None
 
 def generate_ebook_theme(topic, description="", user_keys=None):
-    prompt = f"Design visual DNA for '{topic}'. Return ONLY JSON: primary_rgb, secondary_rgb, layout_mode, visual_style."
+    prompt = f"Design visual DNA for '{topic}'. Vision: {description}. Return ONLY JSON: primary_rgb, secondary_rgb, layout_mode, visual_style."
     try:
         response = generate_ai_response(prompt, user_keys=user_keys)
         match = re.search(r"\{.*\}", response.text, re.DOTALL)
