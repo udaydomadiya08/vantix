@@ -1,0 +1,16 @@
+[2026-04-16T23:09:13.643665] LOGIN_SUCCESS: User='testuser' | Status=Authenticated
+[2026-04-16T23:09:13.660740] REFUND: User='testuser' | Job='video' | Reason='428: {'error': 'vault_locked', 'message': 'Vault Locked: Missing Thinking Node (AI Logic), Visual Node (Stock Footage). Please configure your keys in the Sovereign Vault.', 'missing_categories': ['Thinking Node (AI Logic)', 'Visual Node (Stock Footage)']}'
+[2026-04-16T23:09:43.285739] LOGIN_SUCCESS: User='testuser' | Status=Authenticated
+[2026-04-16T23:10:07.479963] LOGIN_SUCCESS: User='testuser' | Status=Authenticated
+[2026-04-16T23:14:38.769792] LOGIN_SUCCESS: User='testuser' | Status=Authenticated
+[2026-04-16T23:15:44.655152] LOGIN_SUCCESS: User='testuser' | Status=Authenticated
+[2026-04-16T23:16:42.715718] LOGIN_SUCCESS: User='testuser' | Status=Authenticated
+[2026-04-16T23:18:25.092057] LOGIN_SUCCESS: User='testuser' | Status=Authenticated
+[2026-04-16T23:19:03.709218] LOGIN_SUCCESS: User='testuser' | Status=Authenticated
+[2026-04-16T23:21:24.134057] LOGIN_SUCCESS: User='testuser' | Status=Authenticated
+[2026-04-16T23:22:00.088553] LOGIN_SUCCESS: User='testuser' | Status=Authenticated
+[2026-04-16T23:22:58.377355] LOGIN_SUCCESS: User='testuser' | Status=Authenticated
+[2026-04-16T23:24:27.413974] LOGIN_SUCCESS: User='testuser' | Status=Authenticated
+[2026-04-16T23:28:37.164536] LOGIN_SUCCESS: User='testuser' | Status=Authenticated
+[2026-04-16T23:28:57.194025] LOGIN_SUCCESS: User='testuser' | Status=Authenticated
+[2026-04-16T23:30:42.886396] LOGIN_SUCCESS: User='testuser' | Status=Authenticated

@@ -1,0 +1,53 @@
+2026-04-16 23:15:52,415 [DEBUG] Registered checkpoint save hook for _speechbrain_save
+2026-04-16 23:15:52,415 [DEBUG] Registered checkpoint load hook for _speechbrain_load
+2026-04-16 23:15:52,423 [DEBUG] Registered checkpoint save hook for save
+2026-04-16 23:15:52,423 [DEBUG] Registered checkpoint load hook for load
+2026-04-16 23:15:52,593 [INFO] Applied quirks (see `speechbrain.utils.quirks`): [disable_jit_profiling, allow_tf32]
+2026-04-16 23:15:52,593 [INFO] Excluded quirks specified by the `SB_DISABLE_QUIRKS` environment (comma-separated list): []
+2026-04-16 23:15:52,594 [DEBUG] Registered checkpoint save hook for _save
+2026-04-16 23:15:52,594 [DEBUG] Registered checkpoint load hook for _recover
+2026-04-16 23:15:54,285 [INFO] Lightning automatically upgraded your loaded checkpoint from v1.5.4 to v2.5.1.post0. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint venv/lib/python3.9/site-packages/whisperx/assets/pytorch_model.bin`
+2026-04-16 23:15:54,321 [INFO] Lightning automatically upgraded your loaded checkpoint from v1.5.4 to v2.5.1.post0. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint venv/lib/python3.9/site-packages/whisperx/assets/pytorch_model.bin`
+2026-04-16 23:16:47,574 [DEBUG] Registered checkpoint save hook for _speechbrain_save
+2026-04-16 23:16:47,574 [DEBUG] Registered checkpoint load hook for _speechbrain_load
+2026-04-16 23:16:47,574 [DEBUG] Registered checkpoint save hook for save
+2026-04-16 23:16:47,574 [DEBUG] Registered checkpoint load hook for load
+2026-04-16 23:16:47,659 [INFO] Applied quirks (see `speechbrain.utils.quirks`): [disable_jit_profiling, allow_tf32]
+2026-04-16 23:16:47,660 [INFO] Excluded quirks specified by the `SB_DISABLE_QUIRKS` environment (comma-separated list): []
+2026-04-16 23:16:47,660 [DEBUG] Registered checkpoint save hook for _save
+2026-04-16 23:16:47,660 [DEBUG] Registered checkpoint load hook for _recover
+2026-04-16 23:16:48,698 [INFO] Lightning automatically upgraded your loaded checkpoint from v1.5.4 to v2.5.1.post0. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint venv/lib/python3.9/site-packages/whisperx/assets/pytorch_model.bin`
+2026-04-16 23:16:48,723 [INFO] Lightning automatically upgraded your loaded checkpoint from v1.5.4 to v2.5.1.post0. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint venv/lib/python3.9/site-packages/whisperx/assets/pytorch_model.bin`
+2026-04-16 23:19:08,916 [DEBUG] Registered checkpoint save hook for _speechbrain_save
+2026-04-16 23:19:08,917 [DEBUG] Registered checkpoint load hook for _speechbrain_load
+2026-04-16 23:19:08,917 [DEBUG] Registered checkpoint save hook for save
+2026-04-16 23:19:08,917 [DEBUG] Registered checkpoint load hook for load
+2026-04-16 23:19:09,001 [INFO] Applied quirks (see `speechbrain.utils.quirks`): [allow_tf32, disable_jit_profiling]
+2026-04-16 23:19:09,001 [INFO] Excluded quirks specified by the `SB_DISABLE_QUIRKS` environment (comma-separated list): []
+2026-04-16 23:19:09,002 [DEBUG] Registered checkpoint save hook for _save
+2026-04-16 23:19:09,002 [DEBUG] Registered checkpoint load hook for _recover
+2026-04-16 23:19:10,182 [INFO] Lightning automatically upgraded your loaded checkpoint from v1.5.4 to v2.5.1.post0. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint venv/lib/python3.9/site-packages/whisperx/assets/pytorch_model.bin`
+2026-04-16 23:19:10,199 [INFO] Lightning automatically upgraded your loaded checkpoint from v1.5.4 to v2.5.1.post0. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint venv/lib/python3.9/site-packages/whisperx/assets/pytorch_model.bin`
+2026-04-16 23:21:27,765 [DEBUG] Registered checkpoint save hook for _speechbrain_save
+2026-04-16 23:21:27,766 [DEBUG] Registered checkpoint load hook for _speechbrain_load
+2026-04-16 23:21:27,766 [DEBUG] Registered checkpoint save hook for save
+2026-04-16 23:21:27,766 [DEBUG] Registered checkpoint load hook for load
+2026-04-16 23:21:27,858 [INFO] Applied quirks (see `speechbrain.utils.quirks`): [disable_jit_profiling, allow_tf32]
+2026-04-16 23:21:27,858 [INFO] Excluded quirks specified by the `SB_DISABLE_QUIRKS` environment (comma-separated list): []
+2026-04-16 23:21:27,858 [DEBUG] Registered checkpoint save hook for _save
+2026-04-16 23:21:27,858 [DEBUG] Registered checkpoint load hook for _recover
+2026-04-16 23:21:29,601 [INFO] Lightning automatically upgraded your loaded checkpoint from v1.5.4 to v2.5.1.post0. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint venv/lib/python3.9/site-packages/whisperx/assets/pytorch_model.bin`
+2026-04-16 23:21:29,672 [INFO] Lightning automatically upgraded your loaded checkpoint from v1.5.4 to v2.5.1.post0. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint venv/lib/python3.9/site-packages/whisperx/assets/pytorch_model.bin`
+2026-04-16 23:23:02,055 [DEBUG] Registered checkpoint save hook for _speechbrain_save
+2026-04-16 23:23:02,055 [DEBUG] Registered checkpoint load hook for _speechbrain_load
+2026-04-16 23:23:02,055 [DEBUG] Registered checkpoint save hook for save
+2026-04-16 23:23:02,055 [DEBUG] Registered checkpoint load hook for load
+2026-04-16 23:23:02,142 [INFO] Applied quirks (see `speechbrain.utils.quirks`): [disable_jit_profiling, allow_tf32]
+2026-04-16 23:23:02,142 [INFO] Excluded quirks specified by the `SB_DISABLE_QUIRKS` environment (comma-separated list): []
+2026-04-16 23:23:02,142 [DEBUG] Registered checkpoint save hook for _save
+2026-04-16 23:23:02,143 [DEBUG] Registered checkpoint load hook for _recover
+2026-04-16 23:23:03,450 [INFO] Lightning automatically upgraded your loaded checkpoint from v1.5.4 to v2.5.1.post0. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint venv/lib/python3.9/site-packages/whisperx/assets/pytorch_model.bin`
+2026-04-16 23:24:32,450 [INFO] Lightning automatically upgraded your loaded checkpoint from v1.5.4 to v2.5.1.post0. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint venv/lib/python3.9/site-packages/whisperx/assets/pytorch_model.bin`
+2026-04-16 23:24:32,522 [INFO] Lightning automatically upgraded your loaded checkpoint from v1.5.4 to v2.5.1.post0. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint venv/lib/python3.9/site-packages/whisperx/assets/pytorch_model.bin`
+2026-04-16 23:24:50,823 [INFO] Lightning automatically upgraded your loaded checkpoint from v1.5.4 to v2.5.1.post0. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint venv/lib/python3.9/site-packages/whisperx/assets/pytorch_model.bin`
+2026-04-16 23:25:02,458 [INFO] Lightning automatically upgraded your loaded checkpoint from v1.5.4 to v2.5.1.post0. To apply the upgrade to your files permanently, run `python -m pytorch_lightning.utilities.upgrade_checkpoint venv/lib/python3.9/site-packages/whisperx/assets/pytorch_model.bin`

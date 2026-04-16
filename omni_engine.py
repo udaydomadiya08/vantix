@@ -85,6 +85,7 @@ JSON_FILE = "UPLOAD_STATUS.json"
 
 # Config (Environment Synchronized)
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
+TURBO_MODE = os.environ.get("TURBO_MODE", "false").lower() == "true"
 
 NUM_IMAGES = 21
 VIDEO_DURATION = 5
@@ -488,7 +489,16 @@ def generate_vantix_script(topic, user_keys=None, job_id=None):
     """
     final_obj = generate_ai_response(final_prompt, user_keys=user_keys, job_id=job_id)
     final_text = final_obj.text if hasattr(final_obj, 'text') else str(final_obj)
-    return clean_script_noise(final_text)
+    final_text = clean_script_noise(final_text)
+
+    # 🚀 [TURBO MODE]: Truncate script to ~10-15 seconds (approx 30 words) for rapid feedback
+    if TURBO_MODE:
+        print("🚀 [VANTIX TURBO]: Accelerating production. Truncating script to 30 words.")
+        words = final_text.split()
+        if len(words) > 30:
+            final_text = " ".join(words[:30]) + "."
+
+    return final_text
 
 @retry_infinite(delay=15)
 def generate_youtube_script(topic, user_keys=None):
@@ -532,6 +542,9 @@ def extract_keywords(text):
 
 @retry_infinite(delay=15)
 def generate_visual_search_queries(sentence, user_topic, user_keys=None):
+    if TURBO_MODE:
+        print("🚀 [VANTIX TURBO]: Using keyword-fallback for search queries.")
+        return [user_topic, "cinematic", "background"]
     prompt = f"""You are a stock footage search expert. Given a script sentence and topic, generate exactly 3 search queries for finding relevant background video clips on Pexels/Pixabay.
 
 RULES:
@@ -558,6 +571,9 @@ PIXABAY_API_KEY = os.environ.get("PIXABAY_API_KEY", "")
 
 @retry_infinite(delay=15)
 def identify_visual_beats(sentence, user_topic, user_keys=None, job_id=None):
+    if TURBO_MODE:
+        print("🚀 [VANTIX TURBO]: Using direct-beat fallback.")
+        return [{"text": sentence, "queries": [user_topic]}]
     if job_id: telemetry.update_progress(job_id, "Planning Scenes...")
     """
     Identify essential visual transitions using Cloud AI.

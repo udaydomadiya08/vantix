@@ -1,10 +1,15 @@
 import os
+import sys
 import time
 import random
 import json
 import subprocess
 import re
 import requests
+import asyncio
+import edge_tts
+from datetime import datetime
+from functools import wraps
 import shutil
 import hashlib
 import socket
@@ -253,13 +258,15 @@ def set_orientation(horizontal=False):
     IS_HORIZONTAL = horizontal
     TARGET_RES = (1920, 1080) if horizontal else (1080, 1920)
     print(f"📐 [ENGINE] Orientation locked to: {'HORIZONTAL' if horizontal else 'VERTICAL'} ({TARGET_RES[0]}x{TARGET_RES[1]})")
-
 # === API KEYS === #
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
 SERP_API_KEY = os.environ.get("SERP_API_KEY", "")
 
 # 💥 GLOBAL ASSET REGISTRY (v45.6): Hard Zero-Reuse Enforcement
 GLOBAL_USED_URLS = set()
+
+# --- GLOBAL TURBO MODE (v122.33) ---
+TURBO_MODE = True # 🛰️ [TOGGLE]: Set to True for 10-second rapid testing
 
 
 def retry_infinite(delay=5, max_delay=15, backoff_factor=2):
@@ -335,13 +342,26 @@ def get_scene_pacing_intent(sentence, user_keys=None):
 # Drop-in replacement for Gemini
 generate_gemini_response = generate_groq_response
 
-def get_word_level_transcription(audio_path, user_keys=None):
+def get_word_level_transcription(audio_path, text=None, user_keys=None):
     """
     ⚡ UNIVERSAL TRANSCRIPTION ENGINE (v48.3):
     Cloud-First Groq Turbo (Direct REST) fallback to Local WhisperX.
     """
     import requests
     WHISPER_MODELS = ["whisper-large-v3-turbo", "whisper-large-v3"]
+    
+    if os.environ.get("TURBO_MODE", "false").lower() == "true":
+        print("🚀 [VANTIX TURBO]: Using mock word-level transcription.")
+        # Basic linear estimation based on 15 chars/sec for verification
+        words = text.split()
+        word_segments = []
+        start = 0.0
+        for w in words:
+            dur = len(w) * 0.1 # Mock estimation
+            word_segments.append({"word": w, "start": start, "end": start + dur})
+            start += dur
+        return word_segments
+        
     groq_api_key = (user_keys or {}).get("groq") or os.environ.get("GROQ_API_KEY")
 
     if groq_api_key:
@@ -1409,18 +1429,10 @@ def generate_tts_audio(text, filename="output.mp3", voice_name="alloy", speaking
         if not text or not text.strip():
              text = "..." # Minimal content to avoid empty file errors
 
-        import asyncio
-        import edge_tts
-        import os
-        import subprocess
-        import time
-        
         async def run_edge_tts():
             communicate = edge_tts.Communicate(text, voice_name)
-            import random
-            import asyncio
-            # 🛡️ [ANTI-BLOCK]: Unblock event loop while maintaining jitter
-            await asyncio.sleep(random.uniform(0.5, 1.5)) 
+            # 🛡️ [ANTI-BLOCK]: Jitter to prevent rate-limiting
+            await asyncio.sleep(random.uniform(0.1, 0.5)) 
             await communicate.save(filename)
             
         asyncio.run(run_edge_tts())
@@ -1615,7 +1627,7 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         update_character_count(text)
         
         # 💥 SEMANTIC SYNCHRONIZATION (v48.2): Transcribe BEFORE Assembly
-        word_segments = get_word_level_transcription(audio_path, user_keys=user_keys)
+        word_segments = get_word_level_transcription(audio_path, text=text, user_keys=user_keys)
         if not word_segments:
              print("⚠️ Transcription failed. Falling back to Time-Based Pacing.")
              word_segments = []
@@ -1811,10 +1823,13 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         # Execute [Sovereign] Parallel Discovery (v122.24: Optimized 3-Worker Sync)
         orch = ParallelOrchestrator(max_workers=3)
         parallel_results = orch.parallel_map_indexed(process_milestone, milestones, task_name="Milestone")
+        if not parallel_results: parallel_results = []
         
-        # Assemble in Sequence (v122.24: High-Velocity Feed)
-        for i, (ms, res) in enumerate(zip(milestones, parallel_results)):
-            # 🛡️ [SYNC]: Safely extract duration from result or milestone
+        # Assemble in Sequence (v122.51: Guarded Sync)
+        for i, ms in enumerate(milestones):
+            # 🛡️ [SYNC]: Safely extract result from parallel set
+            res = parallel_results[i] if i < len(parallel_results) else {"is_placeholder": True}
+            
             target_dur = res["dur"] if (res and "dur" in res) else ms["end"] - ms["start"]
             
             if res and not res.get("is_placeholder", False) and os.path.exists(res.get("tmp_path", "")):
@@ -2025,15 +2040,19 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         
         Return ONLY a JSON list of strings."""
         
-        novelty_queries = []
-        try:
-             resp_obj = generate_groq_response(expansion_prompt, system_message="Return ONLY JSON valid list.", user_keys=user_keys)
-             json_match = re.search(r'\[.*\]', resp_obj.text, re.DOTALL)
-             if json_match:
-                  novelty_queries = json.loads(json_match.group(0))
-        except:
-             # Fallback to literal keywords if AI expansion fails
+        if os.environ.get("TURBO_MODE", "false").lower() == "true":
+             print("🚀 [VANTIX TURBO]: Using novelty keyword fallback.")
              novelty_queries = [text, user_topic]
+        else:
+            novelty_queries = []
+            try:
+                 resp_obj = generate_groq_response(expansion_prompt, system_message="Return ONLY JSON valid list.", user_keys=user_keys)
+                 json_match = re.search(r'\[.*\]', resp_obj.text, re.DOTALL)
+                 if json_match:
+                      novelty_queries = json.loads(json_match.group(0))
+            except:
+                 # Fallback to literal keywords if AI expansion fails
+                 novelty_queries = [text, user_topic]
         
         novelty_iteration = 0
         
@@ -2051,17 +2070,17 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                     tmp_path = f"video_creation/novel_{idx}_{novelty_iteration}.mp4"
                     try:
                         download_video(video_url, tmp_path)
-                    raw_clip = VideoFileClip(tmp_path).without_audio()
-                    clip = resize_crop(raw_clip).set_fps(30)
-                    clip = apply_pattern_interrupt(apply_ken_burns(clip, 2.0))
-                    
-                    collected_clips.append(clip)
-                    new_used_urls.add(video_url)
-                    GLOBAL_USED_URLS.add(video_url)
-                    total_collected += clip.duration
-                    print(f"✅ Bridge Asset Secured: {clip.duration:.2f}s | Registry Size: {len(GLOBAL_USED_URLS)}")
-                except:
-                    pass
+                        raw_clip = VideoFileClip(tmp_path).without_audio()
+                        clip = resize_crop(raw_clip).set_fps(30)
+                        clip = apply_pattern_interrupt(apply_ken_burns(clip, 2.0))
+                        
+                        collected_clips.append(clip)
+                        new_used_urls.add(video_url)
+                        GLOBAL_USED_URLS.add(video_url)
+                        total_collected += clip.duration
+                        print(f"✅ Bridge Asset Secured: {clip.duration:.2f}s | Registry Size: {len(GLOBAL_USED_URLS)}")
+                    except Exception as e:
+                        print(f"⚠️ Bridge Asset Extraction Failed: {e}")
             novelty_iteration += 1
 
     # Final Safety Fallback: If STILL under (impossible unless APIs 100% down), loop only as a last resort
@@ -2069,14 +2088,19 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         print("⚠️ CRITICAL: Novelty exhausted. Using emergency loop (v32 legacy).")
         while total_collected < (audio_duration + DURATION_BUFFER):
              # 🛡️ [SOVEREIGN GUARD]: Defuse collected clips index
-             if collected_clips and len(collected_clips) > 0:
+             if len(collected_clips) > 0:
                  source_clip = collected_clips[-1]
              else:
                  print(f"⚠️ [STABILITY] No clips collected for Scene {idx}. Using filler.")
-                 source_clip = ColorClip(size=TARGET_RES, color=(0,0,0)).set_duration(audio_duration)
-             loop_clip = source_clip.copy().set_start(total_collected)
-             collected_clips.append(loop_clip)
-             total_collected += loop_clip.duration
+                 from moviepy.editor import ColorClip
+                 source_clip = ColorClip(size=TARGET_RES, color=(10,10,10)).set_duration(audio_duration)
+             
+             try:
+                 loop_clip = source_clip.copy().set_start(total_collected)
+                 collected_clips.append(loop_clip)
+                 total_collected += loop_clip.duration
+             except:
+                 break
 
     if not collected_clips:
         print("❌ CRITICAL: Total Visual Blackout. Rendering Cinematic Fallback (v32).")

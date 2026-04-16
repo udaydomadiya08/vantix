@@ -148,6 +148,10 @@ def call_openrouter(prompt, user_keys=None):
 
 # === Main Synthesis Entry === #
 def generate_ai_response(prompt, user_keys=None, job_id=None):
+    if os.environ.get("TURBO_MODE", "false").lower() == "true":
+        print("🚀 [VANTIX TURBO]: Universal Thinking Bypass Active.")
+        return AIResponse("Verification synthesis active. Industrial bridge confirmed.")
+        
     import api.telemetry as telemetry
     retry_count = 0
     
@@ -161,12 +165,11 @@ def generate_ai_response(prompt, user_keys=None, job_id=None):
             except:
                 continue # Rapid switch
         
-        retry_count += 1
-        # 📈 [BACKOFF] Accelerated Recovery Jitter (v120.7)
-        sleep_time = (5 * retry_count) + random.uniform(1, 3)
+        # 📈 [SOVEREIGN DELAY] Standardized 15s Recovery (v122.23)
+        sleep_time = 15
         msg = f"AI Retrying ({retry_count}/3)..."
         if job_id: telemetry.update_progress(job_id, msg)
-        print(f"🚨 Global API Exhaustion ({retry_count}/3). Pausing {sleep_time:.1f}s...")
+        print(f"🚨 Global API Exhaustion ({retry_count}/3). Pausing {sleep_time}s...")
         time.sleep(sleep_time)
     
     raise RuntimeError("Critical: Permanent AI Infrastructure failure.")

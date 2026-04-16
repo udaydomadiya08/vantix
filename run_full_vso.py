@@ -169,8 +169,16 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
     
     # Assemble in Sequence
     for res in parallel_results:
-        if res:
-            final_clips.append(res["clip"])
+        if res and res.get("clip"):
+            from moviepy.editor import VideoFileClip
+            clip = res["clip"]
+            if isinstance(clip, str):
+                try:
+                    clip = VideoFileClip(clip)
+                except Exception as e:
+                    print(f"⚠️ Failed to load scene clip {res['clip']}: {e}")
+                    continue
+            final_clips.append(clip)
             if res["urls"]:
                 total_urls.update(res["urls"])
             if res["audio"]:
