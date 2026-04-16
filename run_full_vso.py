@@ -11,9 +11,13 @@ from datetime import datetime
 from moviepy.editor import concatenate_videoclips
 
 # 🏛️ [VANTIX CLOUD] Cloud-Only Orchestration
-def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, horizontal=False, user_keys=None, intensity=None, **kwargs):
+def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, horizontal=False, user_keys=None, intensity=None, job_id=None, **kwargs):
     """👑 VANTIX BATCH FACTORY (v1.0): Integrated VSO Orchestrator"""
-    print("🚀 INITIALIZING FULL VANTIX PRODUCTION...")
+    print(f"🚀 INITIALIZING FULL VANTIX PRODUCTION... [Job: {job_id}]")
+    
+    # ... (rest of function)
+    # Inside the script generation call:
+    # script = main.generate_vantix_script(topic, user_keys=user_keys, job_id=job_id)
     shorts.set_orientation(horizontal) # 📐 [ENGINE] Set resolution before production
     shorts.GLOBAL_USED_URLS.clear() # 💥 HARD RESET (v45.6): Zero reuse within this run
     
@@ -81,7 +85,7 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
         if not topic:
             topic = input("🎯 Enter your video topic: ").strip()
         print(f"🧠 Orchestrating Viral Critic Loop for: {topic}")
-        script = main.generate_vantix_script(topic, user_keys=user_keys)
+        script = main.generate_vantix_script(topic, user_keys=user_keys, job_id=job_id)
 
     elif choice == "2":
         topic = "Custom Script Entry"
@@ -106,7 +110,7 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
             
         if not script:
             print(f"🧠 [API] Orchestrating Viral Critic Loop for: {topic}")
-            script = main.generate_vantix_script(topic, user_keys=user_keys)
+            script = main.generate_vantix_script(topic, user_keys=user_keys, job_id=job_id)
     else:
         print("❌ Invalid choice. Exiting.")
         return

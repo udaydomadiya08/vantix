@@ -1,6 +1,6 @@
 import os
 import socket
-socket.setdefaulttimeout(600000)
+# socket.setdefaulttimeout(600000) # 🏛️ [VANTIX SYNC] Neutralized
 
 # === Imports === #
 import os

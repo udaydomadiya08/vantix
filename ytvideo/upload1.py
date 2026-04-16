@@ -45,7 +45,7 @@ import os
 from googleapiclient.http import MediaFileUpload
 import json
 import socket
-socket.setdefaulttimeout(60000000000)
+# socket.setdefaulttimeout(60000000000) # 🏛️ [VANTIX SYNC] Removed to favor Global Sentinel
 from googleapiclient.errors import HttpError
 import pickle
 from googleapiclient.discovery import build

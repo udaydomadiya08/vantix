@@ -38,7 +38,7 @@ import numpy as np
 
 import time
 import socket
-socket.setdefaulttimeout(6000)
+# socket.setdefaulttimeout(6000) # 🏛️ [VANTIX SYNC] Neutralized
 import subprocess
 import os
 import subprocess

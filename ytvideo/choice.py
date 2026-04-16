@@ -34,9 +34,7 @@ from io import BytesIO
 from collections import Counter
 import numpy as np
 import socket
-socket.setdefaulttimeout(6000
-
-)
+# socket.setdefaulttimeout(6000) # 🏛️ [VANTIX SYNC] Neutralized
 import time
 
 import subprocess

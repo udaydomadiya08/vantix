@@ -177,7 +177,7 @@ def create_caption_clips(word_segments, resolution, include_avatar=True):
     return caption_clips
 
 import socket
-socket.setdefaulttimeout(6000)
+# 🏛️ [VANTIX SYNC] socket.setdefaulttimeout(6000) removed to favor Global Sentinel (30s)
 
 from googleapiclient.errors import HttpError
 import pickle

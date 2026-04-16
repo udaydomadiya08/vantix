@@ -1,3 +1,6 @@
+import socket
+socket.setdefaulttimeout(30) # 🏛️ [GLOBAL SENTINEL]: Authoritative 30s limit for all production nodes
+
 import groq
 # 🛡️ [GLOBAL SDK LOCKDOWN]: Neutralizing 'proxies' at the root
 try:
@@ -18,6 +21,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import os
 import sys
+import api.telemetry as telemetry # 🏛️ [TELEMETRY] Global Heartbeat Hook
 import uuid
 import jwt
 import json
@@ -55,7 +59,20 @@ import research_helper
 
 app = FastAPI(title="Vantix Core Engine (v1.0)")
 security = HTTPBearer()
-SECRET_KEY = os.getenv("JWT_SECRET", "VANTIX_ULTRA_SECRET_2026")
+# 🔐 [IDENTITY VAULT]: Sovereign Key Hardening (v119.2)
+DEFAULT_SECRET = "VANTIX_ULTRA_SECRET_2026"
+ENV_SECRET = os.getenv("JWT_SECRET")
+
+if not ENV_SECRET:
+    # 💥 [VOLATILE MODE]: No environment secret found. 
+    # Generating a one-time cryptographically random salt to prevent token forgery.
+    import secrets
+    VOLATILE_SALT = secrets.token_hex(16)
+    SECRET_KEY = f"{DEFAULT_SECRET}_{VOLATILE_SALT}"
+    print(f"🔐 [SECURITY]: Volatile Mode Active. Nodes must re-auth this session. Salt: {VOLATILE_SALT[:4]}...")
+else:
+    SECRET_KEY = ENV_SECRET
+
 ALGORITHM = "HS256"
 
 # 📜 [TRACER] Industrial Audit Ledger
@@ -840,6 +857,12 @@ async def get_status(job_id: str, username: str = Depends(get_current_user)):
             if pos > 0:
                 job["position"] = pos
                 job["est_wait"] = est
+        
+        # 💓 [HEARTBEAT]: Inject live progress metadata
+        progress = telemetry.get_progress(job_id)
+        job["pass"] = progress["pass"]
+        job["heartbeat"] = progress["heartbeat"]
+        
         return job
     
     # 🕵️ Fallback to Ledger Search

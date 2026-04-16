@@ -160,8 +160,8 @@ def generate_ai_response(prompt, user_keys=None):
                 continue # Rapid switch
         
         retry_count += 1
-        # 📈 [BACKOFF] Exponential Random Jitter
-        sleep_time = (20 * retry_count) + random.uniform(1, 10)
+        # 📈 [BACKOFF] Accelerated Recovery Jitter (v120.7)
+        sleep_time = (10 * retry_count) + random.uniform(1, 5)
         print(f"🚨 Global API Exhaustion ({retry_count}/3). Pausing {sleep_time:.1f}s...")
         time.sleep(sleep_time)
     

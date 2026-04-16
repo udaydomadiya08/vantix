@@ -1,4 +1,5 @@
 from ai_helper import generate_ai_response
+import api.telemetry as telemetry # 🏛️ [TELEMETRY] Global Heartbeat Hook
 
 import socket
 socket.setdefaulttimeout(30) # 🏛️ [VANTIX SYNC] Normalized from 6000s to 30s to prevent deadlocks
@@ -424,9 +425,11 @@ def clean_script_noise(text):
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
-def generate_vantix_script(topic, user_keys=None):
+def generate_vantix_script(topic, user_keys=None, job_id=None):
     # Pass 1: Initial Viral Draft
-    print(f"🧠 [VIRAL CRITIC] Pass 1/3: Generating Initial Draft for '{topic}'...")
+    msg = f"🧠 [VIRAL CRITIC] Pass 1/3: Drafting for '{topic}'..."
+    print(msg)
+    if job_id: telemetry.update_progress(job_id, "Drafting (1/3)")
     draft_prompt = f"""
     Write a high-intensity, viral YouTube script for: "{topic}".
     Use a shocking hook, curiosity gaps, and a fast-paced narrative arc.
@@ -443,7 +446,9 @@ def generate_vantix_script(topic, user_keys=None):
     draft = clean_script_noise(draft)
     
     # Pass 2: The Viral Critic (Self-Correction)
-    print("🧠 [VIRAL CRITIC] Pass 2/3: Analyzing Dopamine Pacing & Retention...")
+    msg = "🧠 [VIRAL CRITIC] Pass 2/3: Analyzing Dopamine Pacing..."
+    print(msg)
+    if job_id: telemetry.update_progress(job_id, "Critiquing (2/3)")
     critique_prompt = f"""
     You are the 'Viral Critic'. Analyze this script for:
     1. Hook Strength: Is it shocking enough in the first 3 seconds?
@@ -460,7 +465,9 @@ def generate_vantix_script(topic, user_keys=None):
     critique = critique_obj.text if hasattr(critique_obj, 'text') else str(critique_obj)
     
     # Pass 3: Final Infinity Edition
-    print("🧠 [VIRAL CRITIC] Pass 3/3: Integrating Improvements for Final 60s Narrative...")
+    msg = "🧠 [VIRAL CRITIC] Pass 3/3: Finalizing Narrative..."
+    print(msg)
+    if job_id: telemetry.update_progress(job_id, "Finalizing (3/3)")
     final_prompt = f"""
     Rewrite the original script incorporating the Viral Critic's improvements.
     Ensure every sentence is punchy, high-stakes, and impossible to click away from.
