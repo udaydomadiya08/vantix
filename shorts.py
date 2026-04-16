@@ -696,7 +696,14 @@ def generate_visual_search_batch(sentences, user_topic, user_keys=None):
         if match:
              try:
                   clean_json = match.group(0).replace("```json", "").replace("```", "").strip()
-                  all_results = json.loads(clean_json)
+                  temp_res = json.loads(clean_json)
+                  # 🛡️ [TYPE-GUARD]: Cast Lists to Dictionaries to prevent .get() crashes
+                  if isinstance(temp_res, list):
+                       all_results = {str(i): queries for i, queries in enumerate(temp_res)}
+                  elif isinstance(temp_res, dict):
+                       all_results = temp_res
+                  else:
+                       all_results = {}
              except: pass
              
     except Exception as e:
@@ -1402,7 +1409,8 @@ def generate_tts_audio(text, filename="output.mp3", voice_name="alloy", speaking
             communicate = edge_tts.Communicate(text, voice_name)
             import random
             import asyncio
-            await asyncio.sleep(random.uniform(0.5, 1.5)) # 🛡️ [ANTI-BLOCK]: Async jitter (Unblocks event loop)
+            # 🛡️ [ANTI-BLOCK]: Unblock event loop while maintaining jitter
+            await asyncio.sleep(random.uniform(0.5, 1.5)) 
             await communicate.save(filename)
             
         asyncio.run(run_edge_tts())
@@ -1644,9 +1652,13 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
 
     # --- PHASE 1: SEMANTIC MILESTONE EXTRACTION (v54: Cinematic Stabilization) ---
     raw_milestones = []
+    # 🛡️ [INDESTRUCTIBLE]: Guaranteed Index Check
     if word_segments and len(word_segments) > 0:
         current_buffer = []
-        current_start = word_segments[0].get("start", 0)
+        try:
+             current_start = word_segments[0].get("start", 0)
+        except (IndexError, AttributeError):
+             current_start = 0
         
         for i, seg in enumerate(word_segments):
             word = seg["word"].strip().lower()
