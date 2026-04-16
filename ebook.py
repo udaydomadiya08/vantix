@@ -134,7 +134,8 @@ class MyPDF(FPDF):
             self.set_font("helvetica", "I", 8)
             self.set_text_color(180)
             header_align = "R" if self.layout_mode != "Centered" else "C"
-            self.cell(0, 10, f"{self.current_chapter_title} | {BRAND_NAME}", align=header_align, new_x=XPos.RIGHT, new_y=YPos.TOP)
+            # 🛡️ [LAYOUT STABILITY]: Corrected new_x to LMARGIN to prevent horizontal space crash (v124.45)
+            self.cell(0, 10, f"{self.current_chapter_title} | {BRAND_NAME}", align=header_align, new_x=XPos.LMARGIN, new_y=YPos.TOP)
             self.ln(10)
 
     def footer(self):
@@ -251,6 +252,7 @@ def save_ebook_pdf(title, description, chapters_content, chapters_list, subsecti
         pdf.set_text_color(100)
         for sub in sub_list:
             pdf.set_x(35)
+            # 🛡️ [LAYOUT STABILITY]: Corrected new_x to avoid right-edge cursor locking
             pdf.cell(0, 8, f"> {sub}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.set_font("helvetica", "", 13)
         pdf.set_text_color(60)

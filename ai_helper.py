@@ -147,6 +147,13 @@ def call_openrouter(prompt, user_keys=None):
                 if response.status_code == 402:
                     error_msg = response.text
                     print(f"⚠️ [CREDIT ALERT] OpenRouter 402: {error_msg[:100]}")
+                    
+                    # 🚫 [ZERO BALANCE]: Skip scale-down if account is empty (v124.45)
+                    if "Insufficient credits" in error_msg:
+                        print("📉 [CREDIT] Zero balance detected. Skipping scale-down retry.")
+                        HEALTH_TRACKER.report_failure("openrouter", model)
+                        return None
+
                     match = re.search(r"only afford (\d+)", error_msg)
                     if match:
                         afforded = int(match.group(1))
