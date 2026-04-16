@@ -1954,50 +1954,35 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             # Precision Lockdown
             scene_comp = scene_comp.set_duration(audio_duration - 0.01)
             print(f"✅ [COMPOSITION] Single-Pass Structural Stack Synchronized: {scene_comp.duration:.2f}s")
-        except Exception as stack_error:
-            print(f"⚠️ [STACK] Single-pass merge failed: {stack_error}")
-            scene_comp = CompositeVideoClip([safety_floor] + positioned_clips).set_duration(audio_duration)
 
-        # 🛡️ [STEP 5]: Final Immortal Rendering (One Render Only)
-        print(f"🏎️ [RENDER] Starting Industrial Pass for Scene {idx}...")
-        with VANTIX_RENDER_LOCK: # 🔐 Sovereign Render Gate (v124.11)
-            try:
-                scene_comp.write_videofile(
-                    final_output,
-                    codec="libx264",
-                    audio_codec="aac",
-                    fps=30,
-                    preset="ultrafast",
-                    threads=1, # ⚖️ Sovereign Stability Lock
-                    logger=None
-                )
-            except Exception as render_error:
-                print(f"❌ [CRITICAL RENDER FAILURE] Scene {idx}: {render_error}")
-                raise render_error
+            # 🛡️ [STEP 5]: Final Immortal Rendering (One Render Only)
+            print(f"🏎️ [RENDER] Starting Industrial Pass for Scene {idx}...")
+            with VANTIX_RENDER_LOCK: # 🔐 Sovereign Render Gate (v124.11)
+                try:
+                    scene_comp.write_videofile(
+                        final_output,
+                        codec="libx264",
+                        audio_codec="aac",
+                        fps=30,
+                        preset="ultrafast",
+                        threads=1, # ⚖️ Sovereign Stability Lock
+                        logger=None
+                    )
+                except Exception as render_error:
+                    print(f"❌ [CRITICAL RENDER FAILURE] Scene {idx}: {render_error}")
+                    raise render_error
 
-        
-        # Immediate cleanup of memory handles
-        scene_comp.close()
-        for c in res_clips: c.close()
-        for c in pure_captions: c.close()
-        
-        return final_output, new_used_urls
-        
-    except Exception as e:
-        print(f"❌ [CRITICAL RENDER FAILURE] Scene {idx}: {e}")
-        return None, []
-        
-        # 🧹 [SURGICAL CLEANUP]: Immediate purge of milestone artifacts
-        print(f"🧹 [CLEANUP]: Purging Milestone fragments for Scene {idx}...")
-        for res in parallel_results:
-            if res and "tmp_path" in res: # I'll make sure to store tmp_path in res
-                try: os.remove(res["tmp_path"])
-                except: pass
-        
-        return final_output, new_used_urls
-    except Exception as e:
-        print(f"❌ [RENDER FAILURE] Scene {idx}: {e}")
-        return None, []
+            # Immediate cleanup of memory handles
+            scene_comp.close()
+            for c in res_clips: c.close()
+            for c in pure_captions: c.close()
+            
+            return final_output, new_used_urls
+            
+        except Exception as e:
+            print(f"❌ [CRITICAL PRODUCTION FAILURE] Scene {idx}: {e}")
+            return None, []
+
 
     # --- PHASE 3: RESILIENCE & CONTINUITY ---
     if not collected_clips:
