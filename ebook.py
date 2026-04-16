@@ -310,6 +310,8 @@ def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150
     orch = ParallelOrchestrator(max_workers=3)
     
     def process_chapter(i, chapter_title):
+        # 🛡️ [REDUCE PRESSURE] Industrial Jitter to mitigate Groq RPM limits (v124.43)
+        time.sleep(1.5 * i)
         print(f"📝 [SYNTHESIS] Mastering Chapter {i+1}: {chapter_title}")
         art_temp_name = f"art_chap_{i+1}_{safe_topic}.png"
         art_path = os.path.join(output_dir, art_temp_name) if output_dir else art_temp_name

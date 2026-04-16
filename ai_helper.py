@@ -17,12 +17,11 @@ class APIHealth:
         self.model_priority = {
             "groq": [
                 "llama-3.3-70b-versatile",
-                "llama-3.1-8b-instant",
-                "llama-3.2-3b-preview"
+                "llama-3.1-8b-instant"
             ],
             "openrouter": [
                 "google/gemini-2.0-flash-001",
-                "google/gemini-2.0-flash-lite-preview-0102",
+                "google/gemini-2.0-pro-exp-02-05:free",
                 "meta-llama/llama-3.3-70b-instruct", 
                 "qwen/qwen-2.5-72b-instruct"
             ],
@@ -128,7 +127,12 @@ def call_openrouter(prompt, user_keys=None):
     
     models = HEALTH_TRACKER.get_models("openrouter")
     for model in models:
-        payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.7}
+        payload = {
+            "model": model, 
+            "messages": [{"role": "user", "content": prompt}], 
+            "temperature": 0.7,
+            "max_tokens": 2048
+        }
         try:
             print(f"📡 Requesting {model}...")
             response = requests.post(url, headers=headers, json=payload, timeout=70)
