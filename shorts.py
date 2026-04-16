@@ -1140,7 +1140,12 @@ def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=1, hor
         scored = []
         for clip in candidates:
             try:
-                url = clip["video_files"][0]["link"]
+                # 🛡️ [SOVEREIGN GUARD]: Defuse discovery node URL peek
+                v_f = clip.get("video_files", [])
+                if v_f and len(v_f) > 0:
+                    url = v_f[0].get("link")
+                else:
+                    url = None
                 if url in used_video_urls or url in GLOBAL_USED_URLS: continue
                 tags = clip.get('tags', '')
                 score = get_relevance_score(tags + " " + query, sentence)
@@ -1984,8 +1989,14 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             
             for clip_data in list(current_pool):
                 if total_collected >= (audio_duration + DURATION_BUFFER): break
-                video_url = clip_data["video_files"][0]["link"]
-                if video_url in used_video_urls or video_url in new_used_urls: continue
+                # 🛡️ [SOVEREIGN GUARD]: Defuse fallback index
+                video_url = None
+                v_files = clip_data.get("video_files", [])
+                if v_files and len(v_files) > 0:
+                    video_url = v_files[0].get("link")
+                
+                if not video_url or video_url in used_video_urls or video_url in new_used_urls: 
+                    continue
                 
                 tmp_path = f"video_creation/fb_{idx}_{len(collected_clips)}.mp4"
                 try:
@@ -2032,11 +2043,14 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             
             novel_pool = find_one_video_clips(query, used_video_urls | new_used_urls, user_topic, max_clips=1, user_keys=user_keys)
             
-            if novel_pool:
-                video_url = novel_pool[0]["video_files"][0]["link"]
-                tmp_path = f"video_creation/novel_{idx}_{novelty_iteration}.mp4"
-                try:
-                    download_video(video_url, tmp_path)
+            # 🛡️ [SOVEREIGN GUARD]: Defuse expansion index
+            if novel_pool and len(novel_pool) > 0:
+                v_files = novel_pool[0].get("video_files", [])
+                if v_files and len(v_files) > 0:
+                    video_url = v_files[0].get("link")
+                    tmp_path = f"video_creation/novel_{idx}_{novelty_iteration}.mp4"
+                    try:
+                        download_video(video_url, tmp_path)
                     raw_clip = VideoFileClip(tmp_path).without_audio()
                     clip = resize_crop(raw_clip).set_fps(30)
                     clip = apply_pattern_interrupt(apply_ken_burns(clip, 2.0))
