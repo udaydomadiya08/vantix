@@ -1958,34 +1958,23 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             print(f"⚠️ [STACK] Single-pass merge failed: {stack_error}")
             scene_comp = CompositeVideoClip([safety_floor] + positioned_clips).set_duration(audio_duration)
 
-        # 🛡️ [STEP 5]: Final Immortal Rendering
+        # 🛡️ [STEP 5]: Final Immortal Rendering (One Render Only)
         print(f"🏎️ [RENDER] Starting Industrial Pass for Scene {idx}...")
-        try:
-            scene_comp.write_videofile(
-                final_output,
-                codec="libx264",
-                audio_codec="aac",
-                fps=30,
-                preset="ultrafast",
-                threads=1, # ⚖️ Sovereign Stability Lock (Essential for Concurrency)
-                logger=None
-            )
-        except Exception as render_error:
-            print(f"❌ [RENDER FAILURE] Scene {idx}: {render_error}")
+        with VANTIX_RENDER_LOCK: # 🔐 Sovereign Render Gate (v124.11)
+            try:
+                scene_comp.write_videofile(
+                    final_output,
+                    codec="libx264",
+                    audio_codec="aac",
+                    fps=30,
+                    preset="ultrafast",
+                    threads=1, # ⚖️ Sovereign Stability Lock
+                    logger=None
+                )
+            except Exception as render_error:
+                print(f"❌ [CRITICAL RENDER FAILURE] Scene {idx}: {render_error}")
+                raise render_error
 
-                # 🛡️ [RETRY NODE]: If the first pass fails, we attempt one final stable render
-                try:
-                    scene_comp.write_videofile(
-                        final_output,
-                        codec="libx264",
-                        audio_codec="aac",
-                        fps=30,
-                        preset="ultrafast",
-                        threads=1, # ⚖️ Max Stability
-                        logger=None
-                    )
-                except Exception as final_e:
-                    raise final_e
         
         # Immediate cleanup of memory handles
         scene_comp.close()
