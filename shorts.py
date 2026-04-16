@@ -116,9 +116,46 @@ def perform_industrial_cleanup():
             if f.endswith((".mp3", ".mp4", ".wav")):
                 try: os.remove(os.path.join(root, f))
                 except: pass
-
-# Execute Sanitization on Startup
-perform_industrial_cleanup()
+def create_caption_clips(word_segments, resolution, include_avatar=True):
+    """🖼️ [VANTIX CAPTIONS]: Generate high-retention cinematic text overlays."""
+    from moviepy.editor import TextClip
+    
+    caption_clips = []
+    width, height = resolution
+    
+    # 🎨 [STYLING]: Anton Regular for Bold Viral Impact
+    font_pt = 140 if width > 1000 else 70
+    color = "yellow"
+    stroke_color = "black"
+    stroke_width = 3
+    
+    for segment in word_segments:
+        try:
+            word = segment["word"].upper().strip()
+            duration = segment["end"] - segment["start"]
+            if duration <= 0: continue
+            
+            # 🎯 [CENTERING]: High-retention vertical centering (Middle-Third)
+            txt = TextClip(
+                word,
+                font="Anton-Regular",
+                fontsize=font_pt,
+                color=color,
+                stroke_color=stroke_color,
+                stroke_width=stroke_width,
+                method="label",
+                size=(width * 0.8, None)
+            ).set_start(segment["start"]).set_duration(duration)
+            
+            # Position at 70% height for vertical impact
+            v_pos = height * 0.7 if not include_avatar else height * 0.5
+            txt = txt.set_position(("center", v_pos))
+            
+            caption_clips.append(txt)
+        except Exception as e:
+            print(f"⚠️ Caption Error for '{segment.get('word')}': {e}")
+            
+    return caption_clips
 
 import socket
 socket.setdefaulttimeout(6000)
@@ -1391,119 +1428,6 @@ def create_word_by_word_subtitles(word_segments, video_size=None, include_avatar
             
         # 📐 [ENGINE] Strict 1080 Column Pacing to mirror vertical look
         MAX_WIDTH = 1080 * 0.85 if IS_LANDSCAPE else W_VAL * 0.85
-        
-        # Define styles dynamically
-        PASSIVE_STYLE = {"color": "#FFFF00", "stroke_color": "black", "stroke_width": 2, "fontsize": int(BASE_FONT_SIZE * 0.9)}
-        ACTIVE_STYLE = {"color": "#00FF00", "stroke_color": "black", "stroke_width": 4, "fontsize": BASE_FONT_SIZE}
-
-        # --- OMNIPOTENT AVATAR SYNERGY ENGINE (v70.0) ---
-        if include_avatar:
-            Y_START = H_VAL * 0.50 # Center screen to avoid bottom-right avatar
-            SINGLE_LINE_ONLY = True
-        else:
-            Y_START = Y_START_BASE
-            SINGLE_LINE_ONLY = False
-            
-        WORD_GAP = 0 # Hypersonic gap
-        BUFFER = int(12 * FONT_SCALE) # Precision buffer
-        
-        clips = []
-        i = 0
-        while i < len(word_segments):
-            line_1 = []
-            line_w_1 = 0
-            last_end = None
-            
-            # Build Line 1 (Greedy logic shared across all modes)
-            while i < len(word_segments):
-                wd = word_segments[i]
-                start_t = wd.get("start", 0)
-                txt = wd.get("word", "").strip()
-                if not txt:
-                    i += 1
-                    continue
-                
-                # ⏸️ PAUSE DETECTION: Break batch instantly (0.0s threshold)
-                if last_end is not None and start_t - last_end > 0.0:
-                    break
-                
-                m = TextClip(txt, fontsize=ACTIVE_STYLE["fontsize"], font=FONT, 
-                            stroke_color=ACTIVE_STYLE["stroke_color"], stroke_width=ACTIVE_STYLE["stroke_width"], method='label')
-                ww = m.size[0] + BUFFER
-                gap = WORD_GAP if line_1 else 0
-                
-                if line_w_1 + gap + ww > MAX_WIDTH and line_1:
-                    break
-                    
-                line_1.append({"data": wd, "width": ww, "text": txt})
-                line_w_1 += (gap + ww)
-                last_end = wd.get("end", start_t + 0.1)
-                i += 1
-                
-            # Build Line 2 (Only if not in SINGLE_LINE_ONLY mode)
-            line_2 = []
-            line_w_2 = 0
-            if i < len(word_segments) and not SINGLE_LINE_ONLY:
-                next_wd = word_segments[i]
-                if last_end is not None and next_wd.get("start", 0) - last_end <= 0.0:
-                    while i < len(word_segments):
-                        wd = word_segments[i]
-                        start_t = wd.get("start", 0)
-                        txt = wd.get("word", "").strip()
-                        if not txt:
-                            i += 1
-                            continue
-                        if last_end is not None and start_t - last_end > 0.0:
-                            break
-                        m = TextClip(txt, fontsize=ACTIVE_STYLE["fontsize"], font=FONT, 
-                                    stroke_color=ACTIVE_STYLE["stroke_color"], stroke_width=ACTIVE_STYLE["stroke_width"], method='label')
-                        ww = m.size[0] + BUFFER
-                        gap = WORD_GAP if line_2 else 0
-                        if line_w_2 + gap + ww > MAX_WIDTH and line_2:
-                            break
-                        line_2.append({"data": wd, "width": ww, "text": txt})
-                        line_w_2 += (gap + ww)
-                        last_end = wd.get("end", start_t + 0.1)
-                        i += 1
-            
-            batch = line_1 + line_2
-            if not batch: break
-            
-            batch_start = batch[0]["data"].get("start", 0)
-            batch_end = batch[-1]["data"].get("end", batch_start + 0.1)
-            
-            current_y = Y_START
-            if line_2: # Lift block for vertical protection
-                current_y -= (LINE_HEIGHT * 0.8)
-                
-            for line_data in [(line_1, line_w_1), (line_2, line_w_2)]:
-                line, line_w = line_data
-                if not line: continue
-                cursor_x = (video_size[0] - line_w) / 2
-                for idx, item in enumerate(line):
-                    wtxt, ww, wd = item["text"], item["width"], item["data"]
-                    w_start, w_end = wd.get("start", 0), wd.get("end", 0.1)
-                    if idx > 0: cursor_x += WORD_GAP
-                    
-                    def make_styled(style, dur, t_s, t_e):
-                        # 💥 Precision Termination (v101.17): Using set_start/set_end for absolute boundary hygiene
-                        return TextClip(wtxt, fontsize=style["fontsize"], color=style["color"],
-                                       stroke_color=style["stroke_color"], stroke_width=style["stroke_width"],
-                                       font=FONT, method='caption', size=(ww, None), align='center').set_start(t_s).set_end(t_e)
-                    
-                    # Instead of nesting, we add each word segment directly to the main list with global scene start
-                    if w_start > batch_start:
-                        clips.append(make_styled(PASSIVE_STYLE, w_start - batch_start, batch_start, w_start).set_position((cursor_x, current_y)))
-                    
-                    clips.append(make_styled(ACTIVE_STYLE, w_end - w_start, w_start, w_end).set_position((cursor_x, current_y)))
-                    
-                    if w_end < batch_end:
-                        clips.append(make_styled(PASSIVE_STYLE, batch_end - w_end, w_end, batch_end).set_position((cursor_x, current_y)))
-                        
-                    cursor_x += ww
-                current_y += LINE_HEIGHT # Use dynamic line height
-        return clips
-
     return create_caption_clips(word_segments, video_size, include_avatar)
 
 def resize_crop(clip):
