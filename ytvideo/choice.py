@@ -107,7 +107,8 @@ import os
 from moviepy.editor import ImageClip, concatenate_videoclips
 
 # Config
-PEXELS_API_KEY = "DGhCtAB83klpCIv5yq5kMIb2zun7q67IvHJysvW4lInb0WVXaQF2xLMu" # Replace with your Pexels API key
+# 🏛️ [VANTIX VAULT] (v2.0): Dynamic Credential Projection
+PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
 
 NUM_IMAGES = 21
 VIDEO_DURATION = 5
@@ -380,7 +381,8 @@ def fallback_search_query(sentence, user_topic):
     response = gemini_model.generate_content(prompt)
     return [q.strip() for q in response.text.strip().split(",")]
 
-API_KEY = '50331047-e9be991568dc6ca136acd003b'  # Replace with your actual Pixabay API key
+# 🏛️ [VANTIX VAULT] (v2.0): Dynamic Credential Projection
+PIXABAY_API_KEY = os.environ.get("PIXABAY_API_KEY", "")
 
 @retry_infinite(delay=5)
 def search_pixabay_videos(query, per_page=200, max_results=15):  # lowered per_page for quicker tests
@@ -732,7 +734,17 @@ from moviepy.editor import AudioFileClip, CompositeAudioClip, ImageClip, concate
 
 def create_fast_cut_clip_from_images(image_paths, total_duration=5, resolution=(1920,1080)):
     per_image_duration = total_duration / len(image_paths)
-    tick_sound = AudioFileClip("/Users/uday/Downloads/VIDEOYT/analog-camera-shutter-96604_z7Dhy2kD.mp3").volumex(0.1)
+    # 🏛️ [ASSET REGISTRY]: Relative path for industrial portability
+    tick_sound_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "analog-camera-shutter-96604_z7Dhy2kD.mp3")
+    if not os.path.exists(tick_sound_path):
+         # Try project root
+         tick_sound_path = "analog-camera-shutter-96604_z7Dhy2kD.mp3"
+         
+    try:
+        tick_sound = AudioFileClip(tick_sound_path).volumex(0.1)
+    except:
+        print("⚠️ SFX asset missing. Skipping shutter sound.")
+        tick_sound = None
     clips = []
 
     for i, path in enumerate(image_paths):
