@@ -1908,10 +1908,8 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                     if hasattr(c, 'mask') and c.mask is not None:
                         _ = c.mask.get_frame(0)
                     
-                    # Force normalization to target resolution and STRIP AUDIO
-                    # MoviePy's internal audio concatenator often hits IndexError on 100+ clips.
-                    # We will re-inject the master audio track at the final step.
-                    res_clips.append(c.resize((1080, 1920)).set_fps(30).without_audio())
+                    # Force normalization, strip audio, and LOCK DURATION to prevent drift
+                    res_clips.append(c.resize((1080, 1920)).set_fps(30).without_audio().set_duration(c.duration))
                 except Exception as e:
                     print(f"⚠️ [STABILITY] Purging corrupted/truncated asset: {e}")
 
@@ -1928,14 +1926,16 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             print(f"❌ Composite Stage 1 failed: {e}. Falling back to composition mode.")
             scene_comp = CompositeVideoClip(res_clips)
 
-        # 🛡️ [STEP 3]: Audio-Visual Fusion
+        # 🛡️ [STEP 3]: Audio-Visual Fusion & Precision Trim
         try:
             if audio_clip is not None:
                 scene_comp = scene_comp.set_audio(audio_clip)
-            scene_comp = scene_comp.set_duration(audio_duration)
+            
+            # 🛡️ [PRECISION GUARD]: Trim 0.01s to prevent terminal IndexError
+            scene_comp = scene_comp.set_duration(audio_duration - 0.01)
         except Exception as e:
             print(f"⚠️ Audio Fusion Warning: {e}")
-            scene_comp = scene_comp.set_duration(audio_duration)
+            scene_comp = scene_comp.set_duration(max(0.1, audio_duration - 0.05))
 
         # 🛡️ [STEP 4]: Caption Augmentation & Purification
         caption_clips = create_caption_clips(word_segments, (1080, 1920), include_avatar=include_avatar)

@@ -73,5 +73,10 @@
         "username": "testuser",
         "job_id": "6c439ab3-ab03-4c87-855f-e9354ba0f788",
         "timestamp": 1776364393.196566
+    },
+    {
+        "username": "testuser",
+        "job_id": "240d0c6c-161c-4aaa-aba8-0ce7ea53ed89",
+        "timestamp": 1776364555.657634
     }
 ]
