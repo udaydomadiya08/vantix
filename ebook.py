@@ -306,12 +306,10 @@ def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150
     else:
         cover_image_path = None
 
-    subsections_dict = {}
-    chapters_content = []
-    chapter_arts = []
-
-    # 4. Production Cycle
-    for i, chapter_title in enumerate(chapters_list):
+    from parallel_helper import ParallelOrchestrator
+    orch = ParallelOrchestrator(max_workers=3)
+    
+    def process_chapter(i, chapter_title):
         print(f"📝 [SYNTHESIS] Mastering Chapter {i+1}: {chapter_title}")
         art_temp_name = f"art_chap_{i+1}_{safe_topic}.png"
         art_path = os.path.join(output_dir, art_temp_name) if output_dir else art_temp_name
@@ -324,13 +322,32 @@ def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150
         else:
             art_path = None
         
-        chapter_arts.append(art_path)
-        
         content, subs = build_chapter_with_subsections(topic, chapter_title, description, theme.get('tone', 'Expert'))
-        subsections_dict[chapter_title] = subs
-        chapters_content.append(content)
+        return {
+            "content": content,
+            "subsections": subs,
+            "art": art_path
+        }
 
-    # 5. Final Master
+    # 4. Production Cycle (Parallel)
+    results = orch.parallel_map_indexed(process_chapter, chapters_list, task_name="Chapter Synthesis")
+
+    # 5. Result Integration (Synchronized)
+    subsections_dict = {}
+    chapters_content = []
+    chapter_arts = []
+
+    for i, res in enumerate(results):
+        if res:
+            subsections_dict[chapters_list[i]] = res["subsections"]
+            chapters_content.append(res["content"])
+            chapter_arts.append(res["art"])
+        else:
+            subsections_dict[chapters_list[i]] = []
+            chapters_content.append("[Chapter Synthesis Failed]")
+            chapter_arts.append(None)
+
+    # 6. Final Master
     filename = f"{safe_topic}_GODLEVEL_STABILIZED.pdf"
     final_output_path = os.path.join(output_dir, filename) if output_dir else filename
     save_ebook_pdf(topic, description, chapters_content, chapters_list, subsections_dict, final_output_path, theme, cover_image=cover_image_path, chapter_arts=chapter_arts)
