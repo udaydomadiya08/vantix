@@ -1775,6 +1775,7 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                  print(f"❌ [ULTIMATE EXHAUSTION]: No visuals found for Milestone {i}.")
                  return {"is_placeholder": True, "dur": target_dur}
 
+            try:
                 # 🛡️ [SOVEREIGN GUARD]: Defuse double-naked index
                 video_url = None
                 if pool and len(pool) > 0:
