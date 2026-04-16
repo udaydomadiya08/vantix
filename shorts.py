@@ -1917,7 +1917,6 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             raise ValueError("VANTIX CRITICAL: All background clips failed verification. Visual stream is empty.")
 
         # 🛡️ [STEP 2]: Manual Sovereign Orchestration (Bypass Concatenation)
-        # Avoids MoviePy's internal indexing bugs by placing clips manually.
         current_time = 0.0
         positioned_clips = []
         for c in res_clips:
@@ -1927,7 +1926,6 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         # 🛡️ [STEP 4]: Caption Augmentation & Purification
         caption_clips = create_caption_clips(word_segments, (1080, 1920), include_avatar=include_avatar)
         
-        # Final pass filter to catch internal MoviePy memory leaks
         pure_captions = []
         for cap in (caption_clips or []):
             if cap is not None and hasattr(cap, "get_frame"):
@@ -1937,51 +1935,50 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                         _ = cap.mask.get_frame(0)
                     pure_captions.append(cap)
                 except:
-                    continue # Purge corrupted caption object
+                    continue 
 
         # 🏗️ [VANTIX STACK]: Final Single-Pass Structural Hardening (v124.3)
-        # 🏢 [VANTIX SAFETY FLOOR]: Permanent structural baseline to prevent IndexError gaps
         from moviepy.video.VideoClip import ColorClip
         safety_floor = ColorClip(size=(1080, 1920), color=(0,0,0)).set_duration(audio_duration).set_fps(30)
         
-        try:
-            # Layer everything in one structural pass for O(1) indexing lookup
-            scene_comp = CompositeVideoClip([safety_floor] + positioned_clips + pure_captions)
-            
-            if audio_clip is not None:
-                scene_comp = scene_comp.set_audio(audio_clip)
-            
-            # Precision Lockdown
-            scene_comp = scene_comp.set_duration(audio_duration - 0.01)
-            print(f"✅ [COMPOSITION] Single-Pass Structural Stack Synchronized: {scene_comp.duration:.2f}s")
+        # Layer everything in one structural pass for O(1) indexing lookup
+        scene_comp = CompositeVideoClip([safety_floor] + positioned_clips + pure_captions)
+        
+        if audio_clip is not None:
+            scene_comp = scene_comp.set_audio(audio_clip)
+        
+        # Precision Lockdown
+        scene_comp = scene_comp.set_duration(audio_duration - 0.01)
+        print(f"✅ [COMPOSITION] Single-Pass Structural Stack Synchronized: {scene_comp.duration:.2f}s")
 
-            # 🛡️ [STEP 5]: Final Immortal Rendering (One Render Only)
-            print(f"🏎️ [RENDER] Starting Industrial Pass for Scene {idx}...")
-            with VANTIX_RENDER_LOCK: # 🔐 Sovereign Render Gate (v124.11)
-                try:
-                    scene_comp.write_videofile(
-                        final_output,
-                        codec="libx264",
-                        audio_codec="aac",
-                        fps=30,
-                        preset="ultrafast",
-                        threads=1, # ⚖️ Sovereign Stability Lock
-                        logger=None
-                    )
-                except Exception as render_error:
-                    print(f"❌ [CRITICAL RENDER FAILURE] Scene {idx}: {render_error}")
-                    raise render_error
+        # 🛡️ [STEP 5]: Final Immortal Rendering (One Render Only)
+        print(f"🏎️ [RENDER] Starting Industrial Pass for Scene {idx}...")
+        with VANTIX_RENDER_LOCK: # 🔐 Sovereign Render Gate (v124.11)
+            try:
+                scene_comp.write_videofile(
+                    final_output,
+                    codec="libx264",
+                    audio_codec="aac",
+                    fps=30,
+                    preset="ultrafast",
+                    threads=1, # ⚖️ Sovereign Stability Lock
+                    logger=None
+                )
+            except Exception as render_error:
+                print(f"❌ [CRITICAL RENDER FAILURE] Scene {idx}: {render_error}")
+                raise render_error
 
-            # Immediate cleanup of memory handles
-            scene_comp.close()
-            for c in res_clips: c.close()
-            for c in pure_captions: c.close()
-            
-            return final_output, new_used_urls
-            
-        except Exception as e:
-            print(f"❌ [CRITICAL PRODUCTION FAILURE] Scene {idx}: {e}")
-            return None, []
+        # Immediate cleanup of memory handles
+        scene_comp.close()
+        for c in res_clips: c.close()
+        for c in pure_captions: c.close()
+        
+        return final_output, new_used_urls
+        
+    except Exception as e:
+        print(f"❌ [CRITICAL PRODUCTION FAILURE] Scene {idx}: {e}")
+        return None, []
+
 
 
     # --- PHASE 3: RESILIENCE & CONTINUITY ---
