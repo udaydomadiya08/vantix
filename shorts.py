@@ -113,7 +113,7 @@ def prep_milestone_ffmpeg(input_path, output_path, duration, width=1080, height=
         cmd = [
             "ffmpeg", "-y", "-i", input_path,
             "-vf", f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1",
-            "-t", str(duration + 0.3), # 🏎️ [HEADROOM]: Add 0.3s buffer to silence MoviePy EOF warnings
+            "-t", str(duration + 0.4), # 🏎️ [HEADROOM]: Add 0.4s buffer to silence MoviePy EOF warnings once and for all
             "-r", "30",
             "-pix_fmt", "yuv420p",
             "-an", # Strip audio to prevent MoviePy muxing collisions
@@ -1121,7 +1121,12 @@ def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=1, hor
         scored = []
         for clip in candidates:
             try:
-                url = clip["video_files"][0]["link"]
+                # 🛡️ [SOVEREIGN GUARD]: Defuse naked URL index
+                video_files = clip.get("video_files", [])
+                if video_files and len(video_files) > 0:
+                    url = video_files[0].get("link")
+                else:
+                    url = None
                 if url in used_video_urls or url in GLOBAL_USED_URLS: continue
                 tags = " ".join([t.get('title', '') for t in clip.get('tags', [])])
                 score = get_relevance_score(tags + " " + query, sentence)
@@ -1687,7 +1692,8 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
     
     milestones = []
     if raw_milestones:
-        temp_ms = raw_milestones[0]
+        # 🛡️ [SOVEREIGN GUARD]: Defuse milestone peek
+        temp_ms = raw_milestones[0] if raw_milestones else {"start": 0, "end": 3, "duration": 3, "queries": ["space"]}
         for next_ms in raw_milestones[1:]:
             cur_dur = temp_ms["end"] - temp_ms["start"]
             if cur_dur < min_floor:
@@ -1769,12 +1775,16 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                  print(f"❌ [ULTIMATE EXHAUSTION]: No visuals found for Milestone {i}.")
                  return {"is_placeholder": True, "dur": target_dur}
 
-            try:
-                # 💥 [VANTIX HARDENING]: Multi-layer structural verification
-                if not pool[0].get("video_files"):
-                    raise ValueError("Pexels response missing video_files payload.")
+                # 🛡️ [SOVEREIGN GUARD]: Defuse double-naked index
+                video_url = None
+                if pool and len(pool) > 0:
+                    v_files = pool[0].get("video_files", [])
+                    if v_files and len(v_files) > 0:
+                        video_url = v_files[0].get("link")
                 
-                video_url = pool[0]["video_files"][0]["link"]
+                if not video_url:
+                    raise ValueError("Pexels response missing or empty video_files payload.")
+                
                 download_video(video_url, raw_tmp_path)
                 
                 # 🏎️ [WARP-PREP] Standardize Asset via C-speed FFmpeg (v122.24: Dynamic Resolution)
@@ -2043,7 +2053,12 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
     if total_collected < (audio_duration + DURATION_BUFFER) and collected_clips:
         print("⚠️ CRITICAL: Novelty exhausted. Using emergency loop (v32 legacy).")
         while total_collected < (audio_duration + DURATION_BUFFER):
-             source_clip = collected_clips[-1]
+             # 🛡️ [SOVEREIGN GUARD]: Defuse collected clips index
+             if collected_clips and len(collected_clips) > 0:
+                 source_clip = collected_clips[-1]
+             else:
+                 print(f"⚠️ [STABILITY] No clips collected for Scene {idx}. Using filler.")
+                 source_clip = ColorClip(size=TARGET_RES, color=(0,0,0)).set_duration(audio_duration)
              loop_clip = source_clip.copy().set_start(total_collected)
              collected_clips.append(loop_clip)
              total_collected += loop_clip.duration
