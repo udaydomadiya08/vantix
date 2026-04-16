@@ -1676,7 +1676,7 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                 clip = apply_pattern_interrupt(apply_ken_burns(clip, target_dur))
                 clip = apply_vantix_pacing(clip, is_hook=(i==0), intensity=intensity) # 💥 NEURAL PACING
                 clip = clip.set_duration(target_dur).set_start(ms["start"])
-                return {"clip": clip, "url": video_url, "dur": target_dur}
+                return {"clip": clip, "url": video_url, "dur": target_dur, "tmp_path": tmp_path}
             except Exception as e:
                 print(f"❌ Milestone {i} Failed: {e}")
                 return None
@@ -1717,11 +1717,18 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             audio_codec="aac",
             fps=30,
             preset="ultrafast",
-            threads=2, # Optimized for 2-core environments
+            threads=2,
             logger=None
         )
         scene_comp.close()
         for c in res_clips: c.close()
+        
+        # 🧹 [SURGICAL CLEANUP]: Immediate purge of milestone artifacts
+        print(f"🧹 [CLEANUP]: Purging Milestone fragments for Scene {idx}...")
+        for res in parallel_results:
+            if res and "tmp_path" in res: # I'll make sure to store tmp_path in res
+                try: os.remove(res["tmp_path"])
+                except: pass
         
         return final_output, new_used_urls
     except Exception as e:
@@ -2028,12 +2035,19 @@ def create_video_from_script(script, user_topic):
     print("\n⚡ [ASSEMBLY] Executing Atomic Byte-Stream Stitch...")
     stitch_cmd = [
         "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list_path,
-        "-c", "copy", output_path # 💥 INSTANT COPY: near-zero speed
+        "-c", "copy", output_path
     ]
     subprocess.run(stitch_cmd, check=True)
 
+    # 🧹 [SURGICAL CLEANUP]: Final purge of scene segments
+    print("\n🧹 [CLEANUP]: Executing Final Master Cleanup...")
+    for p in scene_paths:
+        try: os.remove(p)
+        except: pass
+    try: os.remove(concat_list_path)
+    except: pass
+
     # 🎙️ [AUDIO]: Background Music Mixing
-    # (Final lightweight pass only if music is needed)
     print(f"\n✅ [SUCCESS] Industrial Video Created in Record Time: {output_path}")
     return output_path, all_used_urls
 
