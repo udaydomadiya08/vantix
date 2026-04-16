@@ -148,10 +148,13 @@ class MyPDF(FPDF):
         self.current_chapter_title = title
         content = sanitize_unicode(content)
         self.add_page()
+        self.set_x(self.l_margin) # 🛡️ [LAYOUT RESET]: Absolute left-reset for new chapter (v124.46)
         
         # 🎨 STABILIZED Y-BUFFERING
         start_y = 35
         if self.layout_mode == "Minimalist":
+            self.set_y(start_y)
+            self.set_x(self.l_margin) # 🛡️ [LAYOUT RESET]: Ensure X matches Minimalist offset (v124.46)
             start_y = 50
         
         # 🎨 CHAPTER ART
@@ -173,8 +176,17 @@ class MyPDF(FPDF):
         self.set_font("helvetica", "B", h1_size)
         self.set_text_color(*self.primary_rgb)
         
+        body_lh = self.font_size * self.spacing_cfg.get("line_height", 1.5)
+        
+        # 🛡️ [LAYOUT STABILITY]: Rescue wrap for chapter titles (v124.46)
         heading_align = "L" if self.layout_mode != "Centered" else "C"
-        self.multi_cell(0, h1_lh, title.upper(), align=heading_align)
+        try:
+            available_w = self.w - self.x - self.r_margin
+            if available_w <= 0: self.set_x(self.l_margin)
+            self.multi_cell(0, h1_lh, title.upper(), align=heading_align)
+        except:
+            self.set_x(self.l_margin)
+            self.multi_cell(0, h1_lh, title.upper(), align=heading_align)
         self.ln(self.spacing_cfg.get("paragraph_gap", 10))
         
         # Content body
@@ -202,11 +214,12 @@ class MyPDF(FPDF):
                 self.set_text_color(40)
                 self.ln(5)
             else:
-                # 🛡️ [LAYOUT STABILITY]: Multi-worker horizontal space sanity check
-                if self.w - self.l_margin - self.r_margin > 0:
-                    self.multi_cell(0, body_lh, line, align=self.alignment)
-                else:
-                    self.ln(body_lh) # Fallback to vertical break if layout is corrupted
+                # 🛡️ [LAYOUT STABILITY]: Master horizontal rescue (v124.46)
+                available_w = self.w - self.x - self.r_margin
+                if available_w <= 0: 
+                    self.set_x(self.l_margin)
+                
+                self.multi_cell(0, body_lh, line, align=self.alignment)
 
 def save_ebook_pdf(title, description, chapters_content, chapters_list, subsections_dict, output_file, theme, cover_image=None, chapter_arts=None):
     pdf = MyPDF(theme)
@@ -246,13 +259,15 @@ def save_ebook_pdf(title, description, chapters_content, chapters_list, subsecti
     pdf.set_font("helvetica", "", 13)
     pdf.set_text_color(60)
     for chap in chapters_list:
+        pdf.set_x(pdf.l_margin) # 🛡️ [LAYOUT RESET]: Ensure TOC start position (v124.46)
         pdf.cell(0, 10, f"- {chap.upper()}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         sub_list = subsections_dict.get(chap, [])
         pdf.set_font("helvetica", "I", 11)
         pdf.set_text_color(100)
         for sub in sub_list:
             pdf.set_x(35)
-            # 🛡️ [LAYOUT STABILITY]: Corrected new_x to avoid right-edge cursor locking
+            # 🛡️ [LAYOUT STABILITY]: Double-wrapped X-safety for nested TOC items (v124.46)
+            if pdf.w - pdf.x - pdf.r_margin <= 0: pdf.set_x(pdf.l_margin)
             pdf.cell(0, 8, f"> {sub}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.set_font("helvetica", "", 13)
         pdf.set_text_color(60)
