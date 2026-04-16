@@ -263,7 +263,10 @@ def save_ebook_pdf(title, description, chapters_content, chapters_list, subsecti
     pdf.output(output_file)
     print(f"✅ [STABILIZED] Mastered Vantix Masterpiece: {output_file}")
 
-def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150, theme_color=None, images_toggle=True, user_keys=None, **kwargs):
+def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150, theme_color=None, images_toggle=True, user_keys=None, job_id=None, **kwargs):
+    if job_id:
+        import api.telemetry as telemetry
+        telemetry.update_progress(job_id, "Drafting Manifesto (1/1)")
     """🚀 VANTIX DYNAMIC ENGINE (v1.0): Stabilized Vantix Design"""
     print(f"🏗️ [FACTORY] Initializing Multi-Model Synthesis: {topic}")
     

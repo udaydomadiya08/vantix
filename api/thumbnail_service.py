@@ -89,7 +89,10 @@ def get_stock_backdrop(topic, pexels_key):
         print(f"⚠️ [THUMBNAIL] Stock fallback failed: {e}")
     return None
 
-def create_vantix_thumbnail(topic, user_keys=None, output_path=None):
+def create_vantix_thumbnail(topic, user_keys=None, output_path=None, job_id=None, **kwargs):
+    if job_id:
+        import api.telemetry as telemetry
+        telemetry.update_progress(job_id, "Designing Viral Thumbnail")
     """
     Graduated Thumbnail Synthesis Engine (v102.0)
     Generates a cinematic backdrop and overlays a viral headline.
