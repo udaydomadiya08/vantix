@@ -145,64 +145,9 @@ def purge_orphan_fragments():
 import threading
 VANTIX_RENDER_LOCK = threading.Lock()
 
-def create_caption_clips(word_segments, resolution, include_avatar=True):
-    """🖼️ [VANTIX CAPTIONS]: Generate high-retention cinematic text overlays."""
-    from moviepy.editor import TextClip
-    
-    caption_clips = []
-    width, height = resolution
-    
-    # 🎨 [STYLING]: Anton Regular for Bold Viral Impact
-    font_pt = 140 if width > 1000 else 70
-    color = "yellow"
-    stroke_color = "black"
-    stroke_width = 3
-    
-    for segment in word_segments:
-        try:
-            word = segment["word"].upper().strip()
-            duration = segment["end"] - segment["start"]
-            if duration <= 0: continue
-            
-            # 🎨 [STYLING]: Anton Regular with Iterative Fallback
-            # Fonts to try in order of brand priority
-            font_priorities = ["Anton-Regular", "Arial-Bold", "DejaVu-Sans-Bold", "Liberation-Sans-Bold"]
-            
-            txt = None
-            for font_name in font_priorities:
-                try:
-                    with VANTIX_RENDER_LOCK: # 🔐 Prevent ImageMagick collision
-                        txt = TextClip(
-                            word,
-                            font=font_name,
-                            fontsize=font_pt,
-                            color=color,
-                            stroke_color=stroke_color,
-                            stroke_width=stroke_width,
-                            method="label",
-                            size=(width * 0.8, None)
-                        ).set_start(segment["start"]).set_duration(duration)
-                    
-                    # 💥 PRE-FLIGHT CHECK (v107.0): Verify frame AND mask integrity
-                    _ = txt.get_frame(0)
-                    if hasattr(txt, 'mask') and txt.mask is not None:
-                        _ = txt.mask.get_frame(0)
-                    
-                    break # Success!
-                except:
-                    continue # Try next font
-            
-            if txt is None: continue # Skip if all fonts fail
-                
-            # Position at 70% height for vertical impact
-            v_pos = height * 0.7 if not include_avatar else height * 0.5
-            txt = txt.set_position(("center", v_pos))
-            
-            caption_clips.append(txt)
-        except Exception as e:
-            print(f"⚠️ Caption Error for '{segment.get('word')}': {e}")
-            
-    return caption_clips
+# 🏛️ [VANTIX DYNAMO] (v124.15): Integrated Subtitle Synthesis Node
+# Purged create_caption_clips to favor the Cluster Engine below.
+
 
 import socket
 # 🏛️ [VANTIX SYNC] socket.setdefaulttimeout(6000) removed to favor Global Sentinel (30s)
@@ -1275,60 +1220,8 @@ def random_bright_color():
     r, g, b = colorsys.hsv_to_rgb(h, s, v)
     return np.array([r, g, b]) * 255
 
-def create_word_gradient_clip(word, duration, font, fontsize, video_size):
-    # Sentiment-based colorization for GOD-MODE
-    word_color = "white"
-    sentiment_color = colorize_by_sentiment(word)
-    if sentiment_color:
-        left_color = np.array(list(int(sentiment_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)))
-        right_color = left_color
-    left_color = random_bright_color() if sentiment_color is None else np.array(list(int(sentiment_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)))
-    right_color = left_color if sentiment_color else random_bright_color()
-    direction = random.choice(["diagonal_tl_br", "diagonal_br_tl"])
+# 🏛️ Legacy create_word_gradient_clip and shadowed definitions purged (v124.15)
 
-    # 🛡️ [VANTIX FIX]: Create local text_mask to avoid Scope Errors
-    text_mask = TextClip(
-        word,
-        font=font,
-        fontsize=fontsize,
-        color="white",
-        method="label",
-        size=video_size
-    ).set_duration(duration)
-
-    def make_frame(t):
-        progress = (t / duration) % 1 if duration > 0 else 0
-        offset = progress
-        gradient = create_gradient_frame(video_size[0], video_size[1], offset, direction, left_color, right_color)
-        mask_frame = text_mask.get_frame(t)
-        colored_frame = (gradient * mask_frame[:, :, None]).astype(np.uint8)
-        return colored_frame
-
-    return VideoClip(make_frame, duration=duration).set_position("center").set_mask(text_mask.mask)
-
-
-def create_word_by_word_subtitles(
-    word_segments,
-    video_size=(1080, 1920),
-    font=os.path.join(PROJECT_ROOT, "Anton-Regular.ttf"),
-    fontsize=110,
-):
-    from moviepy.editor import CompositeVideoClip
-    from moviepy.video.fx.all import fadein, fadeout
-
-    clips = []
-
-    for word_info in word_segments:
-        word = word_info["word"]
-        start = word_info["start"]
-        end = word_info["end"]
-        duration = end - start
-
-        grad_clip = create_word_gradient_clip(word, duration, font, fontsize, video_size)
-        grad_clip = grad_clip.set_start(start).fx(fadein, 0.1).fx(fadeout, 0.1)
-        clips.append(grad_clip)
-
-    return CompositeVideoClip(clips, size=video_size)
 
 
 nlp = spacy.load("en_core_web_sm")
@@ -1548,28 +1441,149 @@ def draw_progress_bar(final_clip):
         return bar_frame
         
     bar = VideoClip(make_frame, duration=final_clip.duration).set_position(("center", "bottom"))
-    # Force explicit size to prevent black screen inheritance issues
     return CompositeVideoClip([final_clip, bar], size=TARGET_RES)
 
 def create_word_by_word_subtitles(word_segments, video_size=None, include_avatar=False):
+    """
+    💎 [VANTIX DYNAMO v124.19]: Pixel-Aware Stable Phrase Engine
+    - Strict 2-line hard-lock using pixel-width greedy filling.
+    - 85% width safe zone saturation.
+    - Passive: Yellow | Active: Green Highlight.
+    - Chroma Isolation & 50px Kerning.
+    """
     if video_size is None: video_size = TARGET_RES
-    """
-    VANTIX AVATAR SYNERGY ENGINE (v1.0):
-    - Avatar-Aware Positioning: Shifts to Y=0.50 (Center) if avatar is present to avoid overlap.
-    - Strictly One-Word Mode: Forced 1-word transitions for avatar segments.
-    - Zero-Gap Pacing: Instant breaks on silence.
-    - Hypersonic Fidelity: 0px gap, 12px buffer, Yellow/Green palette.
-    """
     from moviepy.editor import TextClip, CompositeVideoClip
     
-    # 🖋️ [VANTIX TYPOGRAPHY] (v2.0): Standardizing on Anton-Regular.ttf for brand across all nodes
-    FONT = os.path.join(PROJECT_ROOT, "Anton-Regular.ttf")
-    if not os.path.exists(FONT):
-        # Fallback for systems without Anton in project root
-        FONT = "DejaVuSans-Bold" if os.name != 'nt' else "Arial"
-    # 🛡️ [RECURSION FIX]: Use the stable global caption engine
-    from moviepy.editor import TextClip, CompositeVideoClip
-    return create_caption_clips(word_segments, video_size, include_avatar)
+    width, height = video_size
+    is_vertical = width < height
+    
+    # 📐 [ENGINE] Dynamic Multi-Resolution Mapping (v124.29)
+    if is_vertical:
+        safe_width = int(width * 0.85)
+        max_lines = 1 if include_avatar else 2
+    else:
+        # Horizontal Logic: Fixed 1080px central buffer
+        safe_width = min(int(width * 0.85), 1080)
+        max_lines = 2
+        
+    kerning_buffer = 25 # 💥 GOLDILOCKS CALIBRATION (v124.23)
+    
+    font_path = os.path.join(PROJECT_ROOT, "Anton-Regular.ttf")
+    if not os.path.exists(font_path): font_path = "Arial-Bold"
+    fontsize = 85 if width > 1000 else 45
+    v_pos_base = height * 0.75 if not include_avatar else height * 0.5
+
+    # 📏 Pre-measure all words (Passive AND Active) for centering
+    word_data = []
+    for w_seg in word_segments:
+        clean_word = w_seg["word"] # 💥 MIXED CASE (v124.24)
+        with VANTIX_RENDER_LOCK:
+            # Passive Size
+            m = TextClip(clean_word, font=font_path, fontsize=fontsize, method="label")
+            word_w, word_h = m.size
+            m.close()
+            # Active Size (+10pt for Pop)
+            ma = TextClip(clean_word, font=font_path, fontsize=fontsize + 10, method="label")
+            word_wa, word_ha = ma.size
+            ma.close()
+        word_data.append({"seg": w_seg, "w": word_w, "h": word_h, "wa": word_wa, "ha": word_ha, "clean": clean_word})
+
+    # 🎢 [CLUSTERING]: Pixel-Greedy Accumulator
+    phrases = [] # List of {lines: [[word_data]], start, end}
+    idx = 0
+    total_words = len(word_data)
+    
+    while idx < total_words:
+        phrase_lines = []
+        # Fill strictly up to max_lines
+        for _ in range(max_lines):
+            line_words = []
+            line_w = 0
+            while idx < total_words:
+                w_info = word_data[idx]
+                if not line_words:
+                    line_words.append(w_info)
+                    line_w = w_info["w"]
+                    idx += 1
+                elif line_w + kerning_buffer + w_info["w"] < safe_width:
+                    line_words.append(w_info)
+                    line_w += kerning_buffer + w_info["w"]
+                    idx += 1
+                else:
+                    break # Line full
+            if line_words:
+                phrase_lines.append(line_words)
+            if idx >= total_words: break
+            
+        if phrase_lines:
+            p_start = phrase_lines[0][0]["seg"]["start"]
+            p_end = phrase_lines[-1][-1]["seg"]["end"]
+            phrases.append({"lines": phrase_lines, "start": p_start, "end": p_end})
+
+    final_clips = []
+    
+    for phrase in phrases:
+        p_start, p_end = phrase["start"], phrase["end"]
+        
+        y_offset = 0
+        for line in phrase["lines"]:
+            # Measure line width for centering
+            line_actual_w = sum([w["w"] for w in line]) + (len(line)-1) * kerning_buffer
+            current_x = (width - line_actual_w) / 2
+            
+            for w_data in line:
+                seg = w_data["seg"]
+                clean = w_data["clean"]
+                w_start, w_end = seg["start"], seg["end"]
+                x_pos = current_x
+                y_pos = v_pos_base + y_offset
+                
+                # A. CHROMA ISOLATION: Segmented Yellow Passive
+                pre_dur = w_start - p_start
+                if pre_dur > 0.01:
+                    with VANTIX_RENDER_LOCK:
+                        pre = TextClip(
+                            clean, font=font_path, fontsize=fontsize,
+                            color="yellow", stroke_color="black", stroke_width=3, method="label"
+                        ).set_start(p_start).set_duration(pre_dur).set_position((x_pos, y_pos))
+                        final_clips.append(pre)
+                        
+                post_dur = p_end - w_end
+                if post_dur > 0.01:
+                    with VANTIX_RENDER_LOCK:
+                        post = TextClip(
+                            clean, font=font_path, fontsize=fontsize,
+                            color="yellow", stroke_color="black", stroke_width=3, method="label"
+                        ).set_start(w_end).set_duration(post_dur).set_position((x_pos, y_pos))
+                        final_clips.append(post)
+                
+                # B. DYNAMO HIGHLIGHT: Green Active
+                ax = x_pos + (w_data["w"] - w_data["wa"]) / 2
+                ay = y_pos + (w_data["h"] - w_data["ha"]) / 2
+                
+                with VANTIX_RENDER_LOCK:
+                    active = TextClip(
+                        clean, font=font_path, fontsize=fontsize + 10,
+                        color="#00FF00", stroke_color="black", stroke_width=4, method="label"
+                    ).set_start(w_start).set_duration(w_end - w_start).set_position((ax, ay))
+                    final_clips.append(active)
+                
+                current_x += w_data["w"] + kerning_buffer
+            
+            y_offset += w_data["h"] + 15 # Double-line vertical spacing
+            
+    return final_clips
+
+
+
+
+
+
+
+def create_caption_clips(word_segments, resolution, include_avatar=True):
+    # This is now a redirect to ensure industrial standard (v124.15)
+    return create_word_by_word_subtitles(word_segments, resolution, include_avatar)
+
 
 def resize_crop(clip):
     if clip is None: return None
