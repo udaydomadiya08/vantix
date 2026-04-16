@@ -58,7 +58,7 @@ def download_asset(url, save_path):
         print(f"❌ [DOWNLOADING] Failed: {e}")
         return False
 
-def generate_subsections(topic, chapter_title, description=""):
+def generate_subsections(topic, chapter_title, description="", user_keys=None):
     prompt = f"""
     [GOD-MODE SYNTHESIS] 
     Topic: {topic}
@@ -68,11 +68,11 @@ def generate_subsections(topic, chapter_title, description=""):
     Task: Determine how many subsections this chapter needs to be exhaustive. Return their titles.
     Format: Plain text, one title per line. No bold.
     """
-    response = generate_ai_response(prompt)
+    response = generate_ai_response(prompt, user_keys=user_keys)
     subsections = [line.strip() for line in response.text.split('\n') if line.strip()]
     return subsections
 
-def generate_subsection_content(topic, chapter_title, subsection_title, description="", tone="Expert"):
+def generate_subsection_content(topic, chapter_title, subsection_title, description="", tone="Expert", user_keys=None):
     # Pacing is handled in ai_helper
     prompt = f"""
     [GOD-MODE LITERARY SYNTHESIS]
@@ -85,18 +85,18 @@ def generate_subsection_content(topic, chapter_title, subsection_title, descript
     Strategy: PAS + Storytelling.
     CRITICAL: Minimum {MIN_WORDS_PER_SECTION} words. Plain text only.
     """
-    response = generate_ai_response(prompt)
+    response = generate_ai_response(prompt, user_keys=user_keys)
     return response.text.strip()
 
-def build_chapter_with_subsections(topic, chapter_title, description="", tone="Expert"):
-    subsections = generate_subsections(topic, chapter_title, description)
+def build_chapter_with_subsections(topic, chapter_title, description="", tone="Expert", user_keys=None):
+    subsections = generate_subsections(topic, chapter_title, description, user_keys=user_keys)
     full_content = ""
     
     print(f"🚀 [PARALLEL] Synthesizing {len(subsections)} sections for '{chapter_title}' (Max Workers: 3)...")
     with concurrent.futures.ThreadPoolExecutor(max_workers=min(3, len(subsections))) as executor:
         # Create a dictionary of future to subsection title
         future_to_sub = {
-            executor.submit(generate_subsection_content, topic, chapter_title, sub, description, tone): sub 
+            executor.submit(generate_subsection_content, topic, chapter_title, sub, description, tone, user_keys): sub 
             for sub in subsections
         }
         
@@ -316,13 +316,13 @@ def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150
         
         if INCLUDE_IMAGES and INCLUDE_CHAPTER_ART:
             style = theme.get('visual_style', 'Cinematic')
-            art_url = generate_image_asset(f"Cinematic scene for '{chapter_title}'. Style: {style}. No text.")
+            art_url = generate_image_asset(f"Cinematic scene for '{chapter_title}'. Style: {style}. No text.", user_keys=user_keys)
             if not download_asset(art_url, art_path):
                 art_path = None
         else:
             art_path = None
         
-        content, subs = build_chapter_with_subsections(topic, chapter_title, description, theme.get('tone', 'Expert'))
+        content, subs = build_chapter_with_subsections(topic, chapter_title, description, theme.get('tone', 'Expert'), user_keys=user_keys)
         return {
             "content": content,
             "subsections": subs,
