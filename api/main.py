@@ -107,8 +107,7 @@ except Exception:
     # Fail gracefully if filesystem is read-only (Serverless Persistence)
     pass
 app.mount("/static", StaticFiles(directory=os.path.join(parent_dir, "static")), name="static")
-app.mount("/final_video", StaticFiles(directory=os.path.join(parent_dir, "final_video")), name="final_video")
-app.mount("/courses", StaticFiles(directory=os.path.join(parent_dir, "courses")), name="courses")
+app.mount("/courses", StaticFiles(directory=os.path.join(parent_dir, "static/courses")), name="courses")
 
 # 🏛️ [DELIVERY] Industrial Forced Download Route (Self-Healing v124.14)
 @app.get("/download")
@@ -877,7 +876,8 @@ async def generate_course(
             "horizontal": req_dict.get("horizontal", db_defaults.get("horizontal", False)),
             "include_avatar": req_dict.get("include_avatar", db_defaults.get("include_avatar", False)),
             "user_keys": user_keys,
-            "job_id": job_id # 💓 [HEARTBEAT] Restore live progress tracking
+            "job_id": job_id, # 💓 [HEARTBEAT] Restore live progress tracking
+            "output_dir": os.path.join(parent_dir, "static/courses") # 🛡️ [STORAGE REALIGNMENT]
         }
         
         await QUEUE_MANAGER.add_job(username, "course", job_id, ecourse_factory.run_ecourse_factory, kwargs)

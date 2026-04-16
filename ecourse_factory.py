@@ -60,10 +60,16 @@ def generate_lesson_script(topic, chapter_title, lesson_title, user_keys=None):
         print(f"❌ Script Generation Failed for {lesson_title}: {e}")
         return ""
 
-def run_ecourse_factory(topic, horizontal=False, include_avatar=False, user_keys=None, job_id=None, **kwargs):
+def run_ecourse_factory(topic, horizontal=False, include_avatar=False, user_keys=None, job_id=None, output_dir=None, **kwargs):
     if job_id: telemetry.update_progress(job_id, "Drafting Academy Outline")
     """🚀 VANTIX Academy (v1.0): Master Orchestration Loop"""
     print(f"🏗️ [FACTORY] Initializing Vantix Academy Production: {topic}")
+    
+    # 🛡️ [PATH SENTINEL] Ensure output_dir exists
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
+    # ... (rest of resolution and avatar print)
     print(f"📐 [LAYOUT] Resolution: {'Horizontal (16:9)' if horizontal else 'Vertical (9:16)'}")
     print(f"👤 [AVATAR] Synergy: {'ENABLED' if include_avatar else 'DISABLED'}")
     
@@ -78,7 +84,8 @@ def run_ecourse_factory(topic, horizontal=False, include_avatar=False, user_keys
         
     # 2. Setup Course Directory
     safe_topic = re.sub(r'[^a-zA-Z0-9]', '_', topic)
-    course_root = f"courses/{safe_topic}_{datetime.now().strftime('%Y%m%d')}"
+    folder_name = f"{safe_topic}_{datetime.now().strftime('%Y%m%d')}"
+    course_root = os.path.join(output_dir, folder_name) if output_dir else os.path.join("courses", folder_name)
     os.makedirs(course_root, exist_ok=True)
     
     # Save outline for reference
