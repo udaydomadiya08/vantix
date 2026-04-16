@@ -1401,8 +1401,8 @@ def generate_tts_audio(text, filename="output.mp3", voice_name="alloy", speaking
         async def run_edge_tts():
             communicate = edge_tts.Communicate(text, voice_name)
             import random
-            import time
-            time.sleep(random.uniform(0.5, 1.5)) # 🛡️ [ANTI-BLOCK]: Randomized jitter
+            import asyncio
+            await asyncio.sleep(random.uniform(0.5, 1.5)) # 🛡️ [ANTI-BLOCK]: Async jitter (Unblocks event loop)
             await communicate.save(filename)
             
         asyncio.run(run_edge_tts())
@@ -1644,9 +1644,9 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
 
     # --- PHASE 1: SEMANTIC MILESTONE EXTRACTION (v54: Cinematic Stabilization) ---
     raw_milestones = []
-    if word_segments:
+    if word_segments and len(word_segments) > 0:
         current_buffer = []
-        current_start = word_segments[0]["start"]
+        current_start = word_segments[0].get("start", 0)
         
         for i, seg in enumerate(word_segments):
             word = seg["word"].strip().lower()
