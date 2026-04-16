@@ -181,7 +181,7 @@ class StreamQueueManager:
             await asyncio.sleep(0.5)
 
         self.is_worker_running = False
-        print("🏁 [VANTIX SCHEDULER] Oracle Node Idle.")
+        print("🏁 [VANTIX SCHEDULER] Oracle Node Awaiting Jobs.")
 
     async def process_job(self, username, job_id, func, kwargs):
         """⚡ [NODE] Individual Job Execution Lifecycle"""
@@ -824,54 +824,36 @@ async def generate_course(
         raise HTTPException(status_code=500, detail=f"Factory node failure: {str(e)}")
 
 @app.get("/status/{job_id}")
-async def get_status(job_id: str):
-    # 🏛️ [VANTIX PERSISTENCE] Check In-Memory first, then fall back to Ledger
-    # Public access (unguessable UUID) prevents fetch failure during preflight/auth-lag
+async def get_status(job_id: str, username: str = Depends(get_current_user)):
+    # 🏛 [VANTIX PERSISTENCE] Peak In-Memory status first
     if job_id in JOB_STATUS:
         job = JOB_STATUS[job_id]
         if job["status"] == "queued":
-            # 🕵️ Calculate live position and wait time
-            # We don't have the username/type here easily so we scan
-            for (usr, styp), q in QUEUE_MANAGER.queues.items():
-                pos, est = QUEUE_MANAGER.get_queue_info(usr, styp, job_id)
-                if pos > 0:
-                    job["position"] = pos
-                    job["est_wait"] = est
-                    break
+            # 🕵️ Calculate live position and wait time using the Oracle Peaking node
+            pos, est = QUEUE_MANAGER.get_queue_info(username, job["stream"], job_id)
+            if pos > 0:
+                job["position"] = pos
+                job["est_wait"] = est
         return job
     
-    # 🕵️ Global search for historical records
-    history_file = os.path.join(parent_dir, "api/history.json")
-    if os.path.exists(history_file):
-        with open(history_file, "r") as f:
-            all_history = json.load(f)
-            for user, jobs in all_history.items():
-                if job_id in jobs:
-                    return jobs[job_id]
-    
-    raise HTTPException(status_code=404, detail="Industrial node: Job identity unknown.")
+    # 🕵️ Fallback to Ledger Search
+    history = db_helper.get_user_history(username)
+    for job in history:
+        if job["id"] == job_id:
+            return job
+            
+    raise HTTPException(status_code=404, detail="Industrial node: Job identity unknown to this node.")
 
 @app.delete("/status/{job_id}")
-def cancel_job(job_id: str):
-    """🗑️ Vantix Kill & Purge — Cancelled jobs are deleted entirely"""
+def cancel_job(job_id: str, username: str = Depends(get_current_user)):
+    """🗑️ Vantix Signal: Cancel and Purge Active Job"""
     CANCELLED_JOBS.add(job_id)
     
-    # Remove from in-memory state immediately
+    # Remove from in-memory state
     if job_id in JOB_STATUS:
-        del JOB_STATUS[job_id]
+        JOB_STATUS[job_id]["status"] = "cancelled"
     
-    # 🏛️ [PURGE] Remove from persistent ledger across all users
-    history_file = os.path.join(parent_dir, "api/history.json")
-    if os.path.exists(history_file):
-        with open(history_file, "r") as f:
-            history = json.load(f)
-            for user in history:
-                if job_id in history[user]:
-                    del history[user][job_id]
-            with open(history_file, "w") as f:
-                json.dump(history, f, indent=4)
-    
-    return {"message": "Job killed and purged from ledger."}
+    return {"message": "Job cancellation signal broadcast."}
 
 @app.get("/history")
 def read_history(username: str = Depends(get_current_user)):
