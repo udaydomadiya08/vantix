@@ -1577,16 +1577,32 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             video_url = None
             tmp_path = f"video_creation/ms_{idx}_{i}.mp4"
             
-            # --- 📽️ INDUSTRIAL STOCK DISCOVERY (v103.1) ---
-            # Try specific milestone query
-            pool = find_one_video_clips(ms["query"], used_video_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
+            # --- 📽️ INDUSTRIAL STOCK DISCOVERY (v104.5: Relentless Mode) ---
+            # Tier 1: Prime Milestone Query
+            pool = find_one_video_clips(ms["query"], used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
             
-            # 💥 [VANTIX RECOVERY] (v103.5): Semantic Fallback if specific search fails
+            # Tier 2: Query Deconstruction (Simplex Search)
             if not pool:
-                print(f"⚠️ [RECOVERY] No assets for '{ms['query']}'. Falling back to user topic: '{user_topic}'")
-                pool = find_one_video_clips(user_topic, used_video_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
+                words = ms["query"].split()
+                if len(words) > 2:
+                    simplex_query = " ".join(words[:2]) # Grab core subjects
+                    print(f"📡 [RELENTLESS]: Milestone '{ms['query']}' failed. Trying Simplex: '{simplex_query}'")
+                    pool = find_one_video_clips(simplex_query, used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
+            
+            # Tier 3: Universal Topic Fallback (Aggressive)
+            if not pool:
+                print(f"📡 [RELENTLESS]: Simplex failed. Falling back to Topic Pillar: '{user_topic}'")
+                pool = find_one_video_clips(user_topic, used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
                 
-            if not pool: return None
+            # Tier 4: Global Cinematic Safe-Bet
+            if not pool:
+                cinematic_fallback = "cinematic outer space" if "space" in user_topic.lower() else "cinematic atmospheric drone"
+                print(f"📡 [RELENTLESS]: Topic Pillar failed. Engaging Global Fallback: '{cinematic_fallback}'")
+                pool = find_one_video_clips(cinematic_fallback, used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
+                
+            if not pool: 
+                 print(f"❌ [DATABASE EXHAUSTION]: No visuals found for Milestone {i} in any tier.")
+                 return None
             video_url = pool[0]["video_files"][0]["link"]
             try:
                 download_video(video_url, tmp_path)
