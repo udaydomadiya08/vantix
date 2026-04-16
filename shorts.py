@@ -1678,42 +1678,63 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                     # If it's the very first clip, we can't stretch. We'll let the fallback loop handle it or log it.
                     print(f"⚠️ [CONTINUITY]: No previous clip to stretch for initial milestone {milestones[parallel_results.index(res)]['query']}")
     
-    # --- PHASE 4: ATOMIC PARALLEL RENDERING (v103.4: Hyperscale Speed) ---
+    # --- PHASE 4: INDESTRUCTIBLE ASSEMBLY (v106.1) ---
+    final_output = f"video_creation/scene_{idx}_final.mp4"
     if not collected_clips:
         print(f"⚠️ [RENDER FAILURE] No valid clips for Scene {idx}. Creating emergency placeholder.")
         from moviepy.editor import ColorClip
         placeholder = ColorClip(size=(1080, 1920), color=(0,0,0), duration=max(1.0, audio_duration)).set_fps(30)
         collected_clips.append(placeholder)
 
-    final_output = f"video_creation/scene_{idx}_final.mp4"
     try:
         from moviepy.editor import CompositeVideoClip
         
-        # 📐 [STABILIZATION]: Strictly conform to Vertical HD & Purge Nones
+        # 🛡️ [STEP 1]: Background Stabilization
         res_clips = []
         for c in collected_clips:
-            if c is not None:
+            if c is not None and hasattr(c, "get_frame"):
                 try:
+                    # Verify frame producer before processing
+                    _ = c.get_frame(0)
                     res_clips.append(c.resize((1080, 1920)).set_fps(30))
                 except Exception as e:
-                    print(f"⚠️ Skipping corrupted clip during assembly: {e}")
+                    print(f"⚠️ Removing non-renderable clip: {e}")
 
         if not res_clips:
-             raise ValueError("Final clip list is empty after stabilization.")
+            raise ValueError("All background clips failed pre-flight verification.")
 
-        scene_comp = CompositeVideoClip(res_clips)
-        
-        # 🎙️ [AUDIO]: Final Scene Match
-        scene_comp = scene_comp.set_audio(audio_clip).set_duration(audio_duration)
-        
-        # 🖼️ [CAPTIONS]: Burned-in during parallel pass
+        # 🛡️ [STEP 2]: Initial Composite
+        try:
+            scene_comp = CompositeVideoClip(res_clips)
+            _ = scene_comp.get_frame(0) # Verify composite integrity
+        except Exception as e:
+            print(f"❌ Composite Stage 1 failed: {e}. Falling back to single-clip anchor.")
+            scene_comp = res_clips[0]
+
+        # 🛡️ [STEP 3]: Audio-Visual Fusion
+        try:
+            if 'audio_clip' in locals() and audio_clip is not None:
+                scene_comp = scene_comp.set_audio(audio_clip)
+            scene_comp = scene_comp.set_duration(audio_duration)
+        except Exception as e:
+            print(f"⚠️ Audio Fusion Warning: {e}")
+            scene_comp = scene_comp.set_duration(audio_duration)
+
+        # 🛡️ [STEP 4]: Caption Augmentation
         caption_clips = create_caption_clips(word_segments, (1080, 1920), include_avatar=include_avatar)
-        # 🛡️ [VANTIX STABILITY]: Ensure NO NoneType objects ever reach the renderer
-        valid_captions = [c for c in (caption_clips or []) if c is not None]
-        if valid_captions:
-            scene_comp = CompositeVideoClip([scene_comp] + valid_captions)
+        valid_captions = [c for c in (caption_clips or []) if c is not None and hasattr(c, "get_frame")]
         
-        print(f"🏎️ [RENDER] Starting Parallel Pass for Scene {idx}...")
+        if valid_captions:
+            try:
+                # Re-verify scene_comp before final merge
+                _ = scene_comp.get_frame(0)
+                scene_comp = CompositeVideoClip([scene_comp] + valid_captions)
+                _ = scene_comp.get_frame(0)
+            except Exception as e:
+                print(f"⚠️ Caption Merge failed (likely ImageMagick collision): {e}. Proceeding without captions.")
+
+        # 🛡️ [STEP 5]: Final High-Speed Rendering
+        print(f"🏎️ [RENDER] Starting Industrial Pass for Scene {idx}...")
         scene_comp.write_videofile(
             final_output,
             codec="libx264",
@@ -1723,8 +1744,17 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             threads=2,
             logger=None
         )
+        
+        # Immediate cleanup of memory handles
         scene_comp.close()
         for c in res_clips: c.close()
+        for c in valid_captions: c.close()
+        
+        return final_output, new_used_urls
+        
+    except Exception as e:
+        print(f"❌ [CRITICAL RENDER FAILURE] Scene {idx}: {e}")
+        return None, []
         
         # 🧹 [SURGICAL CLEANUP]: Immediate purge of milestone artifacts
         print(f"🧹 [CLEANUP]: Purging Milestone fragments for Scene {idx}...")
