@@ -1462,8 +1462,8 @@ def create_word_by_word_subtitles(word_segments, video_size=None, include_avatar
         safe_width = int(width * 0.85)
         max_lines = 1 if include_avatar else 2
     else:
-        # Horizontal Logic: Fixed 1080px central buffer
-        safe_width = min(int(width * 0.85), 1080)
+        # Horizontal Logic: 85% of fixed 1080px central buffer (918px)
+        safe_width = min(int(width * 0.85), 918)
         max_lines = 2
         
     kerning_buffer = 40 # 💥 GOLDILOCKS CALIBRATION (v124.31)
