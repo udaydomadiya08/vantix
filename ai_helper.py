@@ -12,7 +12,7 @@ import threading
 # === Global API & Model Health Tracker (v110.2) === #
 class APIHealth:
     def __init__(self):
-        self.lock = threading.Lock()
+        self.lock = threading.RLock() # 🏛️ [VANTIX STABILITY]: Re-entrant lock to prevent recursive deadlocks
         self.provider_priority = ["groq", "openrouter"]
         self.model_priority = {
             "groq": [
