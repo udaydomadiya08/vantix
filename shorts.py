@@ -1632,6 +1632,13 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
              print("⚠️ Transcription failed. Falling back to Time-Based Pacing.")
              word_segments = []
 
+        # 🏎️ [RAPID TESTING]: Truncate to 10s if requested
+        if os.environ.get("RAPID_TEST_MODE", "false").lower() == "true":
+             print("🚀 [VANTIX VELOCITY]: Rapid Testing Mode Active. Truncating to 10s.")
+             word_segments = [s for s in word_segments if s["start"] < 10.5]
+             if word_segments:
+                  word_segments[-1]["end"] = min(word_segments[-1]["end"], 11.0)
+
         # 💥 NEURAL SFX ORCHESTRATION (v55): Audio Fusion Pass
         sfx_markers = identify_narrative_sfx(text, user_keys=user_keys)
         if sfx_markers and word_segments:
@@ -1656,6 +1663,12 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         try:
             audio_clip = AudioFileClip(audio_path)
             audio_duration = audio_clip.duration
+            
+            # 🏎️ [RAPID TESTING]: Cap audio duration
+            if os.environ.get("RAPID_TEST_MODE", "false").lower() == "true":
+                 audio_duration = min(audio_duration, 11.0)
+                 if audio_clip: audio_clip = audio_clip.subclip(0, audio_duration)
+            
             # Burn-test: probe first 0.1s
             _ = audio_clip.get_frame(0)
         except Exception as ae:
