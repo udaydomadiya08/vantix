@@ -135,18 +135,32 @@ def create_caption_clips(word_segments, resolution, include_avatar=True):
             duration = segment["end"] - segment["start"]
             if duration <= 0: continue
             
-            # 🎯 [CENTERING]: High-retention vertical centering (Middle-Third)
-            txt = TextClip(
-                word,
-                font="Anton-Regular",
-                fontsize=font_pt,
-                color=color,
-                stroke_color=stroke_color,
-                stroke_width=stroke_width,
-                method="label",
-                size=(width * 0.8, None)
-            ).set_start(segment["start"]).set_duration(duration)
+            # 🎨 [STYLING]: Anton Regular with Iterative Fallback
+            # Fonts to try in order of brand priority
+            font_priorities = ["Anton-Regular", "Arial-Bold", "DejaVu-Sans-Bold", "Liberation-Sans-Bold"]
             
+            txt = None
+            for font_name in font_priorities:
+                try:
+                    txt = TextClip(
+                        word,
+                        font=font_name,
+                        fontsize=font_pt,
+                        color=color,
+                        stroke_color=stroke_color,
+                        stroke_width=stroke_width,
+                        method="label",
+                        size=(width * 0.8, None)
+                    ).set_start(segment["start"]).set_duration(duration)
+                    
+                    # 💥 PRE-FLIGHT CHECK (v105.1): Verify the font actually rendered
+                    _ = txt.get_frame(0)
+                    break # Success!
+                except:
+                    continue # Try next font
+            
+            if txt is None: continue # Skip if all fonts fail
+                
             # Position at 70% height for vertical impact
             v_pos = height * 0.7 if not include_avatar else height * 0.5
             txt = txt.set_position(("center", v_pos))
@@ -1626,6 +1640,9 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                     tmp_path = res["tmp_path"]
                     
                     raw_clip = VideoFileClip(tmp_path).without_audio()
+                    # 💥 PRE-FLIGHT CHECK (v105.1): Verify milestone load
+                    _ = raw_clip.get_frame(0)
+                    
                     clip = resize_crop(raw_clip).set_fps(30)
                     clip = apply_pattern_interrupt(apply_ken_burns(clip, target_dur))
                     clip = apply_vantix_pacing(clip, is_hook=(len(collected_clips)==0), intensity=intensity)
@@ -1633,12 +1650,15 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                     # Force duration to match milestone exactly
                     clip = clip.set_duration(target_dur).set_start(total_collected)
                     
+                    # 💥 FINAL VERIFICATION: Ensure the processed clip is still healthy
+                    _ = clip.get_frame(0)
+                    
                     collected_clips.append(clip)
                     new_used_urls.add(res["url"])
                     total_collected += target_dur
                     print(f"✅ Milestone Loaded: {res['url']} ({target_dur:.2f}s)")
                 except Exception as e:
-                    print(f"⚠️ Failed to load captured asset {res.get('tmp_path')}: {e}")
+                    print(f"⚠️ Failed to load or verify captured asset {res.get('tmp_path', 'unknown')}: {e}")
                     # 💥 [VANTIX CONTINUITY]: If current clip fails, stretch the PREVIOUS clip to cover the gap
                     if collected_clips:
                         prev_clip = collected_clips[-1]
