@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Smartphone, Monitor, User, Wand2, Loader2, Video, FileText, Newspaper, Target, Info, ChevronRight, Zap, Image as ImageIcon, X, CheckCircle2 } from "lucide-react";
-import { generateVideo, generateThumbnail, getJobStatus, cancelJob, getUserDefaults } from "@/lib/api";
+import { generateVideo, generateThumbnail, getJobStatus, cancelJob, getUserDefaults, sanitizeAssetUrl } from "@/lib/api";
 
 type ProductionMode = 'topic' | 'script' | 'news' | 'niche';
 
@@ -422,8 +422,8 @@ export default function ShortsPage() {
                                     <motion.a
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
-                                        href={jobStatus.result_url}
-                                        target="_blank"
+                                        href={sanitizeAssetUrl(jobStatus.result_url)}
+                                        download
                                         className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-xl shadow-emerald-500/10"
                                     >
                                         <Zap size={14} /> Download Final Asset

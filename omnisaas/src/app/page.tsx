@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { 
   generateVideo, generateEbook, generateCourse, generateThumbnail, 
-  checkStatus, getJobStatus, cancelJob, getUserBalance 
+  checkStatus, getJobStatus, cancelJob, getUserBalance, sanitizeAssetUrl 
 } from "@/lib/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -242,13 +242,8 @@ function Dashboard() {
   const [isHydrated, setIsHydrated] = useState(false);
   const router = useRouter();
 
-  const sanitizeResultUrl = (url: string | undefined): string | undefined => {
-    if (!url) return url;
-    const match = url.match(/(static\/.+\.\w+|courses\/.+\.\w+|final_video\/.+\.\w+)/);
-    if (match) return `https://udaydomadiya-vantix-core.hf.space/download?path=${match[1]}`;
-    if (url.startsWith('http')) return url;
-    return undefined;
-  };
+  const [isHydrated, setIsHydrated] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const saved = localStorage.getItem('vantix_queue');
@@ -256,8 +251,7 @@ function Dashboard() {
       try {
         const jobs = JSON.parse(saved);
         const clean = jobs
-          .filter((job: any) => job.status !== 'cancelled')
-          .map((job: any) => ({ ...job, result_url: sanitizeResultUrl(job.result_url) }));
+          .filter((job: any) => job.status !== 'cancelled');
         setQueuedJobs(clean);
       } catch (e) {
         localStorage.removeItem('vantix_queue');
@@ -529,7 +523,7 @@ function Dashboard() {
                     <div className="flex flex-col items-end gap-3 font-mono text-[10px]">
                        <Clock size={12} className="text-slate-600" />
                        {job.status === 'completed' && job.result_url && (
-                          <a href={sanitizeResultUrl(job.result_url) || '#'} className="px-5 py-2 rounded-xl bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all">Download</a>
+                          <a href={sanitizeAssetUrl(job.result_url) || '#'} className="px-5 py-2 rounded-xl bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all">Download</a>
                        )}
                     </div>
                   </motion.div>

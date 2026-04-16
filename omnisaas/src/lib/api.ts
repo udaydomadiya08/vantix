@@ -258,3 +258,15 @@ export async function getAdminUsers() {
     });
     return response.json();
 }
+export function sanitizeAssetUrl(url: string | undefined): string | undefined {
+    if (!url) return url;
+    // 🛡️ [SANITIZER] Detect valid industrial paths (static, courses, final_video)
+    const match = url.match(/(static\/.+\.\w+|courses\/.+\.\w+|final_video\/.+\.\w+)/);
+    if (match) {
+        // Absolute resolve against the dynamic API_BASE
+        return `${API_BASE}/download?path=${match[1]}`;
+    }
+    // If it's already an absolute URL, return as-is
+    if (url.startsWith('http')) return url;
+    return undefined;
+}

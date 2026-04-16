@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Book, Video, GraduationCap, Image as ImageIcon, Search, Filter, Download, ExternalLink, Clock, Server, CheckCircle2, History, Trash2, Zap, AlertCircle, ShieldAlert } from "lucide-react";
-import { getHistory } from "@/lib/api";
+import { getHistory, sanitizeAssetUrl } from "@/lib/api";
 
 export default function LibraryPage() {
     const [history, setHistory] = useState<any[]>([]);
@@ -187,7 +187,7 @@ export default function LibraryPage() {
                                 <div className="mt-8 pt-6 border-t border-slate-800/50 flex items-center justify-between relative z-10">
                                     {job.result_url ? (
                                         <a 
-                                            href={job.result_url} 
+                                            href={sanitizeAssetUrl(job.result_url) || '#'} 
                                             download
                                             className="flex-1 mr-4 bg-emerald-500 text-white rounded-2xl py-4 flex items-center justify-center gap-3 text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/10 hover:bg-emerald-400 transition-all"
                                         >
