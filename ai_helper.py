@@ -191,10 +191,15 @@ def generate_image_asset(prompt, user_keys=None):
     return None
 
 def generate_ebook_theme(topic, description="", user_keys=None):
-    prompt = f"Design visual DNA for '{topic}'. Return ONLY JSON: primary_rgb, secondary_rgb, layout_mode."
+    prompt = f"Design visual DNA for '{topic}'. Return ONLY JSON: primary_rgb, secondary_rgb, layout_mode, visual_style."
     try:
         response = generate_ai_response(prompt, user_keys=user_keys)
         match = re.search(r"\{.*\}", response.text, re.DOTALL)
         if match: return json.loads(match.group(0))
     except: pass
-    return {"primary_rgb": [20, 20, 20], "secondary_rgb": [200, 0, 0], "layout_mode": "Sophisticated"}
+    return {
+        "primary_rgb": [20, 20, 20], 
+        "secondary_rgb": [200, 0, 0], 
+        "layout_mode": "Sophisticated",
+        "visual_style": "Cinematic"
+    }

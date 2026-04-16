@@ -292,7 +292,8 @@ def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150
     cover_image_path = os.path.join(output_dir, cover_temp_name) if output_dir else cover_temp_name
     
     if INCLUDE_IMAGES:
-        cover_url = generate_image_asset(f"Professional cinematic ebook cover for {topic}. Style: {theme['visual_style']}. No text.", user_keys=user_keys)
+        style = theme.get('visual_style', 'Cinematic')
+        cover_url = generate_image_asset(f"Professional cinematic ebook cover for {topic}. Style: {style}. No text.", user_keys=user_keys)
         if not download_asset(cover_url, cover_image_path):
             cover_image_path = None
     else:
@@ -309,7 +310,8 @@ def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150
         art_path = os.path.join(output_dir, art_temp_name) if output_dir else art_temp_name
         
         if INCLUDE_IMAGES and INCLUDE_CHAPTER_ART:
-            art_url = generate_image_asset(f"Cinematic scene for '{chapter_title}'. Style: {theme['visual_style']}. No text.")
+            style = theme.get('visual_style', 'Cinematic')
+            art_url = generate_image_asset(f"Cinematic scene for '{chapter_title}'. Style: {style}. No text.")
             if not download_asset(art_url, art_path):
                 art_path = None
         else:
