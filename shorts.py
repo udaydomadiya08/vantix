@@ -1960,19 +1960,19 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
 
         # 🛡️ [STEP 5]: Final Immortal Rendering
         print(f"🏎️ [RENDER] Starting Industrial Pass for Scene {idx}...")
-        with VANTIX_RENDER_LOCK: # 🔐 Sovereign Render Lock
-            try:
-                scene_comp.write_videofile(
-                    final_output,
-                    codec="libx264",
-                    audio_codec="aac",
-                    fps=30,
-                    preset="ultrafast",
-                    threads=1, # ⚖️ Sovereign Stability Lock
-                    logger=None
-                )
-            except Exception as render_error:
-                print(f"❌ [RENDER FAILURE] Scene {idx}: {render_error}. Retrying with simplified lock...")
+        try:
+            scene_comp.write_videofile(
+                final_output,
+                codec="libx264",
+                audio_codec="aac",
+                fps=30,
+                preset="ultrafast",
+                threads=1, # ⚖️ Sovereign Stability Lock (Essential for Concurrency)
+                logger=None
+            )
+        except Exception as render_error:
+            print(f"❌ [RENDER FAILURE] Scene {idx}: {render_error}")
+
                 # 🛡️ [RETRY NODE]: If the first pass fails, we attempt one final stable render
                 try:
                     scene_comp.write_videofile(

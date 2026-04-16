@@ -127,7 +127,7 @@ async def download_file(path: str):
 # 📊 [STATE] Industrial Queue Management System
 JOB_STATUS = {}
 CANCELLED_JOBS = set() # 🕹️ Vantix Kills
-EXECUTOR = ThreadPoolExecutor(max_workers=1) # ⚖️ [VANTIX STABILITY]: Serialized for 2vCPU Space Sovereignty
+EXECUTOR = ThreadPoolExecutor(max_workers=3) # 🏎️ [VANTIX TURBO]: 3-Worker Concurrency Authorized
 
 class StreamQueueManager:
     def __init__(self):
@@ -135,7 +135,7 @@ class StreamQueueManager:
         self.queue = asyncio.PriorityQueue()
         self.active_jobs = {} # {username: count}
         self.is_worker_running = False
-        self.MAX_GLOBAL_CONCURRENCY = 1 # ⚖️ [VANTIX STABILITY]: Locked to 1 for 2vCPU Node Sovereignty
+        self.MAX_GLOBAL_CONCURRENCY = 3 # 🏎️ [VANTIX TURBO]: 3-Worker Concurrency Authorized
 
     async def add_job(self, username, stream_type, job_id, func, kwargs):
         username = username.lower().strip()
