@@ -1620,6 +1620,10 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         telemetry.update_progress(job_id, f"Synthesizing Scene {idx+1}")
     print(f"\n🎬 Creating Scene {idx + 1} | Visual: {visual_source} | Voice: {voice_id} | Intensity: {intensity}")
     
+    # 🛡️ [SOVEREIGN FILESYSTEM]: Ensure industrial nodes exist
+    os.makedirs("video_creation", exist_ok=True)
+    os.makedirs("audio", exist_ok=True)
+    
     # 💥 VANTIX AUDIO DEFINITION (v1.0): Must happen BEFORE assembly
     audio_path = f"audio/scene_{idx}.mp3"
     try:
