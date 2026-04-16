@@ -4,6 +4,7 @@ import socket
 socket.setdefaulttimeout(30) # 🏛️ [VANTIX SYNC] Normalized from 6000s to 30s to prevent deadlocks
 
 # === Imports === #
+import os
 import requests
 import nltk
 import spacy
