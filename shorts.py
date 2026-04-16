@@ -1782,8 +1782,9 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         parallel_results = orch.parallel_map_indexed(process_milestone, milestones, task_name="Milestone")
         
         # Assemble in Sequence (v122.24: High-Velocity Feed)
-        for i, res in enumerate(parallel_results):
-            target_dur = res["dur"] if (res and "dur" in res) else milestones[i]["end"] - milestones[i]["start"]
+        for i, (ms, res) in enumerate(zip(milestones, parallel_results)):
+            # 🛡️ [SYNC]: Safely extract duration from result or milestone
+            target_dur = res["dur"] if (res and "dur" in res) else ms["end"] - ms["start"]
             
             if res and not res.get("is_placeholder", False) and os.path.exists(res.get("tmp_path", "")):
                 try:
@@ -1809,13 +1810,13 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                     print(f"✅ Milestone Loaded: {res['url']} ({target_dur:.2f}s)")
                 except Exception as e:
                     print(f"⚠️ Failed to load or verify captured asset {res.get('tmp_path', 'unknown')}: {e}")
-                    # 💥 [EMERGENCY PLACEHOLDER]: Instead of stretching, use a high-contrast cinematic color clip
+                    # 💥 [EMERGENCY PLACEHOLDER]
                     emergency_clip = ColorClip(size=(1080, 1920), color=(10, 10, 10), duration=target_dur).set_fps(30)
                     collected_clips.append(emergency_clip)
                     total_collected += target_dur
             else:
-                # 💥 [EMERGENCY PLACEHOLDER]: Instead of stretching, use a high-contrast cinematic color clip
-                print(f"🔄 [RELENTLESS]: Using emergency visual placeholder for milestone {parallel_results.index(res)}.")
+                # 💥 [EMERGENCY PLACEHOLDER]: Use captured loop index 'i' instead of .index() lookup
+                print(f"🔄 [RELENTLESS]: Using emergency visual placeholder for milestone {i}.")
                 emergency_clip = ColorClip(size=(1080, 1920), color=(10, 10, 10), duration=target_dur).set_fps(30)
                 collected_clips.append(emergency_clip)
                 total_collected += target_dur
