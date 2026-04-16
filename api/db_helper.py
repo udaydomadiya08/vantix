@@ -273,14 +273,21 @@ def _normalize_result_url(url):
     
     # 🌐 [VANTIX SYNC] Remove any hardcoded host prefixes (Industrial Portability)
     if "/download?path=" in url:
-        return "/download?path=" + url.split("/download?path=")[-1]
+        # Strip container prefixes from absolute path injection
+        path_part = url.split("/download?path=")[-1]
+        path_part = path_part.replace("/app/", "").lstrip("/")
+        return "/download?path=" + path_part
         
-    # Extract the relative path (static/..., courses/..., final_video/...)
+    # Extract the relative path (static/..., courses/..., final_video/..., video_creation/...)
     import re
-    match = re.search(r'(static/[^\s]+|courses/[^\s]+|final_video/[^\s]+)', url)
+    # 🕵️ [VANTIX RECURSIVE]: Broaden search to include all production subdirectories
+    match = re.search(r'(static/[^\s]+|courses/[^\s]+|final_video/[^\s]+|video_creation/[^\s]+|ebooks/[^\s]+)', url)
     if match:
-        return f"/download?path={match.group(1)}"
+        clean_path = match.group(1).replace("/app/", "").lstrip("/")
+        return f"/download?path={clean_path}"
+    
     return url
+
 
 def get_user_history(username):
     """📜 Retrieve Production Ledger"""

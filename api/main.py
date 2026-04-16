@@ -110,12 +110,29 @@ app.mount("/static", StaticFiles(directory=os.path.join(parent_dir, "static")), 
 app.mount("/final_video", StaticFiles(directory=os.path.join(parent_dir, "final_video")), name="final_video")
 app.mount("/courses", StaticFiles(directory=os.path.join(parent_dir, "courses")), name="courses")
 
-# 🏛️ [DELIVERY] Industrial Forced Download Route
+# 🏛️ [DELIVERY] Industrial Forced Download Route (Self-Healing v124.14)
 @app.get("/download")
 async def download_file(path: str):
-    full_path = os.path.join(parent_dir, path)
+    # 🛡️ [SANITIZER]: Normalize incoming path to prevent absolute/container drift
+    # Strip any leading /app/ prefix or multiple slashes
+    clean_path = path.replace("/app/", "").lstrip("/")
+    
+    # Attempt absolute resolution first (Hugging Face /app/ mount)
+    full_path = os.path.join(parent_dir, clean_path)
+    
+    # 🔍 [HEALING]: Try direct absolute path if relative join fails
     if not os.path.exists(full_path):
-        raise HTTPException(status_code=404, detail="Industrial node: File not found.")
+        if os.path.exists(path):
+            full_path = path # Direct match
+        else:
+            # Last ditch: check if it's a 'static' reference missing the prefix
+            alt_path = os.path.join(parent_dir, "static", clean_path.split("static/")[-1])
+            if os.path.exists(alt_path):
+                full_path = alt_path
+    
+    if not os.path.exists(full_path):
+        print(f"❌ [DELIVERY FAILURE] 404 for path: {path} (Resolved as: {full_path})")
+        raise HTTPException(status_code=404, detail="Industrial node: File not found or session ephemeral.")
     
     file_name = os.path.basename(full_path)
     return FileResponse(
@@ -123,6 +140,7 @@ async def download_file(path: str):
         filename=file_name,
         media_type='application/octet-stream'
     )
+
 
 # 📊 [STATE] Industrial Queue Management System
 JOB_STATUS = {}
