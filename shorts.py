@@ -1602,26 +1602,45 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         
         # Assemble in Sequence
         for res in parallel_results:
+            target_dur = res["dur"] if (res and "dur" in res) else milestones[parallel_results.index(res)]["end"] - milestones[parallel_results.index(res)]["start"]
+            
             if res and isinstance(res, dict) and os.path.exists(res.get("tmp_path", "")):
                 try:
                     # 🚀 [MAIN PROCESS LOAD]: Instantiate clips here to ensure stability
                     tmp_path = res["tmp_path"]
-                    target_dur = res["dur"]
                     
                     raw_clip = VideoFileClip(tmp_path).without_audio()
                     clip = resize_crop(raw_clip).set_fps(30)
                     clip = apply_pattern_interrupt(apply_ken_burns(clip, target_dur))
                     clip = apply_vantix_pacing(clip, is_hook=(len(collected_clips)==0), intensity=intensity)
-                    # Use accurate global start times from the original milestones
-                    # Or at least keep them in order
+                    
+                    # Force duration to match milestone exactly
                     clip = clip.set_duration(target_dur).set_start(total_collected)
                     
                     collected_clips.append(clip)
                     new_used_urls.add(res["url"])
-                    total_collected += res["dur"]
-                    print(f"✅ Milestone Loaded: {res['url']}")
+                    total_collected += target_dur
+                    print(f"✅ Milestone Loaded: {res['url']} ({target_dur:.2f}s)")
                 except Exception as e:
                     print(f"⚠️ Failed to load captured asset {res.get('tmp_path')}: {e}")
+                    # 💥 [VANTIX CONTINUITY]: If current clip fails, stretch the PREVIOUS clip to cover the gap
+                    if collected_clips:
+                        prev_clip = collected_clips[-1]
+                        extended_dur = prev_clip.duration + target_dur
+                        collected_clips[-1] = prev_clip.set_duration(extended_dur)
+                        total_collected += target_dur
+                        print(f"🔄 [CONTINUITY]: Stretched previous clip to cover {target_dur:.2f}s gap.")
+            else:
+                # 💥 [VANTIX CONTINUITY]: If milestone discovery failed, stretch previous or leave for fallback loop
+                if collected_clips:
+                    prev_clip = collected_clips[-1]
+                    extended_dur = prev_clip.duration + target_dur
+                    collected_clips[-1] = prev_clip.set_duration(extended_dur)
+                    total_collected += target_dur
+                    print(f"🔄 [CONTINUITY]: Discovery failed. Stretched previous clip by {target_dur:.2f}s.")
+                else:
+                    # If it's the very first clip, we can't stretch. We'll let the fallback loop handle it or log it.
+                    print(f"⚠️ [CONTINUITY]: No previous clip to stretch for initial milestone {milestones[parallel_results.index(res)]['query']}")
     
     # --- PHASE 4: ATOMIC PARALLEL RENDERING (v103.4: Hyperscale Speed) ---
     if not collected_clips:
