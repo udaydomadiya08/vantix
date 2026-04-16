@@ -27,6 +27,7 @@ class APIHealth:
                 "qwen/qwen-2.5-72b-instruct"
             ],
             "image": [
+                "google/gemini-2.0-flash-001",
                 "stabilityai/sdxl",
                 "openai/dall-e-3"
             ]
@@ -45,7 +46,7 @@ class APIHealth:
     def report_failure(self, provider, model=None):
         with self.lock:
             key = f"{provider}:{model}" if model else provider
-            self.cooldowns[key] = time.time() + 60 # 60 Second Cool-down (Reduced from 300)
+            self.cooldowns[key] = time.time() + 30 # 🛡️ [REDUCED COOLDOWN] 30s Buffer (v124.40)
             
             if not model and provider in self.provider_priority:
                 self.provider_priority.remove(provider)
@@ -136,15 +137,17 @@ def call_openrouter(prompt, user_keys=None):
                 print(f"✅ OpenRouter ({model}) success.")
                 return AIResponse(response.json()["choices"][0]["message"]["content"].strip())
             else:
-                print(f"⚠️ OpenRouter Error {response.status_code}: {response.text[:150]}")
+                print(f"⚠️ [API ERROR] OpenRouter {response.status_code}: {response.text[:150]}")
                 if response.status_code in [429, 402]: # Rate limit or Out of credits (cooling down)
                     HEALTH_TRACKER.report_failure("openrouter", model)
-                if response.status_code == 401: break # Kill key
+                if response.status_code == 401: 
+                    print("🚫 [SECURITY] OpenRouter API Key INVALID/EXPIRED.")
+                    break # Kill key
         except Exception as e:
-            print(f"❌ OpenRouter Exception: {e}")
+            print(f"❌ [EXCEPTION] OpenRouter: {e}")
             HEALTH_TRACKER.report_failure("openrouter", model)
             
-    raise RuntimeError("All OpenRouter models failed.")
+    raise RuntimeError("OpenRouter Cycle Exhausted.")
 
 # === Main Synthesis Entry === #
 def generate_ai_response(prompt, user_keys=None, job_id=None):
@@ -155,21 +158,26 @@ def generate_ai_response(prompt, user_keys=None, job_id=None):
     import api.telemetry as telemetry
     retry_count = 0
     
-    while retry_count < 3:
+    while retry_count < 2:
         providers = HEALTH_TRACKER.get_providers()
+        if not providers:
+            print("🚨 [CRITICAL] No healthy providers found. Waiting for industrial recovery...")
+        
         for provider in providers:
             try:
                 if job_id: telemetry.update_progress(job_id, f"AI {provider.upper()} Thinking...")
                 if provider == "groq": return call_groq(prompt, user_keys=user_keys)
                 if provider == "openrouter": return call_openrouter(prompt, user_keys=user_keys)
-            except:
-                continue # Rapid switch
+            except Exception as e:
+                print(f"🔄 [FAILOVER] {provider.upper()} exhausted. Switching provider... (Error: {e})")
+                continue # Immediate switch to next provider in SAME retry cycle
         
-        # 📈 [SOVEREIGN DELAY] Standardized 15s Recovery (v122.23)
+        # 📈 [SOVEREIGN DELAY] Triggered ONLY if ALL providers fail in a single sweep
+        retry_count += 1
         sleep_time = 15
-        msg = f"AI Retrying ({retry_count}/3)..."
+        msg = f"AI Retrying ({retry_count}/2)..."
         if job_id: telemetry.update_progress(job_id, msg)
-        print(f"🚨 Global API Exhaustion ({retry_count}/3). Pausing {sleep_time}s...")
+        print(f"🚨 Global API Exhaustion ({retry_count}/2). Pausing {sleep_time}s...")
         time.sleep(sleep_time)
     
     raise RuntimeError("Critical: Permanent AI Infrastructure failure.")
