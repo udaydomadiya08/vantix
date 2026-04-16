@@ -1926,8 +1926,12 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             print(f"❌ Composite Stage 1 failed: {e}. Falling back to composition mode.")
             scene_comp = CompositeVideoClip(res_clips)
 
-        # 🛡️ [STEP 3]: Audio-Visual Fusion & Precision Trim
+        # 🛡️ [STEP 3]: Audio-Visual Fusion, Structural Hardening & Precision Trim
         try:
+            from moviepy.video.VideoClip import ColorClip
+            # 🏢 [VANTIX SAFETY FLOOR]: Permanent structural baseline to prevent IndexError gaps
+            safety_floor = ColorClip(size=(1080, 1920), color=(0,0,0)).set_duration(audio_duration).set_fps(30)
+            
             if audio_clip is not None:
                 scene_comp = scene_comp.set_audio(audio_clip)
             
@@ -1936,6 +1940,7 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
         except Exception as e:
             print(f"⚠️ Audio Fusion Warning: {e}")
             scene_comp = scene_comp.set_duration(max(0.1, audio_duration - 0.05))
+            safety_floor = ColorClip(size=(1080, 1920), color=(0,0,0)).set_duration(scene_comp.duration).set_fps(30)
 
         # 🛡️ [STEP 4]: Caption Augmentation & Purification
         caption_clips = create_caption_clips(word_segments, (1080, 1920), include_avatar=include_avatar)
@@ -1952,16 +1957,15 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                 except:
                     continue # Purge corrupted caption object
         
-        if pure_captions:
-            try:
-                # Re-verify scene_comp before final merge
-                _ = scene_comp.get_frame(0)
-                scene_comp = CompositeVideoClip([scene_comp] + pure_captions)
-                _ = scene_comp.get_frame(0)
-            except Exception as e:
-                print(f"⚠️ Caption Merge failed (likely mask collision): {e}. Proceeding without captions.")
-                # Re-stabilize to background only
-                scene_comp = concatenate_videoclips(res_clips, method="chain")
+        # 🏗️ [VANTIX STACK]: Final Structural Hardening Pass
+        try:
+            # We use the safety_floor as the bottom layer to kill IndexErrors across all production nodes
+            scene_comp = CompositeVideoClip([safety_floor, scene_comp] + pure_captions)
+            # Re-verify final composite duration integrity
+            scene_comp = scene_comp.set_duration(safety_floor.duration)
+        except Exception as stack_error:
+            print(f"⚠️ [STACK] Final merge failed, falling back to background: {stack_error}")
+            scene_comp = scene_comp.set_duration(audio_duration)
 
         # 🛡️ [STEP 5]: Final Immortal Rendering
         print(f"🏎️ [RENDER] Starting Industrial Pass for Scene {idx}...")
