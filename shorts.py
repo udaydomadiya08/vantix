@@ -709,7 +709,10 @@ def identify_narrative_sfx(sentence, user_keys=None):
     return []
 
 # ⚡ [ENGINE] Discovery Node: Pexels API (v1.1: Fail-Fast for Hybrid)
-def search_pexels_videos(query, per_page=15, max_results=8, horizontal=False, user_keys=None, **kwargs):
+def search_pexels_videos(query, per_page=15, max_results=8, horizontal=False, user_keys=None, job_id=None, **kwargs):
+    if job_id:
+        import api.telemetry as telemetry
+        telemetry.update_progress(job_id, f"Searching Pexels: {query}")
     """👑 Discovery Node: Pexels API"""
     api_key = (user_keys or {}).get("pexels") or os.environ.get("PEXELS_API_KEY")
     if not api_key:
@@ -744,7 +747,10 @@ def search_pexels_videos(query, per_page=15, max_results=8, horizontal=False, us
         raise e
 
 # ⚡ [ENGINE] Discovery Node: Pixabay API (v1.1: Fail-Fast for Hybrid)
-def search_pixabay_videos(query, per_page=20, max_results=8, horizontal=False, user_keys=None, **kwargs):
+def search_pixabay_videos(query, per_page=20, max_results=8, horizontal=False, user_keys=None, job_id=None, **kwargs):
+    if job_id:
+        import api.telemetry as telemetry
+        telemetry.update_progress(job_id, f"Searching Pixabay: {query}")
     """👑 Discovery Node: Pixabay API"""
     api_key = (user_keys or {}).get("pixabay") or os.environ.get("PIXABAY_API_KEY")
     if not api_key:
@@ -1007,7 +1013,10 @@ def rank_candidates_with_ai(candidates, sentence, user_keys=None):
     return 0, None
 
 @retry_infinite(delay=5)
-def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=1, horizontal=False, user_keys=None):
+def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=1, horizontal=False, user_keys=None, job_id=None):
+    if job_id:
+        import api.telemetry as telemetry
+        telemetry.update_progress(job_id, f"Searching for: {sentence[:30]}...")
     """👑 VANTIX DUAL-CORE DISCOVERY (v1.1): Hybrid Search Engine"""
     print(f"🔍 [DISCOVERY] Initiating Hybrid Search for: '{sentence}'")
     
@@ -1032,7 +1041,7 @@ def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=1, hor
 
     def process_pixels(query, limit):
         print(f"🔎 [Pexels] Stage: {query}")
-        candidates = search_pexels_videos(query, max_results=limit*4, horizontal=horizontal, user_keys=user_keys)
+        candidates = search_pexels_videos(query, max_results=limit*4, horizontal=horizontal, user_keys=user_keys, job_id=job_id)
         scored = []
         for clip in candidates:
             try:
@@ -1046,7 +1055,7 @@ def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=1, hor
 
     def process_pixabay(query, limit):
         print(f"🔎 [Pixabay] Stage: {query}")
-        candidates = search_pixabay_videos(query, max_results=limit*4, horizontal=horizontal, user_keys=user_keys)
+        candidates = search_pixabay_videos(query, max_results=limit*4, horizontal=horizontal, user_keys=user_keys, job_id=job_id)
         scored = []
         for clip in candidates:
             try:
@@ -1503,7 +1512,10 @@ def technical_mastering(input_path, output_path):
         return input_path
 
 @retry_infinite(delay=5)
-def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_pool=None, include_avatar=True, horizontal=False, user_keys=None, visual_source="pexels", intensity=None, voice_id="alloy", **kwargs):
+def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_pool=None, include_avatar=True, horizontal=False, user_keys=None, visual_source="pexels", intensity=None, voice_id="alloy", job_id=None, **kwargs):
+    if job_id:
+        import api.telemetry as telemetry
+        telemetry.update_progress(job_id, f"Synthesizing Scene {idx+1}")
     print(f"\n🎬 Creating Scene {idx + 1} | Visual: {visual_source} | Voice: {voice_id} | Intensity: {intensity}")
     
     # 💥 VANTIX AUDIO DEFINITION (v1.0): Must happen BEFORE assembly
@@ -1620,7 +1632,7 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             
             # --- 📽️ INDUSTRIAL STOCK DISCOVERY (v110.0: Relentless Tiered Mode) ---
             # Tier 1: [PRECISE] Milestone Narrative Query
-            pool = find_one_video_clips(ms["query"], used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
+            pool = find_one_video_clips(ms["query"], used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys, job_id=job_id)
             
             # Tier 2: [SIMPLEX] Subject Deconstruction (Fast Subject Extraction)
             if not pool:

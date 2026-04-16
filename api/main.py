@@ -59,17 +59,17 @@ import research_helper
 
 app = FastAPI(title="Vantix Core Engine (v1.0)")
 security = HTTPBearer()
-# 🔐 [IDENTITY VAULT]: Sovereign Key Hardening (v119.2)
+# 🔐 [IDENTITY VAULT]: Sovereign Key Hardening (v122.1)
 DEFAULT_SECRET = "VANTIX_ULTRA_SECRET_2026"
 ENV_SECRET = os.getenv("JWT_SECRET")
 
 if not ENV_SECRET:
-    # 💥 [VOLATILE MODE]: No environment secret found. 
-    # Generating a one-time cryptographically random salt to prevent token forgery.
-    import secrets
-    VOLATILE_SALT = secrets.token_hex(16)
-    SECRET_KEY = f"{DEFAULT_SECRET}_{VOLATILE_SALT}"
-    print(f"🔐 [SECURITY]: Volatile Mode Active. Nodes must re-auth this session. Salt: {VOLATILE_SALT[:4]}...")
+    # 🏛️ [DETERMINISTIC MODE]: derive salt from file system ID for multi-worker sync
+    import hashlib
+    file_id = os.path.abspath(__file__)
+    DETERMINISTIC_SALT = hashlib.sha256(file_id.encode()).hexdigest()[:16]
+    SECRET_KEY = f"{DEFAULT_SECRET}_{DETERMINISTIC_SALT}"
+    print(f"🔐 [SECURITY]: Deterministic Mode Active (Multi-Worker Sync). Salt: {DETERMINISTIC_SALT[:4]}...")
 else:
     SECRET_KEY = ENV_SECRET
 
@@ -383,15 +383,24 @@ class CheckoutRequest(BaseModel):
     plan_id: str # starter, core, grid
 
 # --- Auth Utilities ---
-def create_token(username: str):
+def create_token(username: str, ip: str):
     # 🏛️ [SAAS PROTOCOL] 30-Day Industrial Session Window
+    # 🛡️ [IP PINNING] Binding token to originating node
     expire = datetime.utcnow() + timedelta(days=30)
-    return jwt.encode({"sub": username, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode({"sub": username, "ip": ip, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
+        origin_ip = payload.get("ip")
+        
+        # 🛡️ [SOVEREIGN GUARD]: Verify IP Pinning
+        current_ip = request.client.host
+        if current_ip != origin_ip:
+            log_trace(f"SECURITY_BREACH: IP Mismatch for User='{username}' | Origin='{origin_ip}' | Probing_IP='{current_ip}'")
+            raise HTTPException(status_code=401, detail="Sovereign Identity Violation: Session bound to another IP node.")
+
         if username is None:
             raise HTTPException(status_code=401, detail="Invalid token")
         return username
@@ -402,14 +411,14 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 
 # --- Auth Endpoints ---
 @app.post("/auth/signup")
-def signup(user: UserAuth):
+def signup(request: Request, user: UserAuth):
     username = user.username.lower().strip()
     if db_helper.create_user(username, user.password):
-        return {"message": "User created successfully", "token": create_token(username)}
+        return {"message": "User created successfully", "token": create_token(username, request.client.host)}
     raise HTTPException(status_code=400, detail="User already exists")
 
 @app.post("/auth/login")
-def login(user: UserAuth):
+def login(request: Request, user: UserAuth):
     username = user.username.lower().strip()
     existing = db_helper.get_user(username)
     
@@ -433,7 +442,7 @@ def login(user: UserAuth):
     if existing:
         if existing["password"] == db_helper.hash_password(user.password):
             log_trace(f"LOGIN_SUCCESS: User='{username}' | Status=Authenticated")
-            return {"token": create_token(username), "username": username}
+            return {"token": create_token(username, request.client.host), "username": username}
         else:
             log_trace(f"LOGIN_FAIL: User='{username}' | Reason='Invalid Password'")
     else:
@@ -696,7 +705,8 @@ async def generate_video(
             "horizontal": req_dict.get("horizontal", db_defaults.get("horizontal", False)),
             "voice_id": req_dict.get("voice_id", db_defaults.get("voice_id", "alloy")),
             "visual_source": req_dict.get("visual_source", db_defaults.get("visual_source", "pexels")),
-            "user_keys": user_keys
+            "user_keys": user_keys,
+            "job_id": job_id # 💓 [HEARTBEAT] Restore live progress tracking
         }
         
         await QUEUE_MANAGER.add_job(username, "video", job_id, run_full_vso.run_full_vso, kwargs)
@@ -731,7 +741,8 @@ async def generate_thumbnail(request: ThumbnailRequest, username: str = Depends(
         
         kwargs = {
             "topic": request.topic,
-            "user_keys": user_keys
+            "user_keys": user_keys,
+            "job_id": job_id # 💓 [HEARTBEAT] Restore live progress tracking
         }
         
         await QUEUE_MANAGER.add_job(username, "thumbnail", job_id, thumbnail_service.create_vantix_thumbnail, kwargs)
@@ -781,7 +792,8 @@ async def generate_ebook(
             "min_words": req_dict.get("min_words", db_defaults.get("min_words", 150)),
             "theme_color": req_dict.get("theme_color", db_defaults.get("theme_color", "#1e293b")),
             "images_toggle": req_dict.get("images_toggle", db_defaults.get("include_images", True)),
-            "user_keys": user_keys
+            "user_keys": user_keys,
+            "job_id": job_id # 💓 [HEARTBEAT] Restore live progress tracking
         }
         
         await QUEUE_MANAGER.add_job(username, "ebook", job_id, ebook.automate_ebook_creation, kwargs)
@@ -829,7 +841,8 @@ async def generate_course(
             "topic": request.topic,
             "horizontal": req_dict.get("horizontal", db_defaults.get("horizontal", False)),
             "include_avatar": req_dict.get("include_avatar", db_defaults.get("include_avatar", False)),
-            "user_keys": user_keys
+            "user_keys": user_keys,
+            "job_id": job_id # 💓 [HEARTBEAT] Restore live progress tracking
         }
         
         await QUEUE_MANAGER.add_job(username, "course", job_id, ecourse_factory.run_ecourse_factory, kwargs)

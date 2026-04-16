@@ -555,7 +555,8 @@ Return ONLY 3 queries, one per line, no numbering, no quotes, no extra text."""
 PIXABAY_API_KEY = os.environ.get("PIXABAY_API_KEY", "")
 
 @retry_infinite(delay=5)
-def identify_visual_beats(sentence, user_topic, user_keys=None):
+def identify_visual_beats(sentence, user_topic, user_keys=None, job_id=None):
+    if job_id: telemetry.update_progress(job_id, "Planning Scenes...")
     """
     Identify essential visual transitions using Cloud AI.
     STRICTLY NEEDS-BASED: Only identify a new beat if the subject matter changes.
@@ -582,7 +583,8 @@ STRICT GUIDELINES:
     return [{"text": sentence, "queries": [user_topic]}]
 
 @retry_infinite(delay=5)
-def search_pixabay_videos(query, per_page=200, max_results=15):  # lowered per_page for quicker tests
+def search_pixabay_videos(query, per_page=200, max_results=15, job_id=None):  # lowered per_page for quicker tests
+    if job_id: telemetry.update_progress(job_id, f"Searching Pixabay: {query}")
     url = 'https://pixabay.com/api/videos/'
     page = 1
     found_clips = []
@@ -628,7 +630,8 @@ def search_pixabay_videos(query, per_page=200, max_results=15):  # lowered per_p
 
 
 @retry_infinite(delay=5)
-def search_pexels_video(query, per_page=80, target_width=1920, target_height=1080, tolerance=200, max_clips=15):
+def search_pexels_video(query, per_page=80, target_width=1920, target_height=1080, tolerance=200, max_clips=15, job_id=None):
+    if job_id: telemetry.update_progress(job_id, f"Searching Pexels: {query}")
     page = 1
     headers = {"Authorization": PEXELS_API_KEY}
     suitable_clips = []

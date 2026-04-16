@@ -7,6 +7,7 @@ import run_full_vso
 import main
 import shorts
 from ai_helper import generate_ai_response
+import api.telemetry as telemetry # 🏛️ [TELEMETRY] Global Heartbeat Hook
 
 def generate_course_outline(topic, user_keys=None):
     """🎓 VANTIX Academy (v1.0): Generate organic course hierarchy"""
@@ -59,7 +60,8 @@ def generate_lesson_script(topic, chapter_title, lesson_title, user_keys=None):
         print(f"❌ Script Generation Failed for {lesson_title}: {e}")
         return ""
 
-def run_ecourse_factory(topic, horizontal=False, include_avatar=False, user_keys=None, **kwargs):
+def run_ecourse_factory(topic, horizontal=False, include_avatar=False, user_keys=None, job_id=None, **kwargs):
+    if job_id: telemetry.update_progress(job_id, "Drafting Academy Outline")
     """🚀 VANTIX Academy (v1.0): Master Orchestration Loop"""
     print(f"🏗️ [FACTORY] Initializing Vantix Academy Production: {topic}")
     print(f"📐 [LAYOUT] Resolution: {'Horizontal (16:9)' if horizontal else 'Vertical (9:16)'}")
@@ -107,7 +109,8 @@ def run_ecourse_factory(topic, horizontal=False, include_avatar=False, user_keys
                     forced_topic=f"{topic} {lesson_title}",
                     forced_avatar=include_avatar,
                     horizontal=horizontal,
-                    user_keys=user_keys
+                    user_keys=user_keys,
+                    job_id=job_id # 💓 [TELEMETRY] Restore live progress tracking
                 )
                 
                 if final_video_path and os.path.exists(final_video_path):

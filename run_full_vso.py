@@ -152,7 +152,7 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
                 sentence, i, total_urls.copy(), topic, max_clips=5, topic_pool=topic_pool, 
                 include_avatar=include_avatar, horizontal=horizontal, user_keys=user_keys, 
                 intensity=intensity, visual_source=kwargs.get("visual_source", "pexels"), 
-                voice_id=kwargs.get("voice_id", "alloy")
+                voice_id=kwargs.get("voice_id", "alloy"), job_id=job_id # 💓 [HEARTBEAT]
             )
             
             if scene_clip:
