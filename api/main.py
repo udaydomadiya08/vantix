@@ -827,7 +827,8 @@ async def generate_ebook(
             "theme_color": req_dict.get("theme_color", db_defaults.get("theme_color", "#1e293b")),
             "images_toggle": req_dict.get("images_toggle", db_defaults.get("include_images", True)),
             "user_keys": user_keys,
-            "job_id": job_id # 💓 [HEARTBEAT] Restore live progress tracking
+            "job_id": job_id, # 💓 [HEARTBEAT] Restore live progress tracking
+            "output_dir": os.path.join(parent_dir, "static/ebooks") # 🛡️ [STORAGE REALIGNMENT]
         }
         
         await QUEUE_MANAGER.add_job(username, "ebook", job_id, ebook.automate_ebook_creation, kwargs)

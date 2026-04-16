@@ -262,47 +262,40 @@ def save_ebook_pdf(title, description, chapters_content, chapters_list, subsecti
 
     pdf.output(output_file)
     print(f"✅ [STABILIZED] Mastered Vantix Masterpiece: {output_file}")
+    return output_file
 
-def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150, theme_color=None, images_toggle=True, user_keys=None, job_id=None, **kwargs):
+def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150, theme_color=None, images_toggle=True, user_keys=None, job_id=None, output_dir=None, **kwargs):
     if job_id:
         import api.telemetry as telemetry
         telemetry.update_progress(job_id, "Drafting Manifesto (1/1)")
     """🚀 VANTIX DYNAMIC ENGINE (v1.0): Stabilized Vantix Design"""
     print(f"🏗️ [FACTORY] Initializing Multi-Model Synthesis: {topic}")
     
-    # Optional override of global config
+    # 🛡️ [PATH SENTINEL] Ensure output_dir exists
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
+    # ... (rest of configuration)
     global NUM_CHAPTERS, MIN_WORDS_PER_SECTION, INCLUDE_IMAGES
     NUM_CHAPTERS = num_chapters
     MIN_WORDS_PER_SECTION = min_words
     INCLUDE_IMAGES = images_toggle
 
-    # 0. DNA Synthesis
+    # ... (rest of DNA and Outline steps)
     theme = generate_ebook_theme(topic, description, user_keys=user_keys)
     if theme_color:
         theme['primary_rgb'] = hex_to_rgb(theme_color)
     
-    p_rgb = theme.get('primary_rgb', [20, 40, 80])
-    l_mode = theme.get('layout_mode', 'Sophisticated')
-    align = theme.get('alignment', 'J')
-    print(f"🧬 [DNA] Palette: {p_rgb} | Mode: {l_mode} | Align: {align}")
-    
-    # 1. Outline Synthesis
-    print("📋 [PLANNING] Synthesizing Organic Outline...")
-    prompt = f"Design a comprehensive ebook outline for: {topic}. Decide on the optimal number of chapters based on the title {topic} and vision: {description}. Return ONLY chapter titles, one per line."
-    outline_text = generate_ai_response(prompt, user_keys=user_keys).text
-    chapters_list = [line.strip() for line in outline_text.split("\n") if line.strip() and len(line) > 3]
-    print(f"📁 [STRUCTURE] AI synthesized {len(chapters_list)} chapters.")
-    
     # 2. Vantix Cover Art
     safe_topic = re.sub(r'[^a-zA-Z0-9]', '_', topic.lower())
-    cover_image_path = f"cover_{safe_topic}.png"
+    cover_temp_name = f"cover_{safe_topic}.png"
+    cover_image_path = os.path.join(output_dir, cover_temp_name) if output_dir else cover_temp_name
     
     if INCLUDE_IMAGES:
         cover_url = generate_image_asset(f"Professional cinematic ebook cover for {topic}. Style: {theme['visual_style']}. No text.", user_keys=user_keys)
         if not download_asset(cover_url, cover_image_path):
             cover_image_path = None
     else:
-        print("🚫 [GUARD] Skipping Cover Art Synthesis.")
         cover_image_path = None
 
     subsections_dict = {}
@@ -312,7 +305,8 @@ def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150
     # 3. Production Cycle
     for i, chapter_title in enumerate(chapters_list):
         print(f"📝 [SYNTHESIS] Mastering Chapter {i+1}: {chapter_title}")
-        art_path = f"art_chap_{i+1}_{safe_topic}.png"
+        art_temp_name = f"art_chap_{i+1}_{safe_topic}.png"
+        art_path = os.path.join(output_dir, art_temp_name) if output_dir else art_temp_name
         
         if INCLUDE_IMAGES and INCLUDE_CHAPTER_ART:
             art_url = generate_image_asset(f"Cinematic scene for '{chapter_title}'. Style: {theme['visual_style']}. No text.")
@@ -329,9 +323,10 @@ def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150
 
     # 4. Final Master
     filename = f"{safe_topic}_GODLEVEL_STABILIZED.pdf"
-    save_ebook_pdf(topic, description, chapters_content, chapters_list, subsections_dict, filename, theme, cover_image=cover_image_path, chapter_arts=chapter_arts)
-    print(f"🏁 [GOD-LEVEL] Stabilized Masterpiece Delivered: {filename}")
-    return filename
+    final_output_path = os.path.join(output_dir, filename) if output_dir else filename
+    save_ebook_pdf(topic, description, chapters_content, chapters_list, subsections_dict, final_output_path, theme, cover_image=cover_image_path, chapter_arts=chapter_arts)
+    print(f"🏁 [GOD-LEVEL] Stabilized Masterpiece Delivered: {final_output_path}")
+    return final_output_path
 
 if __name__ == "__main__":
     import sys
