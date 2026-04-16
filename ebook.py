@@ -19,9 +19,28 @@ INCLUDE_CHAPTER_ART = True  # Toggle for chapter-specific art
 NUM_CHAPTERS = 3            # Masterpiece volume
 MIN_WORDS_PER_SECTION = 150 # High-velocity calibration
 
-def sanitize_unicode(text):
-    """Sanitize non-Latin-1 characters for FPDF helvetica compatibility."""
+def clean_markdown(text):
+    """🛡️ [VANTIX SANITIZATION]: Absolute-strip Markdown artifacts (v124.55)"""
     if not text: return ""
+    # 1. Strip Bold/Italic tags: **text** -> text, *text* -> text
+    text = re.sub(r'(\*\*|__)(.*?)\1', r'\2', text)
+    text = re.sub(r'(\*|_)(.*?)\1', r'\2', text)
+    # 2. Re-pass to catch double-wrapped artifacts
+    text = text.replace("**", "").replace("__", "")
+    # 3. Strip Hashtag Headers (e.g., # Chapter -> Chapter)
+    text = re.sub(r'(?m)^#+\s*', '', text)
+    # 4. Strip Code Blocks & Backticks
+    text = text.replace("`", "")
+    # 5. Clean trailing/leading whitespace artifacts
+    return text.strip()
+
+def sanitize_unicode(text):
+    """Sanitize non-Latin-1 characters and strip Markdown noise (v124.55)."""
+    if not text: return ""
+    
+    # 🧹 [CLEANING]: Strip LLM formatting artifacts
+    text = clean_markdown(text)
+    
     replacements = {
         "\u2013": "-",   # en dash
         "\u2014": "--",  # em dash
@@ -92,28 +111,43 @@ def build_chapter_with_subsections(topic, chapter_title, description="", tone="E
     subsections = generate_subsections(topic, chapter_title, description, user_keys=user_keys)
     full_content = ""
     
-    print(f"🚀 [PARALLEL] Synthesizing {len(subsections)} sections for '{chapter_title}' (Max Workers: 3)...")
-    with concurrent.futures.ThreadPoolExecutor(max_workers=min(3, len(subsections))) as executor:
-        # Create a dictionary of future to subsection title
-        future_to_sub = {
-            executor.submit(generate_subsection_content, topic, chapter_title, sub, description, tone, user_keys): sub 
-            for sub in subsections
-        }
+    # 🛡️ [VANTIX STABILIZATION]: Transitioned to Sequential Deep-Synthesis (v124.50)
+    print(f"🚀 [SEQUENTIAL] Synthesizing {len(subsections)} sections for '{chapter_title}'...")
+    results = {}
+    
+    for i, sub in enumerate(subsections):
+        # 🛡️ [SUBSECTION JITTER] 1.0s buffer to certify API stability (v124.50)
+        if i > 0: time.sleep(1.0)
         
-        # Assemble in order
-        results = {}
-        for future in concurrent.futures.as_completed(future_to_sub):
-            sub = future_to_sub[future]
+        print(f"📡 [SECTION] Processing {i+1}/{len(subsections)}: {sub}")
+        content = None
+        
+        # 🔄 [RECOVERY LOOP] 2-stage re-entrant logic
+        for attempt in range(2):
             try:
-                results[sub] = future.result()
-                print(f"✅ [FINISHED] {sub}")
+                content = generate_subsection_content(topic, chapter_title, sub, description, tone, user_keys)
+                if content and "[Content Synthesis Failed]" not in content:
+                    break
             except Exception as e:
-                print(f"❌ [FAILED] {sub}: {e}")
-                results[sub] = "[Content Synthesis Failed]"
+                print(f"⚠️ [RETRY] {sub} attempt {attempt+1} failed: {e}")
+                time.sleep(3 * (attempt + 1))
         
-        # Maintain original order
-        for sub in subsections:
-            full_content += f"\n{sub.upper()}\n\n{results.get(sub, '')}\n\n"
+        if not content or "[Content Synthesis Failed]" in content:
+            # 📉 [FALLBACK] Lite Synthesis for critical recovery
+            print(f"📉 [LITE] Full synthesis failed for '{sub}'. Transitioning to Lite Recovery...")
+            try:
+                from ai_helper import generate_ai_response
+                lite_prompt = f"Write a professional expert summary for the ebook section: '{sub}'. Context: {chapter_title} on {topic}. Minimum 2 paragraphs. Plain text."
+                content = generate_ai_response(lite_prompt, user_keys=user_keys).text
+            except:
+                content = "[Content Synthesis Failed]"
+        
+        results[sub] = content
+        print(f"✅ [FINISHED] {sub}")
+    
+    # Maintain original order
+    for sub in subsections:
+        full_content += f"\n{sub.upper()}\n\n{results.get(sub, '')}\n\n"
             
     return full_content.strip(), subsections
 

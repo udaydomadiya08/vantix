@@ -45,7 +45,8 @@ class APIHealth:
     def report_failure(self, provider, model=None):
         with self.lock:
             key = f"{provider}:{model}" if model else provider
-            self.cooldowns[key] = time.time() + 30 # 🛡️ [REDUCED COOLDOWN] 30s Buffer (v124.40)
+            # 🛡️ [VANTIX STABILIZATION]: Increased to 60s to absolute-mitigate 429 bursts (v124.50)
+            self.cooldowns[key] = time.time() + 60 
             
             if not model and provider in self.provider_priority:
                 self.provider_priority.remove(provider)
@@ -56,7 +57,7 @@ class APIHealth:
                 if model in models:
                     models.remove(model)
                     models.append(model)
-            print(f"📉 [HEALTH] {provider.upper()}{':' + model if model else ''} cooled-down.")
+            print(f"📉 [HEALTH] {provider.upper()}{':' + model if model else ''} cooled-down (60s buffer).")
 
     def is_healthy(self, provider, model=None):
         with self.lock:
