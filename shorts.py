@@ -1908,8 +1908,10 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                     if hasattr(c, 'mask') and c.mask is not None:
                         _ = c.mask.get_frame(0)
                     
-                    # Force normalization to target resolution
-                    res_clips.append(c.resize((1080, 1920)).set_fps(30))
+                    # Force normalization to target resolution and STRIP AUDIO
+                    # MoviePy's internal audio concatenator often hits IndexError on 100+ clips.
+                    # We will re-inject the master audio track at the final step.
+                    res_clips.append(c.resize((1080, 1920)).set_fps(30).without_audio())
                 except Exception as e:
                     print(f"⚠️ [STABILITY] Purging corrupted/truncated asset: {e}")
 
@@ -1971,7 +1973,7 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                     audio_codec="aac",
                     fps=30,
                     preset="ultrafast",
-                    threads=2,
+                    threads=1, # ⚖️ Sovereign Stability Lock
                     logger=None
                 )
             except Exception as render_error:
@@ -1984,7 +1986,7 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                         audio_codec="aac",
                         fps=30,
                         preset="ultrafast",
-                        threads=1, # Single thread for maximum OS-level safety
+                        threads=1, # ⚖️ Max Stability
                         logger=None
                     )
                 except Exception as final_e:
