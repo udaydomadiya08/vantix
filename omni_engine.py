@@ -253,7 +253,7 @@ def save_upload_status(count):
     with open(JSON_FILE, "w") as f:
         json.dump({"date": today, "count": count}, f)
 
-def retry_infinite(delay=5):
+def retry_infinite(delay=15):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -269,7 +269,7 @@ def retry_infinite(delay=5):
         return wrapper
     return decorator
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def get_trending_topic():
     """Tries SerpAPI for trends, falls back to free Google News RSS if needed."""
     print("📈 Searching for global trends...")
@@ -344,7 +344,7 @@ def get_niche_topic():
     print(f"🤖 AI Niche Selection: [{category}] - {topic}")
     return topic
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def generate_youtube_script(topic):
     prompt = f"""
     Write a high-retention YouTube script for the topic: "{topic}".
@@ -412,7 +412,7 @@ def get_topic_from_script(script, user_keys=None):
         return response.text.strip().replace('"', '')
     return str(response).strip().replace('"', '')
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def clean_script_noise(text):
     import re
     # Remove markers like [Hook], (Scene 1), etc. ONLY if they exist
@@ -490,7 +490,7 @@ def generate_vantix_script(topic, user_keys=None, job_id=None):
     final_text = final_obj.text if hasattr(final_obj, 'text') else str(final_obj)
     return clean_script_noise(final_text)
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def generate_youtube_script(topic, user_keys=None):
     return generate_vantix_script(topic, user_keys=user_keys)
 
@@ -530,7 +530,7 @@ def extract_keywords(text):
 
 # === Visual Search Query Generation === #
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def generate_visual_search_queries(sentence, user_topic, user_keys=None):
     prompt = f"""You are a stock footage search expert. Given a script sentence and topic, generate exactly 3 search queries for finding relevant background video clips on Pexels/Pixabay.
 
@@ -556,7 +556,7 @@ Return ONLY 3 queries, one per line, no numbering, no quotes, no extra text."""
 
 PIXABAY_API_KEY = os.environ.get("PIXABAY_API_KEY", "")
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def identify_visual_beats(sentence, user_topic, user_keys=None, job_id=None):
     if job_id: telemetry.update_progress(job_id, "Planning Scenes...")
     """
@@ -584,7 +584,7 @@ STRICT GUIDELINES:
     except: pass
     return [{"text": sentence, "queries": [user_topic]}]
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def search_pixabay_videos(query, per_page=200, max_results=15, job_id=None):  # lowered per_page for quicker tests
     if job_id: telemetry.update_progress(job_id, f"Searching Pixabay: {query}")
     url = 'https://pixabay.com/api/videos/'
@@ -631,7 +631,7 @@ def search_pixabay_videos(query, per_page=200, max_results=15, job_id=None):  # 
 
 
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def search_pexels_video(query, per_page=80, target_width=1920, target_height=1080, tolerance=200, max_clips=15, job_id=None):
     if job_id: telemetry.update_progress(job_id, f"Searching Pexels: {query}")
     page = 1
@@ -698,7 +698,7 @@ def search_pexels_video(query, per_page=80, target_width=1920, target_height=108
 # Replace with your actual Pixabay API key
 
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def download_videos1(video_url, download_path):
     os.makedirs(os.path.dirname(download_path), exist_ok=True)
     try:
@@ -717,7 +717,7 @@ def download_videos1(video_url, download_path):
 
 # === Find 1 Best Clip Per Search Term, avoiding duplicates === #
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=15):
     print(f"🔍 Searching multiple clips for: {sentence}")
     queries = generate_visual_search_queries(sentence, user_topic)
@@ -798,7 +798,7 @@ def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=15):
 
 
 # === Download Video === #
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def download_video(url, filename):
     response = requests.get(url, stream=True)
     with open(filename, "wb") as f:
@@ -807,7 +807,7 @@ def download_video(url, filename):
     return filename
 
 # === Generate Audio === #
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def generate_audio(text, filename):
     tts = gTTS(text=text, lang='en')
     tts.save(filename)
@@ -1090,7 +1090,7 @@ def create_video_from_script(script, user_topic, include_disclaimer=True):
 
 
 
-# @retry_infinite(delay=5)
+# @retry_infinite(delay=15)
 # def generate_youtube_title(topic):
 #     prompt = f"""
 #     Create a highly clickable, viral YouTube video title for the topic: "{topic}".
@@ -1099,7 +1099,7 @@ def create_video_from_script(script, user_topic, include_disclaimer=True):
 #     response = generate_ai_response(prompt)
 #     return response.text.strip()
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def generate_youtube_description(topic, script):
     prompt = f"""
     Write a 3-part YouTube description for: "{topic}".
@@ -1115,7 +1115,7 @@ def generate_youtube_description(topic, script):
     response = generate_ai_response(prompt)
     return response.text.strip()
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def generate_youtube_tags(topic, script):
     prompt = f"""
     Generate 30 high-relevance YouTube tags for the topic: "{topic}".
@@ -1134,7 +1134,7 @@ def generate_youtube_tags(topic, script):
 
 import ast
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def clean_tags_with_gemini(raw_tags):
     prompt = f"""
     You are an assistant that cleans and formats YouTube video tags.
@@ -1160,7 +1160,7 @@ def clean_tags_with_gemini(raw_tags):
         return []
 
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def get_category_id_from_gemini(topic):
     prompt = f"""
     Given the YouTube video topic: "{topic}", return the most appropriate YouTube Category Name and ID from this list:
@@ -1202,13 +1202,13 @@ def extract_category_id(text):
 
 # --- Functions ---
 # --- New Function to Generate Relevant Search Term ---
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def generate_search_term(topic):
     prompt = f"Given the YouTube video topic '{topic}', suggest a short, relevant visual keyword or phrase for finding an image background. Limit to 3-5 words, no punctuation, just a plain image search phrase only one line and nothing else : keywords or phrase  just onloy that and nothing else mind it."
     response = generate_ai_response(prompt)
     return response.text.strip()
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def generate_title_from_topic1(topic):
     prompt = f"Create a catchy YouTube video thumbnail title for this topic: '{topic}'  one line title which seo optimised and nothing else okay i ahve to fed to my progrma so it should be clena and precise dont use symbols or icons or emojis, cerate catchy one, use punctuation marks properly and highly to emphasize, and it should have max upto 5 or 6 words not more that that"
     response = generate_ai_response(prompt)
@@ -1237,7 +1237,7 @@ def resize_and_crop_to_1920x1080(img):
 
     return img.crop((left, top, right, bottom))
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def search_pexels_image(query):
     url = "https://api.pexels.com/v1/search"
     headers = {"Authorization": PEXELS_API_KEY}
@@ -1258,7 +1258,7 @@ def search_pexels_image(query):
     # Fallback to first image if none are 16:9
     return photos[0]["src"]["original"] if photos else None
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def search_google_image(query):
     params = {
         "engine": "google",
@@ -1294,7 +1294,7 @@ def search_google_image(query):
         return images[0]["original"]
     return None
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def download_image1(url):
     headers = {"User-Agent": "Mozilla/5.0"}
     resp = requests.get(url, headers=headers)
@@ -1397,7 +1397,7 @@ def trim_tags(tags, max_length=490):
 import googleapiclient.errors
 
 # MAX_RETRIES = 10
-# @retry_infinite(delay=5)
+# @retry_infinite(delay=15)
 # def resumable_upload(request):
 #     response = None
 #     error = None
@@ -1567,7 +1567,7 @@ def remove_video_entry(video_name, log_file="all_video_used_urls.txt"):
     print(f"✅ Entry for '{target_name}' removed from {log_file}")
 
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def upload_video(file_path, topic, script, thumbnail_path):
     
     feedback_link = "https://forms.gle/NLQ3gmdrsNU7DKev6"  # Replace with your actual form link

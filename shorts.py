@@ -101,13 +101,36 @@ def perform_industrial_cleanup():
         if os.path.exists(path):
             print(f"🧹 [CLEANUP]: Purging {folder}...")
             shutil.rmtree(path, ignore_errors=True)
-        # Ensure it exists and is clean
-        os.makedirs(os.path.join(PROJECT_ROOT, folder), exist_ok=True)
-    
-    # 💥 [ORPHAN PURGE]: Delete older video fragments (not the main outputs)
-    print("🧹 [CLEANUP]: Flushing orphan .mp4 / .mp3 fragments...")
+        os.makedirs(path, exist_ok=True)
+
+def prep_milestone_ffmpeg(input_path, output_path, duration, width=1080, height=1920):
+    """
+    🏎️ [WARP-PREP] Native FFmpeg Normalization (v122.24):
+    Force-normalizes raw assets into perfectly calibrated blocks at native speed.
+    Supports both Vertical (1080x1920) and Horizontal (1920x1080) output.
+    """
+    try:
+        cmd = [
+            "ffmpeg", "-y", "-i", input_path,
+            "-vf", f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1",
+            "-t", str(duration),
+            "-r", "30",
+            "-pix_fmt", "yuv420p",
+            "-an", # Strip audio to prevent MoviePy muxing collisions
+            output_path
+        ]
+        subprocess.run(cmd, check=True, capture_output=True)
+        return True
+    except Exception as e:
+        print(f"⚠️ FFmpeg Warp-Prep Failed: {e}")
+        return False
+
+# 💥 [ORPHAN PURGE]: Delete older video fragments (not the main outputs)
+def purge_orphan_fragments():
+    """🧹 [SANITIZER]: Flush orphan .mp4 / .mp3 / .wav fragments from synthesis root."""
+    print("🧹 [CLEANUP]: Flushing orphan synthesis blocks...")
     for root, dirs, files in os.walk(PROJECT_ROOT):
-        if "video_created" in root: continue # Preserve final outputs
+        if "video_created" in root or "video_creation" in root: continue # Preserve active fragments
         for f in files:
             if f.endswith((".mp3", ".mp4", ".wav")):
                 try: os.remove(os.path.join(root, f))
@@ -556,7 +579,7 @@ def save_upload_status(count):
 
 
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def get_trending_topic():
     params = {
         "engine": "google_trends_trending_now",
@@ -568,7 +591,7 @@ def get_trending_topic():
     trending = results.get("trending_searches", [])
     return trending[0]["query"] if trending else "World News"
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def generate_youtube_shorts_script(topic):
     prompt = f"""
     Write a YouTube Shorts script about "{topic}" in a high-energy, fast-paced, no-fluff style. create best stongest hook to keep viewers engaged in video, then scrip tmust too be very engaging and high retention one so user dont move shortt to nex tmind it that highest lvel of engagment must be done viewwer shoul dsee full video mind it writet that level of script. The script must be delivered as one single paragraph of plain text — no formatting, no headings, no bullet points, no labels — just pure spoken content. The tone should be exciting, direct, and packed with value, instantly hooking the viewer and keeping them engaged throughout. 
@@ -638,7 +661,49 @@ def extract_keywords(text):
 
 # === Visual Search Query Generation === #
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
+def generate_visual_search_batch(sentences, user_topic, user_keys=None):
+    """
+    🏎️ [WARP-Discovery] Batch AI Query Node (v122.24):
+    Processes multiple script segments in a single AI pass to kill serialized wait-times.
+    """
+    if not sentences: return {}
+    
+    full_script = os.environ.get("FORCE_SCRIPT", "")
+    segments_payload = "\n".join([f"{i}: {s}" for i, s in enumerate(sentences)])
+    
+    prompt = f"""You are a high-speed cinematic researcher for Vantix.
+    TASK: Generate 3 physical, high-quality visual search queries for EACH of the script segments listed below.
+    
+    FULL SCRIPT CONTEXT: "{full_script}"
+    TOPIC: {user_topic}
+    
+    SEGMENTS:
+    {segments_payload}
+    
+    STRICT MANDATES:
+    1. For each segment index, resolve pronouns using the FULL SCRIPT. 
+    2. Return ONLY a JSON object mapping the index (as string) to a list of 3 query strings.
+    Example: {{"0": ["lunar map", "rocket controls", "space cabin"], "1": ["..."]}}"""
+
+    all_results = {}
+    try:
+        resp_obj = generate_ai_response(prompt, user_keys=user_keys)
+        text_resp = resp_obj.text.strip()
+        
+        json_pattern = re.compile(r'\{.*\}', re.DOTALL)
+        match = json_pattern.search(text_resp)
+        if match:
+             try:
+                  clean_json = match.group(0).replace("```json", "").replace("```", "").strip()
+                  all_results = json.loads(clean_json)
+             except: pass
+             
+    except Exception as e:
+        print(f"⚠️ Batch Discovery AI Failed: {e}")
+        
+    return all_results
+
 def generate_visual_search_queries(sentence, user_topic, user_keys=None):
     """👑 VANTIX SUBJECT LOCKDOWN (v50.5): Holistic Narrative Awareness"""
     # 💥 FULL SCRIPT CONTEXT (v50.5): Ensure search knows what 'it' refers to.
@@ -786,7 +851,7 @@ def search_pixabay_videos(query, per_page=20, max_results=8, horizontal=False, u
         print(f"⚠️ [PIXABAY] Discovery Error: {e}")
         raise e
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def discover_global_sfx(query):
     """👑 VANTIX SFX ORCHESTRATION (v55): Dynamic Global SFX Discovery (No Hardcoding)"""
     print(f"🎵 [Global SFX] Searching for cinematic texture: '{query}'...")
@@ -857,7 +922,7 @@ def download_sfx(sfx_url, query):
 
 
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def search_pexels_video(query, per_page=80, target_width=1080, target_height=1920, tolerance=200, max_clips=15, horizontal=False, api_key=None):
     page = 1
     # 🏛️ [VANTIX PERSISTENCE] Check In-Memory first, then fall back to Ledger
@@ -925,7 +990,7 @@ def search_pexels_video(query, per_page=80, target_width=1080, target_height=192
 # Replace with your actual Pixabay API key
 
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def download_videos1(video_url, download_path):
     os.makedirs(os.path.dirname(download_path), exist_ok=True)
     try:
@@ -1012,15 +1077,19 @@ def rank_candidates_with_ai(candidates, sentence, user_keys=None):
         print(f"⚠️ Synthesis Ranking Fallback: {e}")
     return 0, None
 
-@retry_infinite(delay=5)
-def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=1, horizontal=False, user_keys=None, job_id=None):
+@retry_infinite(delay=15)
+def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=1, horizontal=False, user_keys=None, job_id=None, pre_queries=None):
     if job_id:
         import api.telemetry as telemetry
         telemetry.update_progress(job_id, f"Searching for: {sentence[:30]}...")
     """👑 VANTIX DUAL-CORE DISCOVERY (v1.1): Hybrid Search Engine"""
     print(f"🔍 [DISCOVERY] Initiating Hybrid Search for: '{sentence}'")
     
-    precise_queries = generate_visual_search_queries(sentence, user_topic, user_keys=user_keys)
+    # 🏎️ [VELOCITY]: Use pre-calculated queries from the Batcher if available
+    if pre_queries:
+        precise_queries = pre_queries
+    else:
+        precise_queries = generate_visual_search_queries(sentence, user_topic, user_keys=user_keys)
     
     # 💥 TYPE HARDENING (v109.1): Ensure all queries are strings before comparison
     precise_queries = [str(q) for q in precise_queries if q]
@@ -1511,7 +1580,7 @@ def technical_mastering(input_path, output_path):
         print(f"❌ Mastering Failed: {e}")
         return input_path
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_pool=None, include_avatar=True, horizontal=False, user_keys=None, visual_source="pexels", intensity=None, voice_id="alloy", job_id=None, **kwargs):
     if job_id:
         import api.telemetry as telemetry
@@ -1628,6 +1697,13 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
     if milestones:
         print(f"🧠 [VANTIX SYNC] Orchestrating {len(milestones)} Word-Locked Semantic Cuts (PARALLEL)...")
         
+        # 🏎️ [WARP-Discovery] Pre-calculate all queries via Batch Node (v122.24)
+        print(f"📡 [BATCH]: Pre-calculating visual search terms for {len(milestones)} milestones...")
+        sentences_to_query = [m["query"] for m in milestones]
+        batch_queries_raw = generate_visual_search_batch(sentences_to_query, user_topic, user_keys=user_keys)
+        # Standardize indices for robust lookup
+        batch_queries = {str(k): v for k, v in batch_queries_raw.items()}
+
         def process_milestone(i, ms):
             target_dur = ms["end"] - ms["start"]
             if target_dur <= 0: return None
@@ -1635,13 +1711,17 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             print(f"🎯 Milestone {i}: '{ms['query']}' | Duration: {target_dur:.2f}s")
             
             video_url = None
-            tmp_path = f"video_creation/ms_{idx}_{i}.mp4"
+            raw_tmp_path = f"video_creation/raw_ms_{idx}_{i}.mp4"
+            prepped_tmp_path = f"video_creation/ms_{idx}_{i}.mp4"
+            
+            # 🏎️ [WARP-Discovery]: Fetch pre-calculated queries
+            pre_queries = batch_queries.get(str(i))
             
             # --- 📽️ INDUSTRIAL STOCK DISCOVERY (v110.0: Relentless Tiered Mode) ---
             # Tier 1: [PRECISE] Milestone Narrative Query
-            pool = find_one_video_clips(ms["query"], used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys, job_id=job_id)
+            pool = find_one_video_clips(ms["query"], used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys, job_id=job_id, pre_queries=pre_queries)
             
-            # Tier 2: [SIMPLEX] Subject Deconstruction (Fast Subject Extraction)
+            # Tier 2: [SIMPLEX] Subject Deconstruction
             if not pool:
                 simplex_query = extract_visual_keywords(ms["query"])
                 print(f"📡 [RELENTLESS]: Milestone '{ms['query']}' failed. Trying Simplex: '{simplex_query}'")
@@ -1671,41 +1751,57 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                 pool = find_one_video_clips(emergency_safe, used_video_urls | new_used_urls, user_topic, max_clips=1, horizontal=horizontal, user_keys=user_keys)
 
             if not pool: 
-                 # 💥 [VANTIX CRITICAL]: This should now be impossible, but we provide a Solid Color as a last resort
-                 print(f"❌ [ULTIMATE EXHAUSTION]: No visuals found for Milestone {i}. Generating high-contrast placeholder.")
+                 print(f"❌ [ULTIMATE EXHAUSTION]: No visuals found for Milestone {i}.")
                  return {"is_placeholder": True, "dur": target_dur}
 
-            video_url = pool[0]["video_files"][0]["link"]
             try:
-                download_video(video_url, tmp_path)
-                return {"tmp_path": tmp_path, "url": video_url, "dur": target_dur, "is_placeholder": False}
+                # 💥 [VANTIX HARDENING]: Multi-layer structural verification
+                if not pool[0].get("video_files"):
+                    raise ValueError("Pexels response missing video_files payload.")
+                
+                video_url = pool[0]["video_files"][0]["link"]
+                download_video(video_url, raw_tmp_path)
+                
+                # 🏎️ [WARP-PREP] Standardize Asset via C-speed FFmpeg (v122.24: Dynamic Resolution)
+                success = prep_milestone_ffmpeg(raw_tmp_path, prepped_tmp_path, target_dur, width=TARGET_RES[0], height=TARGET_RES[1])
+                
+                if success:
+                    # Clean up the raw file immediately to save disk I/O
+                    try: os.remove(raw_tmp_path)
+                    except: pass
+                    return {"tmp_path": prepped_tmp_path, "url": video_url, "dur": target_dur, "is_placeholder": False, "prepped": True}
+                else:
+                    return {"tmp_path": raw_tmp_path, "url": video_url, "dur": target_dur, "is_placeholder": False, "prepped": False}
+                    
             except Exception as e:
-                print(f"❌ Milestone {i} Download Failed: {e}")
+                print(f"❌ Milestone {i} Discovery/Prep Failed: {e}")
                 return {"is_placeholder": True, "dur": target_dur}
 
-        # Execute [Sovereign] Sequential Discovery (v122.21)
-        orch = ParallelOrchestrator(max_workers=1)
+        # Execute [Sovereign] Parallel Discovery (v122.24: Optimized 3-Worker Sync)
+        orch = ParallelOrchestrator(max_workers=3)
         parallel_results = orch.parallel_map_indexed(process_milestone, milestones, task_name="Milestone")
         
-        # Assemble in Sequence
-        for res in parallel_results:
-            target_dur = res["dur"] if (res and "dur" in res) else milestones[parallel_results.index(res)]["end"] - milestones[parallel_results.index(res)]["start"]
+        # Assemble in Sequence (v122.24: High-Velocity Feed)
+        for i, res in enumerate(parallel_results):
+            target_dur = res["dur"] if (res and "dur" in res) else milestones[i]["end"] - milestones[i]["start"]
             
             if res and not res.get("is_placeholder", False) and os.path.exists(res.get("tmp_path", "")):
                 try:
+                    # Load standardized asset
                     raw_clip = VideoFileClip(res["tmp_path"]).without_audio()
-                    # 💥 PRE-FLIGHT CHECK (v105.1): Verify milestone load
-                    _ = raw_clip.get_frame(0)
                     
-                    clip = resize_crop(raw_clip).set_fps(30)
+                    # 💥 [VELOCITY]: If FFmpeg prepped the asset, skip MoviePy's slow resize/crop
+                    if res.get("prepped", False):
+                        clip = raw_clip
+                    else:
+                        clip = resize_crop(raw_clip).set_fps(30)
+                    
+                    # Apply sub-second cinematic effects
                     clip = apply_pattern_interrupt(apply_ken_burns(clip, target_dur))
                     clip = apply_vantix_pacing(clip, is_hook=(len(collected_clips)==0), intensity=intensity)
                     
                     # Force duration to match milestone exactly
                     clip = clip.set_duration(target_dur).set_start(total_collected)
-                    
-                    # 💥 FINAL VERIFICATION
-                    _ = clip.get_frame(0)
                     
                     collected_clips.append(clip)
                     new_used_urls.add(res["url"])
@@ -2173,7 +2269,7 @@ def create_video_from_script(script, user_topic):
 #     response = gemini_model.generate_content(prompt)
 #     return response.text.strip()
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def generate_youtube_description(topic):
     prompt = f"""
     Write a compelling 21 sentences each in new line, YouTube video description for the topic: "{topic}".
@@ -2184,7 +2280,7 @@ def generate_youtube_description(topic):
     response = generate_gemini_response(prompt, model_name="gemini-2.5-flash-preview-05-20")
     return response.text.strip()
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def generate_youtube_tags(topic):
     prompt = f"""
     Generate a list of 21 relevant, high-SEO YouTube tags (comma-separated) for the topic: "{topic}".
@@ -2198,7 +2294,7 @@ def generate_youtube_tags(topic):
 
 import ast
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def clean_tags_with_gemini(raw_tags):
     prompt = f"""
     You are an assistant that cleans and formats YouTube video tags.
@@ -2225,7 +2321,7 @@ def clean_tags_with_gemini(raw_tags):
         return []
 
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def get_category_id_from_gemini(topic):
     prompt = f"""
     Given the YouTube video topic: "{topic}", return the most appropriate YouTube Category Name and ID from this list:
@@ -2267,13 +2363,13 @@ def extract_category_id(text):
 
 # --- Functions ---
 # --- New Function to Generate Relevant Search Term ---
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def generate_search_term(topic):
     prompt = f"Given the YouTube video topic '{topic}', suggest a short, relevant visual keyword or phrase for finding an image background. Limit to 3-5 words, no punctuation, just a plain image search phrase only one line and nothing else : keywords or phrase  just onloy that and nothing else mind it."
     response = generate_gemini_response(prompt, model_name="gemini-2.5-flash-preview-05-20")
     return response.text.strip()
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def generate_title_from_topic1(topic):
     prompt = f"Create a catchy YouTube video thumbnail title for this topic: '{topic}'  one line title which seo optimised and nothing else okay i ahve to fed to my progrma so it should be clena and precise dont use symbols or icons or emojis, cerate catchy one, use punctuation marks properly and highly to emphasize, and it should have max upto 5 or 6 words not more that that"
     response = generate_gemini_response(prompt, model_name="gemini-2.5-flash-preview-05-20")
@@ -2312,7 +2408,7 @@ def resize_and_crop_to_1080x1920(img):
 
 
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def search_pexels_image(query):
     url = "https://api.pexels.com/v1/search"
     headers = {"Authorization": PEXELS_API_KEY}
@@ -2333,7 +2429,7 @@ def search_pexels_image(query):
     # Fallback to first image if none are 16:9
     return photos[0]["src"]["original"] if photos else None
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def search_google_image(query):
     params = {
         "engine": "google",
@@ -2369,7 +2465,7 @@ def search_google_image(query):
         return images[0]["original"]
     return None
 
-@retry_infinite(delay=5)
+@retry_infinite(delay=15)
 def download_image1(url):
     headers = {"User-Agent": "Mozilla/5.0"}
     resp = requests.get(url, headers=headers)
@@ -2488,7 +2584,7 @@ def trim_tags(tags, max_length=490):
 import googleapiclient.errors
 
 # MAX_RETRIES = 10
-# @retry_infinite(delay=5)
+# @retry_infinite(delay=15)
 # def resumable_upload(request):
 #     response = None
 #     error = None
@@ -2590,7 +2686,7 @@ def generate_description_with_scene_links(base_description, scene_urls, feedback
 
 
 
-# @retry_infinite(delay=5)
+# @retry_infinite(delay=15)
 # def upload_video(file_path, topic):
   
 #     feedback_link = "https://forms.gle/NLQ3gmdrsNU7DKev6"  # Replace with your actual form link
@@ -2810,7 +2906,7 @@ if __name__ == "__main__":
 
         TOPIC_LOG_FILE = "used_topics.txt"
 
-        @retry_infinite(delay=5)
+        @retry_infinite(delay=15)
         def generate_viral_wealth_topic():
             # prompt = (
             #     "Titles that create curiosity and enagagment and attractive that user tend to click highly"
