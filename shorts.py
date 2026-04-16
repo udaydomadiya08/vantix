@@ -2019,7 +2019,7 @@ def create_video_from_script(script, user_topic):
             audio_codec="aac",
             fps=30,
             preset="ultrafast",
-            threads=1,
+            threads=4,
             logger=log
         )
         print(f"\n✅ Final video created at: {output_path}")
