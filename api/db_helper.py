@@ -130,12 +130,31 @@ def create_user(username, password):
     return _save_json_atomic(DB_PATH, users)
 
 def get_user_keys(username):
+    """🏛️ [VANTIX VAULT]: Secure credential retrieval with Environment projection."""
     username = username.lower().strip()
     user = get_user(username)
+    
+    # 1. Start with Database Keys (Encrypted)
+    db_keys = {}
     if user:
-        keys = user.get("api_keys", {})
-        return {k: decrypt_key(v) if v else None for k, v in keys.items()}
-    return {}
+        keys_raw = user.get("api_keys", {})
+        db_keys = {k: decrypt_key(v) if (v and str(v).strip()) else None for k, v in keys_raw.items()}
+    
+    # 2. Project Environment Variables into any missing slots (PRODUCTION IMMORTALITY)
+    env_mapping = {
+        "groq": os.environ.get("GROQ_API_KEY"),
+        "openrouter": os.environ.get("OPENROUTER_API_KEY"),
+        "pexels": os.environ.get("PEXELS_API_KEY"),
+        "pixabay": os.environ.get("PIXABAY_API_KEY"),
+        "gemini": os.environ.get("GOOGLE_API_KEY")
+    }
+    
+    for key, env_val in env_mapping.items():
+        # Override only if DB key is empty and ENV key is present
+        if not db_keys.get(key) and env_val:
+            db_keys[key] = env_val
+            
+    return db_keys
 
 def update_user_keys(username, keys):
     initialize_db()
