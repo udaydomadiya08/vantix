@@ -2,12 +2,29 @@ import os
 import shutil
 import json
 import re
+import threading
 from datetime import datetime
 import run_full_vso
 import main
 import shorts
 from ai_helper import generate_ai_response
 import api.telemetry as telemetry # 🏛️ [TELEMETRY] Global Heartbeat Hook
+
+# --- PROGRESS LEDGER (v124.70) ---
+LEDGER_LOCK = threading.Lock()
+
+def load_ledger(course_root):
+    path = os.path.join(course_root, "progress.json")
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_ledger(course_root, progress):
+    with LEDGER_LOCK:
+        path = os.path.join(course_root, "progress.json")
+        with open(path, "w") as f:
+            json.dump(progress, f, indent=4)
 
 def generate_course_outline(topic, user_keys=None):
     """🎓 VANTIX Academy (v1.0): Generate organic course hierarchy"""
@@ -82,9 +99,9 @@ def run_ecourse_factory(topic, horizontal=False, include_avatar=False, user_keys
         print("❌ Could not parse outline format.")
         return
         
-    # 2. Setup Course Directory
+    # 2. Setup Course Directory (Industrial Stable Naming v124.70)
     safe_topic = re.sub(r'[^a-zA-Z0-9]', '_', topic)
-    folder_name = f"{safe_topic}_{datetime.now().strftime('%Y%m%d')}"
+    folder_name = f"{safe_topic}" # Stable naming for Resume-from-Failure
     course_root = os.path.join(output_dir, folder_name) if output_dir else os.path.join("courses", folder_name)
     os.makedirs(course_root, exist_ok=True)
     
@@ -93,6 +110,9 @@ def run_ecourse_factory(topic, horizontal=False, include_avatar=False, user_keys
         f.write(outline_text)
         
     print(f"✅ Course Root Established: {course_root}")
+    
+    # Initialize Progress Ledger
+    progress = load_ledger(course_root)
     
     # 3. Recursive Production Loop (Parallel Lesson Synthesis)
     for chap_key, details in outline.items():
@@ -103,6 +123,13 @@ def run_ecourse_factory(topic, horizontal=False, include_avatar=False, user_keys
         
         def process_lesson(i, lesson_title):
             lesson_idx = i + 1
+            lesson_key = f"{chap_key}_Lesson_{lesson_idx}"
+            
+            # 🛡️ [RE-ENTRANCY]: Skip if already completed (v124.70)
+            if progress.get(lesson_key) == "COMPLETED":
+                print(f"⏭️ [SKIPPING] Lesson {lesson_idx} already mastered: {lesson_title}")
+                return None
+
             print(f"🎬 [PARALLEL] Producing Lesson {lesson_idx}: {lesson_title}")
             
             # A. Generate Script
@@ -124,11 +151,18 @@ def run_ecourse_factory(topic, horizontal=False, include_avatar=False, user_keys
                     target_name = f"Lesson_{lesson_idx}_{re.sub(r'[^a-zA-Z0-9]', '_', lesson_title)}.mp4"
                     target_path = os.path.join(chap_dir, target_name)
                     shutil.copy(final_video_path, target_path)
+                    
+                    # 🛡️ [ATOMIC UPDATE]: Mark as completed in ledger
+                    progress[lesson_key] = "COMPLETED"
+                    save_ledger(course_root, progress)
+                    
                     print(f"✅ [SUCCESS] Lesson {lesson_idx} Mastered: {target_path}")
                     return target_path
                 return None
             except Exception as e:
                 print(f"❌ [CRITICAL] Lesson {lesson_idx} failed: {e}")
+                progress[lesson_key] = f"FAILED: {str(e)}"
+                save_ledger(course_root, progress)
                 return None
 
         # Process all lessons in this chapter in parallel (Capped at 2 for intense rendering)

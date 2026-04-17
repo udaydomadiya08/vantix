@@ -10,12 +10,12 @@ pinned: false
 
 # VANTIX: Industrial AI Content Orchestration 🌌🛰️
 
-[![Vantix Platform](https://img.shields.io/badge/Platform-Live-brightgreen)](https://vantix.vercel.app)
+[![Vantix Platform](https://img.shields.io/badge/Platform-Live-brightgreen)](https://vantix-industrial.vercel.app)
 [![Engine Status](https://img.shields.io/badge/Engine-v124.65-blue)](https://huggingface.co/spaces/UDAYDOMADIYA/vantix-core)
 
 VANTIX is a high-throughput, production-grade AI orchestration engine designed for the high-fidelity synthesis of E-Books, E-Courses, and Viral Video content. It integrates sequential deep-synthesis and neural failover logic to guarantee 100% stable, high-fidelity content delivery.
 
-### 🔗 **Live Dashboard**: [https://vantix.vercel.app](https://vantix.vercel.app)
+### 🔗 **Live Dashboard**: [https://vantix-industrial.vercel.app](https://vantix-industrial.vercel.app)
 
 ![Vantix Dashboard](/Users/uday/.gemini/antigravity/brain/647806a1-de17-4858-b202-284b0dba83e0/dashboard_final_1776186801415.png)
 
