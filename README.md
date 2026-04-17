@@ -1,11 +1,23 @@
+---
+title: Vantix Core
+emoji: 🌌
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # VANTIX: Industrial AI Content Orchestration 🌌🛰️
 
 [![Vantix Platform](https://img.shields.io/badge/Platform-Live-brightgreen)](https://vantix-industrial.vercel.app)
-[![Engine Status](https://img.shields.io/badge/Engine-v124.65-blue)](https://huggingface.co/spaces/UDAYDOMADIYA/vantix-core)
+[![Engine Status](https://img.shields.io/badge/Engine-v124.70-blue)](https://huggingface.co/spaces/UDAYDOMADIYA/vantix-core)
 
-VANTIX is a high-throughput, production-grade AI orchestration engine designed for the high-fidelity synthesis of E-Books, E-Courses, and Viral Video content. It integrates sequential deep-synthesis and neural failover logic to guarantee 100% stable, high-fidelity content delivery.
+VANTIX is a production-grade, AI-orchestrated engine designed for the high-throughput synthesis of E-Books, E-Courses, and Viral Video content. It integrates sequential deep-synthesis and neural failover logic to guarantee 100% stable, high-fidelity content delivery.
 
 ### 🔗 **Live Dashboard**: [https://vantix-industrial.vercel.app](https://vantix-industrial.vercel.app)
+
+![Vantix Dashboard](/Users/uday/.gemini/antigravity/brain/647806a1-de17-4858-b202-284b0dba83e0/dashboard_final_1776186801415.png)
 
 ---
 
@@ -13,7 +25,7 @@ VANTIX is a high-throughput, production-grade AI orchestration engine designed f
 
 | Feature | Description | Status |
 | :--- | :--- | :--- |
-| **Academy Factory** | Sequential lesson mastering with parallel asset discovery. | ✅ Stable |
+| **Academy Factory** | Sequential lesson mastering with Resilience/Resume logic. | ✅ Stable |
 | **Synthesis Engine** | Deep-synthesis e-book generator with neural DNA styling. | ✅ Stable |
 | **Viral VSO** | Session-isolated short-form video orchestration. | ✅ Stable |
 | **Sovereign Vault** | AES-256 encrypted gateway for user API management. | ✅ Secure |
@@ -22,10 +34,10 @@ VANTIX is a high-throughput, production-grade AI orchestration engine designed f
 
 ## 🚀 **Industrial Capabilities**
 
-### 🎙️ **E-Course Academy Factory**
+### 🎓 **Resilient Academy Factory (v124.70)**
+*   **Resume-from-Failure**: Local progress ledger (`progress.json`) to skip mastered lessons.
 *   **Sequential Mastering**: One-by-one video rendering to ensure zero CPU/Render conflicts.
-*   **Scene-Level Discovery**: High-velocity parallel asset acquisition using Pexels and Pixabay APIs.
-*   **Neural Pacing**: Automated intent analysis to scale clip duration based on script energy.
+*   **Scene-Level Discovery**: Parallel asset acquisition with dynamic session isolation.
 
 ### 📚 **E-Book Synthesis Engine**
 *   **Sequential Deep-Synthesis**: Flattened parallelism to evade API rate limits and ensure completion.
@@ -41,10 +53,9 @@ VANTIX is a high-throughput, production-grade AI orchestration engine designed f
 
 ## 🛠 **Technology Stack**
 
-*   **Backend**: Python 3.9 (FastAPI)
+*   **Backend**: Python 3.11 (FastAPI)
 *   **Frontend**: Next.js 15 (OmniSaaS Architecture)
 *   **Video Engine**: MoviePy + FFmpeg + ImageMagick
-*   **AI Orchestration**: Groq / OpenRouter / Google Gemini
 *   **Infrastructure**: Docker + Hugging Face Spaces + Vercel
 
 ---
