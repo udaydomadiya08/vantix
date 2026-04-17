@@ -9,6 +9,7 @@ import main
 import shorts
 from ai_helper import generate_ai_response
 import api.telemetry as telemetry # 🏛️ [TELEMETRY] Global Heartbeat Hook
+from api.reaper import check_cancellation, SovereignCancellation
 
 # --- PROGRESS LEDGER (v124.70) ---
 LEDGER_LOCK = threading.Lock()
@@ -80,6 +81,9 @@ def generate_lesson_script(topic, chapter_title, lesson_title, user_keys=None):
 def run_ecourse_factory(topic, horizontal=False, include_avatar=False, user_keys=None, job_id=None, output_dir=None, **kwargs):
     if job_id: telemetry.update_progress(job_id, "Drafting Academy Outline")
     """🚀 VANTIX Academy (v1.0): Master Orchestration Loop"""
+    # 🏁 [SENTINEL]: Entry Heartbeat
+    check_cancellation(job_id)
+    
     print(f"🏗️ [FACTORY] Initializing Vantix Academy Production: {topic}")
     
     # 🛡️ [PATH SENTINEL] Ensure output_dir exists
@@ -116,12 +120,18 @@ def run_ecourse_factory(topic, horizontal=False, include_avatar=False, user_keys
     
     # 3. Recursive Production Loop (Parallel Lesson Synthesis)
     for chap_key, details in outline.items():
+        # 🏁 [SENTINEL]: Chapter Heartbeat
+        check_cancellation(job_id)
+        
         chap_dir = os.path.join(course_root, chap_key.replace(" ", "_"))
         os.makedirs(chap_dir, exist_ok=True)
         
         print(f"\n📘 [CHAPTER] Starting {chap_key}: {details['title']} (PARALLEL)")
         
         def process_lesson(i, lesson_title):
+            # 🏁 [SENTINEL]: Interior Lesson Heartbeat
+            check_cancellation(job_id)
+            
             lesson_idx = i + 1
             lesson_key = f"{chap_key}_Lesson_{lesson_idx}"
             

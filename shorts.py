@@ -49,6 +49,9 @@ from parallel_helper import ParallelOrchestrator
 
 # 🏛️ PROJECT ROOT SYNCHRONIZATION (v111.0)
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+if PROJECT_ROOT not in sys.path: sys.path.append(PROJECT_ROOT)
+
+from api.reaper import check_cancellation, SovereignCancellation
 
 def layer_sfx_on_audio(base_audio_path, sfx_list):
     """👑 NEURAL SFX ORCHESTRATION (v56): Layer cinematic sounds on voiceover (WAV Standard)"""
@@ -1607,8 +1610,11 @@ def resize_crop(clip):
         y_center = clip.h / 2
         return clip.crop(x1=0, x2=t_w, y1=max(0, y_center - t_h/2), y2=min(clip.h, y_center + t_h/2))
 
-def technical_mastering(input_path, output_path):
+def technical_mastering(input_path, output_path, job_id=None):
     """👑 CINEMATIC MASTERING & PLAYABILITY (v56): Final H.264/AAC Mastering Pass"""
+    # 🏁 [SENTINEL]: Master Heartbeat
+    check_cancellation(job_id)
+    
     print(f"🎬 [MASTERING] Executing Technical Finalizer for: {input_path}")
     
     # 💥 VANTIX STABILITY (v1.0): Raw FFmpeg mastery for 100% playability
@@ -1630,6 +1636,9 @@ def technical_mastering(input_path, output_path):
 
 @retry_infinite(delay=15)
 def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_pool=None, include_avatar=True, horizontal=False, user_keys=None, visual_source="pexels", intensity=None, voice_id="alloy", job_id=None, session_path=None, **kwargs):
+    # 🏁 [SENTINEL]: Initial Heartbeat
+    check_cancellation(job_id)
+    
     if job_id:
         import api.telemetry as telemetry
         telemetry.update_progress(job_id, f"Synthesizing Scene {idx+1}")
@@ -1986,6 +1995,9 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             except Exception as render_error:
                 print(f"❌ [CRITICAL RENDER FAILURE] Scene {idx}: {render_error}")
                 raise render_error
+            finally:
+                # 🏁 [SENTINEL]: Mid-Render Heartbeat
+                check_cancellation(job_id)
 
         # Immediate cleanup of memory handles
         scene_comp.close()

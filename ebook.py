@@ -10,6 +10,7 @@ from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 import concurrent.futures
 from ai_helper import generate_ai_response, generate_ebook_theme, generate_image_asset
+from api.reaper import check_cancellation, SovereignCancellation
 
 # === CONFIGURATION === #
 BRAND_NAME = ""
@@ -107,7 +108,10 @@ def generate_subsection_content(topic, chapter_title, subsection_title, descript
     response = generate_ai_response(prompt, user_keys=user_keys)
     return response.text.strip()
 
-def build_chapter_with_subsections(topic, chapter_title, description="", tone="Expert", user_keys=None):
+def build_chapter_with_subsections(topic, chapter_title, description="", tone="Expert", user_keys=None, job_id=None):
+    # 🏁 [SENTINEL]: Initial Heartbeat
+    check_cancellation(job_id)
+    
     subsections = generate_subsections(topic, chapter_title, description, user_keys=user_keys)
     full_content = ""
     
@@ -116,6 +120,9 @@ def build_chapter_with_subsections(topic, chapter_title, description="", tone="E
     results = {}
     
     for i, sub in enumerate(subsections):
+        # 🏁 [SENTINEL]: Sequential Heartbeat
+        check_cancellation(job_id)
+        
         # 🛡️ [SUBSECTION JITTER] 1.0s buffer to certify API stability (v124.50)
         if i > 0: time.sleep(1.0)
         
@@ -322,6 +329,9 @@ def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150
         import api.telemetry as telemetry
         telemetry.update_progress(job_id, "Drafting Manifesto (1/1)")
     """🚀 VANTIX DYNAMIC ENGINE (v1.0): Stabilized Vantix Design"""
+    # 🏁 [SENTINEL]: Entry Heartbeat
+    check_cancellation(job_id)
+    
     print(f"🏗️ [FACTORY] Initializing Multi-Model Synthesis: {topic}")
     
     # 🛡️ [PATH SENTINEL] Ensure output_dir exists
@@ -347,6 +357,9 @@ def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150
     print(f"📁 [STRUCTURE] AI synthesized {len(chapters_list)} chapters.")
     
     # 3. Vantix Cover Art
+    # 🏁 [SENTINEL]: Visual Synth Heartbeat
+    check_cancellation(job_id)
+    
     safe_topic = re.sub(r'[^a-zA-Z0-9]', '_', topic.lower())
     cover_temp_name = f"cover_{safe_topic}.png"
     cover_image_path = os.path.join(output_dir, cover_temp_name) if output_dir else cover_temp_name
@@ -377,7 +390,7 @@ def automate_ebook_creation(topic, description="", num_chapters=3, min_words=150
         else:
             art_path = None
         
-        content, subs = build_chapter_with_subsections(topic, chapter_title, description, theme.get('tone', 'Expert'), user_keys=user_keys)
+        content, subs = build_chapter_with_subsections(topic, chapter_title, description, theme.get('tone', 'Expert'), user_keys=user_keys, job_id=job_id)
         return {
             "content": content,
             "subsections": subs,

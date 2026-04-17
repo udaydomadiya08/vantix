@@ -32,6 +32,7 @@ from concurrent.futures import ThreadPoolExecutor
 import functools
 import stripe
 import time
+from api.reaper import flag_cancellation, check_cancellation, SovereignCancellation, cleanup_job_assets
 
 # 💳 [FINANCIALS] Stripe Industrial Protocol
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -240,6 +241,21 @@ class StreamQueueManager:
                 
             print(f"✅ [SUCCESS] {stream_type} Completed for {username}")
 
+        except SovereignCancellation as sc:
+            print(f"🛑 [CANCELLATION] Captured Sentinel Termination for {job_id}. Reclaiming Node.")
+            JOB_STATUS[job_id]["status"] = "cancelled"
+            JOB_STATUS[job_id]["message"] = "Industrial termination confirmed."
+            
+            # 🛡️ [REFUND] Immediate credit restoration on user cancellation
+            # Video: 5, Thumbnail: 2, Ebook: 10, Course: 20
+            REFUND_MAP = {"video": 5, "thumbnail": 2, "ebook": 10, "course": 20}
+            refund_amt = REFUND_MAP.get(stream_type, 5)
+            db_helper.add_credits(username, refund_amt)
+            print(f"💎 [REAPER] Refunded {refund_amt} credits to {username}.")
+            
+            # 🧹 [CLEANUP] Purge temporary assets
+            cleanup_job_assets(job_id, parent_dir)
+            
         except Exception as e:
             print(f"❌ [FAILURE] {stream_type} Failed for {username}: {e}")
             JOB_STATUS[job_id]["status"] = "failed"
@@ -786,6 +802,29 @@ async def generate_thumbnail(request: ThumbnailRequest, username: str = Depends(
         log_trace(f"REFUND: User='{username}' | Job='thumbnail' | Reason='{str(e)}'")
         if isinstance(e, HTTPException): raise e
         raise HTTPException(status_code=500, detail=f"Factory node failure: {str(e)}")
+
+@app.post("/cancel/{job_id}")
+async def cancel_job(job_id: str, username: str = Depends(get_current_user)):
+    """🕹️ [SOVEREIGN TERMINATION]: Flag a running job for industrial removal."""
+    if job_id not in JOB_STATUS:
+        # Check history if not in active memory
+        history = db_helper.get_user_history(username)
+        if not any(j["id"] == job_id for j in history):
+             raise HTTPException(status_code=404, detail="Industrial Node: Job ID not found.")
+    
+    status = JOB_STATUS.get(job_id, {}).get("status")
+    if status in ["completed", "failed", "cancelled"]:
+         return {"message": f"Job is already finished with status: {status}"}
+
+    # 🛑 [SENTINEL] Flag for termination
+    flag_cancellation(job_id)
+    
+    # Immediately update status to 'cancelling' for UX
+    if job_id in JOB_STATUS:
+        JOB_STATUS[job_id]["status"] = "cancelling"
+    
+    print(f"🕹️ [VANTIX KILLS] Termination signal sent for Job: {job_id} by {username}")
+    return {"message": "Termination signal sent. Vantix Reaper is capturing the process.", "job_id": job_id}
 
 @app.post("/generate/ebook")
 async def generate_ebook(

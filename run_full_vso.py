@@ -10,6 +10,7 @@ import subprocess
 import uuid
 from datetime import datetime
 from moviepy.editor import concatenate_videoclips
+from api.reaper import check_cancellation, SovereignCancellation
 
 # 🏛️ [VANTIX CLOUD] Cloud-Only Orchestration
 def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, horizontal=False, user_keys=None, intensity=None, job_id=None, **kwargs):
@@ -17,6 +18,9 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
     session_id = job_id if job_id else str(uuid.uuid4())[:8]
     session_path = os.path.join(PROJECT_ROOT, "temp", session_id)
     os.makedirs(session_path, exist_ok=True)
+    
+    # 🏁 [SENTINEL]: Initial Heartbeat
+    check_cancellation(job_id)
     
     print(f"🚀 INITIALIZING VANTIX SESSION: {session_id} | Dir: {session_path}")
     
@@ -123,6 +127,9 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
     
     # 2. Get Voiceover & Visuals natively split into sentences/scenes
     print("🎙️ Generating Voiceover & Visuals...")
+    
+    # 🏁 [SENTINEL]: Mid-Production Heartbeat
+    check_cancellation(job_id)
     
     import nltk
     from nltk.tokenize import sent_tokenize
@@ -234,6 +241,9 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
     # method='chain' is much more stable in MoviePy 1.0.3 for sequential scene joining
     final_video = concatenate_videoclips(final_clips, method="chain")
     
+    # 🏁 [SENTINEL]: Rendering Heartbeat
+    check_cancellation(job_id)
+    
     # ⚡ VANTIX BATCH NAMING: Use timestamp for non-test runs
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_temp = os.path.join(PROJECT_ROOT, "static/videos", f"temp_{ts}.mp4")
@@ -287,7 +297,7 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
 
     # 💥 CINEMATIC MASTERING (v56): Final Technical Finalizer for 100% Playability
     mastered_output = output_path.replace(".mp4", "_mastered.mp4")
-    shorts.technical_mastering(output_path, mastered_output)
+    shorts.technical_mastering(output_path, mastered_output, job_id=job_id)
     
     # Final swap to ensure the main path is the mastered one
     if os.path.exists(mastered_output):
