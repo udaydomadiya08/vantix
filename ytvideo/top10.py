@@ -10,6 +10,9 @@ from gtts import gTTS
 from datetime import datetime
 from nltk.tokenize import sent_tokenize
 from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip, ColorClip
+import edge_tts
+import asyncio
+import random
 import google.generativeai as genai
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -613,11 +616,64 @@ def download_video(url, filename):
     return filename
 
 # === Generate Audio === #
-@retry_infinite(delay=5)
 def generate_audio(text, filename):
-    tts = gTTS(text=text, lang='en')
-    tts.save(filename)
-    return AudioFileClip(filename)
+    """
+    Synthesize high-fidelity neural voice using Hardened Edge-TTS (v126.1).
+    """
+    # 🏛️ VOICE DEFINITION (v126.1): Defaulting to Christopher for Top 10 authority
+    voice_name = "en-US-ChristopherNeural"
+    
+    if not text or not text.strip():
+        text = "..."
+
+    MAX_RETRIES = 3
+    for attempt in range(MAX_RETRIES):
+        try:
+            print(f"🎙️ [TOP 10] Attempt {attempt+1}/{MAX_RETRIES} | Generating Voiceover: {filename}")
+            
+            async def run_edge_tts():
+                # 🛡️ [ANTI-BLOCK]: Adaptive Jitter
+                base_jitter = 0.5 * (attempt + 1)
+                await asyncio.sleep(random.uniform(base_jitter, base_jitter + 1.0))
+                
+                communicate = edge_tts.Communicate(text, voice_name)
+                await communicate.save(filename)
+                
+            asyncio.run(run_edge_tts())
+            
+            # 💥 BUFFER FLUSH
+            time.sleep(1.0) 
+            
+            # 💥 FFPROBE INTEGRITY CHECK
+            if os.path.exists(filename) and os.path.getsize(filename) > 0:
+                verify_cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filename]
+                res = subprocess.run(verify_cmd, capture_output=True, text=True, check=True)
+                duration = float(res.stdout.strip())
+                
+                if duration > 0:
+                    print(f"✅ [SUCCESS] Top 10 Voice Mastered: {filename} ({duration}s)")
+                    return AudioFileClip(filename)
+            
+            raise ValueError("Corrupted synthesis output.")
+
+        except Exception as e:
+            print(f"⚠️ [RETRY] Top 10 Synthesis Attempt {attempt+1} failed: {e}")
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(2 ** (attempt + 1))
+            else:
+                print("🚨 [CRITICAL] Edge-TTS Grid Failure in Top 10 Factory.")
+
+    # 🛑 FINAL FAIL-SAFE: Silent gTTS fallback for Top 10 continuity
+    print(f"🔄 [FAIL-SAFE] Switching to gTTS for Top 10: {filename}")
+    try:
+        from gtts import gTTS
+        tts = gTTS(text=text, lang='en')
+        tts.save(filename)
+        return AudioFileClip(filename)
+    except Exception as gtts_error:
+        print(f"❌ [TOTAL FAILURE] Top 10 voice synthesis node collapsed: {gtts_error}")
+        # Return a silent 1s clip to prevent pipeline crash
+        return ColorClip(size=(1,1), color=(0,0,0), duration=1).to_AudioClip()
 
 
 

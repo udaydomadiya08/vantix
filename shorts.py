@@ -1284,11 +1284,7 @@ def update_character_count(text, filename="char_count.txt"):
         # Try to read the previous total count from the file
         with open(filename, "r") as f:
             total_count = int(f.read())
-    except FileNotFoundError:
-        # If file doesn't exist, start with 0
-        total_count = 0
-    except ValueError:
-        # If file content is invalid, reset to 0
+                # If file content is invalid, reset to 0
         total_count = 0
 
     # Add current count to total
@@ -1308,7 +1304,7 @@ import requests
 
 def generate_tts_audio(text, filename="output.mp3", voice_name="alloy", speaking_rate=1.0):
     """
-    Generate high-fidelity neural audio using edge-tts (Direct) with FFPROBE integrity checks.
+    Generate high-fidelity neural audio using edge-tts (Direct) with industrial retry logic and FFPROBE checks.
     """
     VOICE_MAP = {
         "alloy": "en-US-ChristopherNeural",   # Balanced
@@ -1320,37 +1316,50 @@ def generate_tts_audio(text, filename="output.mp3", voice_name="alloy", speaking
     }
     voice_name = VOICE_MAP.get(voice_name, voice_name)
     
-    print(f"🎙️ Generating Edge-TTS Neural voiceover for {filename} ({voice_name})...")
-    try:
-        if not text or not text.strip():
-             text = "..." # Minimal content to avoid empty file errors
+    if not text or not text.strip():
+        text = "..." # Minimal content to avoid empty file errors
 
-        async def run_edge_tts():
-            communicate = edge_tts.Communicate(text, voice_name)
-            # 🛡️ [ANTI-BLOCK]: Jitter to prevent rate-limiting
-            await asyncio.sleep(random.uniform(0.1, 0.5)) 
-            await communicate.save(filename)
-            
-        asyncio.run(run_edge_tts())
-        time.sleep(0.5) # 💥 FLUSH BUFFER (v36): Ensure OS has released file handle
-        
-        # 💥 FFPROBE VALIDATION (v36): Check if the file is ACTUALLY a valid media stream
-        verify_cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filename]
+    MAX_RETRIES = 3
+    for attempt in range(MAX_RETRIES):
         try:
-            res = subprocess.run(verify_cmd, capture_output=True, text=True, check=True)
-            if float(res.stdout.strip()) > 0:
-                print(f"✅ Edge-TTS Audio verified: {filename} ({os.path.getsize(filename)} bytes, {res.stdout.strip()}s)")
-                return
+            print(f"🎙️ [ATTEMPT {attempt+1}/{MAX_RETRIES}] Generating Edge-TTS for {filename}...")
+            
+            async def run_edge_tts():
+                # 🛡️ [ANTI-BLOCK]: Adaptive Jitter (Exponentially increasing to bypass rate-limits)
+                base_jitter = 0.5 * (attempt + 1)
+                await asyncio.sleep(random.uniform(base_jitter, base_jitter + 1.0))
+                
+                communicate = edge_tts.Communicate(text, voice_name)
+                await communicate.save(filename)
+                
+            asyncio.run(run_edge_tts())
+            
+            # 💥 BUFFER FLUSH (v126.1): Ensure OS synchronization
+            time.sleep(1.0) 
+            
+            # 💥 FFPROBE INTEGRITY CHECK
+            if os.path.exists(filename) and os.path.getsize(filename) > 0:
+                verify_cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filename]
+                res = subprocess.run(verify_cmd, capture_output=True, text=True, check=True)
+                duration = float(res.stdout.strip())
+                
+                if duration > 0:
+                    print(f"✅ [SUCCESS] Edge-TTS Mastered: {filename} ({duration}s)")
+                    return # Exit successfully
+            
+            raise ValueError("Corrupted or empty MP3 produced.")
+
+        except Exception as e:
+            print(f"⚠️ [RETRY] Edge-TTS Attempt {attempt+1} failed: {e}")
+            if attempt < MAX_RETRIES - 1:
+                wait_time = 2 ** (attempt + 1)
+                print(f"⏳ Cooling down for {wait_time}s before Persistence Pass...")
+                time.sleep(wait_time)
             else:
-                raise ValueError("Zero duration audio produced.")
-        except:
-            raise IOError("Media integrity check failed: Corrupted MP3 header.")
+                print("🚨 [CRITICAL] Edge-TTS Industrial Persistence Failed.")
 
-    except Exception as edge_e:
-        print(f"⚠️ Edge-TTS failed or corrupted: {edge_e}")
-
-    # Fallback to gTTS (Robotic but reliable offline)
-    print(f"🔄 Fallback to gTTS for {filename}...")
+    # 🛑 FINAL FAIL-SAFE: Fallback to gTTS (Silent Industrial Stability)
+    print(f"🔄 [FAIL-SAFE] Switching to gTTS for {filename}...")
     try:
         from gtts import gTTS
         tts = gTTS(text=text, lang='en')
