@@ -8,18 +8,50 @@ app_port: 7860
 pinned: false
 ---
 
-# VANTIX: Global AI Content Orchestration
+# VANTIX: Industrial AI Content Orchestration 🌌🛰️
 
-VANTIX is a production-grade, AI-orchestrated engine designed for high-throughput video synthesis and narrative engineering.
+[![Vantix Platform](https://img.shields.io/badge/Platform-Live-brightgreen)](https://vantix.vercel.app)
+[![Engine Status](https://img.shields.io/badge/Engine-v124.65-blue)](https://huggingface.co/spaces/UDAYDOMADIYA/vantix-core)
 
-## 🚀 Core Capabilities
-- **Video Synthesis**: Automated vertical and horizontal cinematic production.
-- **Narrative Engineering**: AI-driven script refinement and pacing.
-- **Avatar Integration**: Support for Wav2Lip AI lip-sync synthesis.
-- **Vault Security**: AES-256 encrypted user-managed API gateway.
+VANTIX is a high-throughput, production-grade AI orchestration engine designed for the high-fidelity synthesis of E-Books, E-Courses, and Viral Video content. It absolute-leverages sequential deep-synthesis and neural failover logic to guarantee 100% stable content delivery.
 
-## 🛠 Cloud Architecture
-This repository is optimized for **Docker** deployment on Hugging Face Spaces. It uses automated model synchronization to handle large AI weights (`wav2lip.pth`) without bloating the source code.
+### 🔗 **Live Platform**: [https://vantix.vercel.app](https://vantix.vercel.app)
 
 ---
-*Powered by the VANTIX Industrial Cluster.*
+
+## 🚀 **Industrial Capabilities**
+
+### 🎙️ **E-Course Academy Factory**
+*   **Sequential Mastering**: One-by-one video rendering to ensure zero CPU/Render conflicts.
+*   **Scene-Level Discovery**: High-velocity parallel asset acquisition using Pexels and Pixabay APIs.
+*   **Neural Pacing**: Automated intent analysis to scale clip duration based on script energy.
+
+### 📚 **E-Book Synthesis Engine**
+*   **Sequential Deep-Synthesis**: Flattened parallelism to absolute-evade API rate limits.
+*   **High-Fidelity Sanitization**: Automated Markdown stripping for professional, distraction-free text.
+*   **Neural DNA Generation**: Topic-aware visual styling (Colors, Layouts, Typography).
+
+### 🎞️ **Viral Video Orchestration**
+*   **Session-Isolated Discovery**: Individual workspaces (`temp/{session_id}/`) to certify zero asset leakage.
+*   **Global Render Sentinel**: Sequential mastering of parallel batch jobs for peak stability.
+*   **Wav2Lip Synergy**: Automated AI avatar lip-sync integration.
+
+---
+
+## 🛠 **Infrastructure & Security**
+
+*   **Deployment**: Optimized for **Docker** on Hugging Face Spaces with a **Vercel** dashboard.
+*   **Sovereign Vault**: AES-256 encrypted gateway for user-managed API keys (Groq, OpenRouter, Pexels).
+*   **Industrial Jitter**: 5.0s cool-down buffers between render cycles to release file locks and maintain system health.
+
+---
+
+## 🛠 **Deployment Guide**
+
+To deploy the Vantix Engine on Hugging Face:
+1. Clone the repository.
+2. Configure `GROQ_API_KEY` and `OPENROUTER_API_KEY` in your environment secrets.
+3. Deploy as a Docker Space.
+
+---
+*© 2026 Vantix Industrial Systems. Powered by Sovereign Engineering.*
