@@ -1,13 +1,3 @@
----
-title: Vantix Platform
-emoji: 🌌
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-app_port: 7860
-pinned: false
----
-
 # VANTIX: Industrial AI Content Orchestration 🌌🛰️
 
 [![Vantix Platform](https://img.shields.io/badge/Platform-Live-brightgreen)](https://vantix-industrial.vercel.app)
@@ -16,8 +6,6 @@ pinned: false
 VANTIX is a high-throughput, production-grade AI orchestration engine designed for the high-fidelity synthesis of E-Books, E-Courses, and Viral Video content. It integrates sequential deep-synthesis and neural failover logic to guarantee 100% stable, high-fidelity content delivery.
 
 ### 🔗 **Live Dashboard**: [https://vantix-industrial.vercel.app](https://vantix-industrial.vercel.app)
-
-![Vantix Dashboard](/Users/uday/.gemini/antigravity/brain/647806a1-de17-4858-b202-284b0dba83e0/dashboard_final_1776186801415.png)
 
 ---
 
