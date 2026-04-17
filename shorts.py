@@ -181,7 +181,7 @@ AudioSegment.ffprobe = "/opt/homebrew/bin/ffprobe"
 # Gemini/Cinematic AI Node Purged. Returning to Stock-Centric discovery.
 
 # PACING_INTENSITY (1.0 = Standard, 0.5 = Slow/Cinematic, 2.0 = Fast/TikTok)
-PACING_INTENSITY = 1.0
+DEFAULT_PACING_INTENSITY = 1.0
 
 # CLIENT_SECRETS_FILE = "/Users/uday/Downloads/VIDEOYT/client_secret_.json"  # Path to your client secret
 # SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
@@ -208,7 +208,7 @@ PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
 SERP_API_KEY = os.environ.get("SERP_API_KEY", "")
 
 # 💥 GLOBAL ASSET REGISTRY (v45.6): Hard Zero-Reuse Enforcement
-GLOBAL_USED_URLS = set()
+# Deprecated global set to favor session-based used_urls
 
 # --- GLOBAL TURBO MODE (v122.33) ---
 TURBO_MODE = True # 🛰️ [TOGGLE]: Set to True for 10-second rapid testing
@@ -1397,18 +1397,19 @@ def apply_pattern_interrupt(clip):
 # Intensity Dial: 1.0 (Viral/Fast) to 0.0 (Cinematic/Stable)
 GLOBAL_PACING_INTENSITY = 1.0 
 
-def apply_vantix_pacing(clip, is_hook=False, intent="SUSTAINED", intensity=None):
+def apply_vantix_pacing(clip, is_hook=False, intent="SUSTAINED", intensity=None, session_path=None):
     """
-    ⚡ NEURAL PACING ENGINE (v47.2):
+    ⚡ NEURAL PACING ENGINE (v124.65):
     Dynamically scales clip duration based on intensity and SCRIPT INTENT.
     """
-    if intensity is None: intensity = GLOBAL_PACING_INTENSITY
+    if intensity is None:
+        intensity = GLOBAL_PACING_INTENSITY
     dur = clip.duration
     
     # 💥 CONTEXTUAL OVERRIDE (v47.2): If the script intent is SUSTAINED, let the clip breathe
     if intent == "SUSTAINED":
         # At 0.0 intensity, keep full dur. At 1.0 intensity, cap at 3.5s (to prevent stagnant frames)
-        sustained_max = 3.5 + (dur - 3.5) * (1.0 - PACING_INTENSITY)
+        sustained_max = 3.5 + (dur - 3.5) * (1.0 - intensity)
         if dur > sustained_max:
             return clip.subclip(0, sustained_max)
         return clip
@@ -1628,18 +1629,22 @@ def technical_mastering(input_path, output_path):
         return input_path
 
 @retry_infinite(delay=15)
-def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_pool=None, include_avatar=True, horizontal=False, user_keys=None, visual_source="pexels", intensity=None, voice_id="alloy", job_id=None, **kwargs):
+def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_pool=None, include_avatar=True, horizontal=False, user_keys=None, visual_source="pexels", intensity=None, voice_id="alloy", job_id=None, session_path=None, **kwargs):
     if job_id:
         import api.telemetry as telemetry
         telemetry.update_progress(job_id, f"Synthesizing Scene {idx+1}")
     print(f"\n🎬 Creating Scene {idx + 1} | Visual: {visual_source} | Voice: {voice_id} | Intensity: {intensity}")
     
-    # 🛡️ [SOVEREIGN FILESYSTEM]: Ensure industrial nodes exist
-    os.makedirs("video_creation", exist_ok=True)
-    os.makedirs("audio", exist_ok=True)
+    # 🛡️ [SOVEREIGN FILESYSTEM]: Ensure session-isolated nodes exist (v124.65)
+    active_root = session_path if session_path else PROJECT_ROOT
+    creation_dir = os.path.join(active_root, "video_creation")
+    audio_dir = os.path.join(active_root, "audio")
+    
+    os.makedirs(creation_dir, exist_ok=True)
+    os.makedirs(audio_dir, exist_ok=True)
     
     # 💥 VANTIX AUDIO DEFINITION (v1.0): Must happen BEFORE assembly
-    audio_path = f"audio/scene_{idx}.mp3"
+    audio_path = os.path.join(audio_dir, f"scene_{idx}.mp3")
     try:
         generate_tts_audio(text, audio_path, voice_name=voice_id)
         update_character_count(text)
@@ -1780,8 +1785,8 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
             print(f"🎯 Milestone {i}: '{ms['query']}' | Duration: {target_dur:.2f}s")
             
             video_url = None
-            raw_tmp_path = f"video_creation/raw_ms_{idx}_{i}.mp4"
-            prepped_tmp_path = f"video_creation/ms_{idx}_{i}.mp4"
+            raw_tmp_path = os.path.join(creation_dir, f"raw_ms_{idx}_{i}.mp4")
+            prepped_tmp_path = os.path.join(creation_dir, f"ms_{idx}_{i}.mp4")
             
             # 🏎️ [WARP-Discovery]: Fetch pre-calculated queries with fallback indexing
             pre_queries = batch_queries.get(str(i)) or batch_queries.get(i) or batch_queries.get(int(i))

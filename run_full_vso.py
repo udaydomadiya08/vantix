@@ -7,13 +7,18 @@ import omni_engine as main
 import shorts
 from parallel_helper import ParallelOrchestrator
 import subprocess
+import uuid
 from datetime import datetime
 from moviepy.editor import concatenate_videoclips
 
 # 🏛️ [VANTIX CLOUD] Cloud-Only Orchestration
 def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, horizontal=False, user_keys=None, intensity=None, job_id=None, **kwargs):
-    """👑 VANTIX BATCH FACTORY (v1.0): Integrated VSO Orchestrator"""
-    print(f"🚀 INITIALIZING FULL VANTIX PRODUCTION... [Job: {job_id}]")
+    """👑 VANTIX BATCH FACTORY (v124.65): Session-Isolated VSO Orchestrator"""
+    session_id = job_id if job_id else str(uuid.uuid4())[:8]
+    session_path = os.path.join(PROJECT_ROOT, "temp", session_id)
+    os.makedirs(session_path, exist_ok=True)
+    
+    print(f"🚀 INITIALIZING VANTIX SESSION: {session_id} | Dir: {session_path}")
     
     # ... (rest of function)
     # Inside the script generation call:
@@ -152,11 +157,12 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
                 sentence, i, total_urls.copy(), topic, max_clips=5, topic_pool=topic_pool, 
                 include_avatar=include_avatar, horizontal=horizontal, user_keys=user_keys, 
                 intensity=intensity, visual_source=kwargs.get("visual_source", "pexels"), 
-                voice_id=kwargs.get("voice_id", "alloy"), job_id=job_id # 💓 [HEARTBEAT]
+                voice_id=kwargs.get("voice_id", "alloy"), job_id=job_id, session_path=session_path # 💓 [HEARTBEAT]
             )
             
             if scene_clip:
-                audio_path = f"audio/scene_{i}.mp3"
+                audio_dir = os.path.join(session_path, "audio")
+                audio_path = os.path.join(audio_dir, f"scene_{i}.mp3")
                 return {"clip": scene_clip, "urls": scene_urls or set(), "audio": audio_path if os.path.exists(audio_path) else None}
             return None
         except Exception as e:
@@ -185,7 +191,7 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
                 clean_voiceover_files.append(res["audio"])
             
     # Concatenate Clean Voiceover for Wav2Lip
-    master_voiceover = "audio/master_narration.mp3"
+    master_voiceover = os.path.join(session_path, "master_narration.mp3")
     avatar_sync_path = None
     if include_avatar and clean_voiceover_files:
         print("🎙️ Concatenating Clean Voiceover for AI Lip-Sync...")
@@ -200,7 +206,7 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
         print("🧠 Invoking Wav2Lip Inference (This may take a moment)...")
         try:
             from create_avatar import create_avatar_video
-            avatar_sync_output = os.path.join(PROJECT_ROOT, "video_creation/avatar_synced.mp4")
+            avatar_sync_output = os.path.join(session_path, "avatar_synced.mp4")
             
             success = create_avatar_video(
                 face_video_path=avatar_path,
@@ -234,20 +240,21 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
     output_temp = os.path.join(PROJECT_ROOT, "static/videos", f"temp_{ts}.mp4")
     output_path = os.path.join(PROJECT_ROOT, "static/videos", f"vantix_{ts}.mp4")
     
-    # Export the main video first
-    print("\n🎬 [PHASE 4/4] Starting Final Master Render...")
-    # ⚡ LIGHTNING ASSEMBLY (v57/v58): 2-Thread Hardware Stabilization
-    final_video.write_videofile(
-        output_temp, 
-        fps=30, 
-        codec="libx264", 
-        audio_codec="aac", 
-        temp_audiofile=os.path.join(PROJECT_ROOT, "temp_audio.m4a"), 
-        remove_temp=True,
-        threads=2,
-        preset="ultrafast",
-        logger=None
-    )
+    # 🔒 [RENDER LOCK]: Sequential Mastering Sentinel (v124.65)
+    with shorts.VANTIX_RENDER_LOCK:
+        print("\n🎬 [PHASE 4/4] Starting Protected Master Render...")
+        # ⚡ LIGHTNING ASSEMBLY (v57/v58): 2-Thread Hardware Stabilization
+        final_video.write_videofile(
+            output_temp, 
+            fps=30, 
+            codec="libx264", 
+            audio_codec="aac", 
+            temp_audiofile=os.path.join(session_path, "temp_audio.m4a"), 
+            remove_temp=True,
+            threads=2,
+            preset="ultrafast",
+            logger=None
+        )
 
     # Apply Mandatory AI Avatar Lip-Sync Overlay using raw ffmpeg
     if include_avatar and avatar_sync_path and os.path.exists(avatar_sync_path):
