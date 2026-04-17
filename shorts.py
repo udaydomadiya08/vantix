@@ -1092,7 +1092,7 @@ def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=1, hor
                     url = video_files[0].get("link")
                 else:
                     url = None
-                if url in used_video_urls or url in GLOBAL_USED_URLS: continue
+                if url in used_video_urls: continue
                 tags = " ".join([t.get('title', '') for t in clip.get('tags', [])])
                 score = get_relevance_score(tags + " " + query, sentence)
                 scored.append((score, clip))
@@ -1111,7 +1111,7 @@ def find_one_video_clips(sentence, used_video_urls, user_topic, max_clips=1, hor
                     url = v_f[0].get("link")
                 else:
                     url = None
-                if url in used_video_urls or url in GLOBAL_USED_URLS: continue
+                if url in used_video_urls: continue
                 tags = clip.get('tags', '')
                 score = get_relevance_score(tags + " " + query, sentence)
                 scored.append((score, clip))
@@ -2085,9 +2085,8 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
                         
                         collected_clips.append(clip)
                         new_used_urls.add(video_url)
-                        GLOBAL_USED_URLS.add(video_url)
                         total_collected += clip.duration
-                        print(f"✅ Bridge Asset Secured: {clip.duration:.2f}s | Registry Size: {len(GLOBAL_USED_URLS)}")
+                        print(f"✅ Bridge Asset Secured: {clip.duration:.2f}s")
                     except Exception as e:
                         print(f"⚠️ Bridge Asset Extraction Failed: {e}")
             novelty_iteration += 1
@@ -2278,7 +2277,7 @@ def create_video_from_script(script, user_topic):
 
 
     # ---- [VANTIX BOLT HIGH-SPEED ENGINE] ----
-    GLOBAL_USED_URLS.clear() 
+    # GLOBAL_USED_URLS.clear() removed (v124.75)
     sentences = sent_tokenize(script)
     all_used_urls = set()
     output_dir = "video_created"

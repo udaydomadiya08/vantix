@@ -24,7 +24,6 @@ def run_full_vso(forced_script=None, forced_topic=None, forced_avatar=None, hori
     # Inside the script generation call:
     # script = main.generate_vantix_script(topic, user_keys=user_keys, job_id=job_id)
     shorts.set_orientation(horizontal) # 📐 [ENGINE] Set resolution before production
-    shorts.GLOBAL_USED_URLS.clear() # 💥 HARD RESET (v45.6): Zero reuse within this run
     
     # Logic to determine script and topic
     if forced_script or forced_topic:
