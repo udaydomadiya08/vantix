@@ -8,9 +8,12 @@ app_port: 7860
 pinned: false
 ---
 
-# VANTIX: Global AI Content Orchestration 🌌🛰️
+# VANTIX: Industrial AI Content Orchestration 🌌🛰️
 
-VANTIX is a production-grade, AI-orchestrated engine designed for the high-throughput synthesis of E-Books, E-Courses, and Viral Video content. It integrates sequential deep-synthesis and neural failover logic to guarantee stable, high-fidelity content delivery.
+[![Vantix Platform](https://img.shields.io/badge/Platform-Live-brightgreen)](https://vantix.vercel.app)
+[![Engine Status](https://img.shields.io/badge/Engine-v124.65-blue)](https://huggingface.co/spaces/UDAYDOMADIYA/vantix-core)
+
+VANTIX is a high-throughput, production-grade AI orchestration engine designed for the high-fidelity synthesis of E-Books, E-Courses, and Viral Video content. It integrates sequential deep-synthesis and neural failover logic to guarantee 100% stable, high-fidelity content delivery.
 
 ### 🔗 **Live Dashboard**: [https://vantix.vercel.app](https://vantix.vercel.app)
 
@@ -38,7 +41,7 @@ VANTIX is a production-grade, AI-orchestrated engine designed for the high-throu
 
 ### 📚 **E-Book Synthesis Engine**
 *   **Sequential Deep-Synthesis**: Flattened parallelism to evade API rate limits and ensure completion.
-*   **Aesthetic DNA**: Topic-aware visual styling including custom color palettes and typography.
+*   **Neural DNA Generation**: Topic-aware visual styling (Colors, Layouts, Typography).
 *   **High-Fidelity Sanitization**: Automated Markdown stripping for professional, distraction-free text.
 
 ### 🎞️ **Viral Video Orchestration**
@@ -76,4 +79,4 @@ To activate your own Vantix instance:
    Push to Hugging Face Spaces (Docker SDK) for the Engine, and deploy the `omnisaas` directory to Vercel for the Dashboard.
 
 ---
-*© 2026 Vantix Industrial Systems. Developed for High-Velocity Content Production.*
+*© 2026 Vantix Industrial Systems. Powered by Sovereign Engineering.*
