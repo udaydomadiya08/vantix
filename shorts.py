@@ -1737,7 +1737,7 @@ def create_scene(text, idx, used_video_urls, user_topic, max_clips=15, topic_poo
     # 💥 CINEMATIC STABILIZATION (v54): Cluster short milestones
     # Normal Pacing (0.5) -> 2.0s floor. High Pacing (1.0) -> 0.8s floor.
     if intensity is None:
-        intensity = float(os.environ.get("PACING_INTENSITY", PACING_INTENSITY))
+        intensity = float(os.environ.get("PACING_INTENSITY", DEFAULT_PACING_INTENSITY))
     else:
         intensity = float(intensity)
         
